@@ -1,0 +1,294 @@
+import { useNavigate, useLocation, Link } from 'react-router-dom';
+import {
+  Menu,
+  Search,
+  Plus,
+  Bell,
+  Sun,
+  Moon,
+  ChevronRight,
+  LogOut,
+  UserCog,
+  Repeat,
+  Target,
+  Building2,
+  FileText,
+  CheckSquare,
+  Check,
+} from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useAuthStore } from '@/stores/authStore';
+import { useThemeStore } from '@/stores/themeStore';
+import { useUiStore } from '@/stores/uiStore';
+import { useDataStore } from '@/stores/dataStore';
+import { ALL_NAV_ITEMS } from '@/lib/nav';
+import { ROLE_LABELS } from '@/lib/constants';
+import { DEMO_ACCOUNTS } from '@/lib/mockAuth';
+import { EntityAvatar } from '@/components/shared/EntityAvatar';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { formatRelative } from '@/lib/format';
+import { cn } from '@/lib/utils';
+import type { Role } from '@/types';
+
+function Breadcrumbs() {
+  const { pathname } = useLocation();
+  const segments = pathname.split('/').filter(Boolean);
+  const match = ALL_NAV_ITEMS.find((i) => i.path === pathname);
+
+  const crumbs: { label: string; to?: string }[] = [
+    { label: 'Home', to: '/' },
+  ];
+  if (match && match.path !== '/') {
+    crumbs.push({ label: match.label });
+  } else if (segments.length > 0) {
+    let acc = '';
+    segments.forEach((seg) => {
+      acc += `/${seg}`;
+      const navMatch = ALL_NAV_ITEMS.find((i) => i.path === acc);
+      crumbs.push({
+        label:
+          navMatch?.label ??
+          seg.replace(/-/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+      });
+    });
+  }
+
+  return (
+    <nav className="hidden items-center gap-1 text-sm md:flex">
+      {crumbs.map((c, i) => (
+        <span key={i} className="flex items-center gap-1">
+          {i > 0 && <ChevronRight className="size-3.5 text-content-muted" />}
+          {c.to && i < crumbs.length - 1 ? (
+            <Link
+              to={c.to}
+              className="text-content-muted hover:text-content"
+            >
+              {c.label}
+            </Link>
+          ) : (
+            <span
+              className={cn(
+                i === crumbs.length - 1
+                  ? 'font-medium text-content'
+                  : 'text-content-muted',
+              )}
+            >
+              {c.label}
+            </span>
+          )}
+        </span>
+      ))}
+    </nav>
+  );
+}
+
+export function Topbar() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { logout, switchRole } = useAuthStore();
+  const { theme, toggle } = useThemeStore();
+  const { setMobileSidebar, setCommandOpen } = useUiStore();
+  const notifications = useDataStore((s) => s.notifications);
+  const updateNotif = useDataStore((s) => s.update);
+
+  const unread = notifications.filter((n) => !n.read).length;
+  const recent = notifications.slice(0, 6);
+
+  return (
+    <header className="no-print sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4">
+      <button
+        onClick={() => setMobileSidebar(true)}
+        className="rounded-md p-1.5 text-content-secondary hover:bg-muted lg:hidden"
+        aria-label="Open menu"
+      >
+        <Menu className="size-5" />
+      </button>
+
+      <Breadcrumbs />
+
+      <button
+        onClick={() => setCommandOpen(true)}
+        className="ml-auto flex h-9 items-center gap-2 rounded-md border border-line bg-base px-3 text-sm text-content-muted transition-colors hover:border-brand-secondary/40 md:w-64"
+      >
+        <Search className="size-4" />
+        <span className="hidden md:inline">Search anything…</span>
+        <kbd className="ml-auto hidden rounded border border-line bg-surface px-1.5 py-0.5 font-mono text-[10px] md:inline">
+          ⌘K
+        </kbd>
+      </button>
+
+      {/* Quick add */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button size="icon" variant="primary" aria-label="Quick add">
+            <Plus className="size-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuLabel>Create New</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => navigate('/leads/new')}>
+            <Target /> Lead
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/customers/new')}>
+            <Building2 /> Customer
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/proposals/new')}>
+            <FileText /> Proposal
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => navigate('/tasks/new')}>
+            <CheckSquare /> Task
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Theme toggle */}
+      <button
+        onClick={toggle}
+        className="rounded-md p-2 text-content-secondary transition-colors hover:bg-muted"
+        aria-label="Toggle theme"
+      >
+        {theme === 'dark' ? (
+          <Sun className="size-[18px]" />
+        ) : (
+          <Moon className="size-[18px]" />
+        )}
+      </button>
+
+      {/* Notifications */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <button
+            className="relative rounded-md p-2 text-content-secondary transition-colors hover:bg-muted"
+            aria-label="Notifications"
+          >
+            <Bell className="size-[18px]" />
+            {unread > 0 && (
+              <span className="absolute right-1 top-1 flex size-4 items-center justify-center rounded-full bg-brand-secondary text-[9px] font-bold text-white">
+                {unread > 9 ? '9+' : unread}
+              </span>
+            )}
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-80 p-0">
+          <div className="flex items-center justify-between border-b border-line px-3.5 py-2.5">
+            <span className="font-display text-sm font-semibold">
+              Notifications
+            </span>
+            {unread > 0 && (
+              <button
+                onClick={() =>
+                  notifications
+                    .filter((n) => !n.read)
+                    .forEach((n) =>
+                      updateNotif('notifications', n.id, { read: true }),
+                    )
+                }
+                className="text-xs font-medium text-brand-secondary hover:underline"
+              >
+                Mark all read
+              </button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {recent.map((n) => (
+              <button
+                key={n.id}
+                onClick={() => {
+                  updateNotif('notifications', n.id, { read: true });
+                  if (n.link) navigate(n.link);
+                }}
+                className="flex w-full gap-2.5 border-b border-line px-3.5 py-2.5 text-left transition-colors hover:bg-muted"
+              >
+                {!n.read && (
+                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand-secondary" />
+                )}
+                <div className={cn(n.read && 'pl-[18px]')}>
+                  <div className="text-sm font-medium text-content">
+                    {n.title}
+                  </div>
+                  <div className="line-clamp-2 text-xs text-content-muted">
+                    {n.body}
+                  </div>
+                  <div className="mt-0.5 text-[10px] text-content-muted">
+                    {formatRelative(n.createdAt)}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <Link
+            to="/notifications"
+            className="block border-t border-line py-2 text-center text-xs font-medium text-brand-secondary hover:underline"
+          >
+            View all notifications
+          </Link>
+        </PopoverContent>
+      </Popover>
+
+      {/* User menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="flex items-center gap-2 rounded-md p-1 pr-2 transition-colors hover:bg-muted">
+            <EntityAvatar name={user?.name ?? 'User'} size="sm" />
+            <div className="hidden text-left sm:block">
+              <div className="text-sm font-medium leading-tight text-content">
+                {user?.name}
+              </div>
+              <div className="text-[11px] leading-tight text-content-muted">
+                {user ? ROLE_LABELS[user.role] : ''}
+              </div>
+            </div>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
+          <DropdownMenuItem onClick={() => navigate('/profile')}>
+            <UserCog /> Profile Settings
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuLabel>
+            <span className="flex items-center gap-1.5">
+              <Repeat className="size-3" /> Switch Role (Demo)
+            </span>
+          </DropdownMenuLabel>
+          {DEMO_ACCOUNTS.map((acc) => (
+            <DropdownMenuItem
+              key={acc.role}
+              onClick={() => switchRole(acc.role as Role)}
+            >
+              <span className="flex w-full items-center justify-between">
+                {acc.label}
+                {user?.role === acc.role && (
+                  <Check className="size-3.5 text-brand-secondary" />
+                )}
+              </span>
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            destructive
+            onClick={() => {
+              logout();
+              navigate('/login');
+            }}
+          >
+            <LogOut /> Sign Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </header>
+  );
+}

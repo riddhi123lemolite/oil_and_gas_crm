@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($ErrorActionPreference='SilentlyContinue'; \"node: $\\(node --version\\)\"; \"npm: $\\(npm --version\\)\")",
+      "PowerShell($env:Path = \"C:\\\\Program Files\\\\nodejs;\" + $env:Path; cd \"C:\\\\Users\\\\DELL\\\\Downloads\\\\Sales CRM\"; npm install --no-audit --no-fund 2>&1 | Select-Object -Last 30)",
+      "Bash(export PATH=\"/c/Program Files/nodejs:$PATH\")",
+      "Bash(npm.cmd run *)",
+      "Bash(curl -s -o /dev/null -w \"localhost: %{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s http://localhost:5173/)",
+      "Bash(npm.cmd install *)"
+    ]
+  }
+}
