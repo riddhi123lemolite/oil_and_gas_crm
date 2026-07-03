@@ -1,6 +1,14 @@
 import { useState, type FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import {
+  User as UserIcon,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  ArrowRight,
+  MailCheck,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AuthLayout } from './AuthLayout';
 import { useAuthStore } from '@/stores/authStore';
@@ -8,41 +16,83 @@ import { useDataStore } from '@/stores/dataStore';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/forms/FormField';
-import { Checkbox } from '@/components/ui/checkbox';
 
-export default function Login() {
+export default function Signup() {
   const navigate = useNavigate();
-  const login = useAuthStore((s) => s.login);
+  const signup = useAuthStore((s) => s.signup);
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [checkEmail, setCheckEmail] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
-    const result = await login(email, password);
-    if (!result.ok) {
-      setLoading(false);
-      setError(result.error ?? 'Login failed');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
-    // Load the shared workspace before entering the app.
+    setLoading(true);
+    const result = await signup(name, email, password);
+    if (!result.ok) {
+      setLoading(false);
+      setError(result.error ?? 'Sign up failed');
+      return;
+    }
+    if (result.needsConfirmation) {
+      setLoading(false);
+      setCheckEmail(true);
+      return;
+    }
     await useDataStore.getState().hydrate();
     setLoading(false);
-    toast.success('Signed in successfully');
+    toast.success('Account created');
     navigate('/');
   };
 
+  if (checkEmail) {
+    return (
+      <AuthLayout heading="Confirm your email" subheading="One quick step to finish">
+        <div className="space-y-4">
+          <div className="flex size-11 items-center justify-center rounded-lg bg-brand-secondary/10 text-brand-secondary">
+            <MailCheck className="size-5" />
+          </div>
+          <p className="text-sm text-content-secondary">
+            We sent a confirmation link to{' '}
+            <span className="font-medium text-content">{email}</span>. Click it,
+            then come back and sign in.
+          </p>
+          <Button className="w-full" onClick={() => navigate('/login')}>
+            Go to sign in <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout
-      heading="Welcome back"
-      subheading="Sign in to your OilGas CRM workspace"
+      heading="Create your account"
+      subheading="Start managing your CRM workspace"
     >
       <form onSubmit={submit} className="space-y-4">
+        <FormField label="Full Name" htmlFor="name">
+          <div className="relative">
+            <UserIcon className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-content-muted" />
+            <Input
+              id="name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Priya Shah"
+              className="pl-8"
+              autoComplete="name"
+            />
+          </div>
+        </FormField>
+
         <FormField label="Email Address" htmlFor="email">
           <div className="relative">
             <Mail className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-content-muted" />
@@ -66,20 +116,16 @@ export default function Login() {
               type={showPassword ? 'text' : 'password'}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="At least 6 characters"
               className="px-8"
-              autoComplete="current-password"
+              autoComplete="new-password"
             />
             <button
               type="button"
               onClick={() => setShowPassword((v) => !v)}
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-content-muted hover:text-content"
             >
-              {showPassword ? (
-                <EyeOff className="size-4" />
-              ) : (
-                <Eye className="size-4" />
-              )}
+              {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
         </FormField>
@@ -90,35 +136,19 @@ export default function Login() {
           </div>
         )}
 
-        <div className="flex items-center justify-between">
-          <label className="flex cursor-pointer items-center gap-2 text-sm text-content-secondary">
-            <Checkbox
-              checked={remember}
-              onCheckedChange={(v) => setRemember(!!v)}
-            />
-            Remember me
-          </label>
-          <Link
-            to="/forgot-password"
-            className="text-sm font-medium text-brand-secondary hover:underline"
-          >
-            Forgot password?
-          </Link>
-        </div>
-
         <Button type="submit" className="w-full" loading={loading}>
-          Sign In
+          Create Account
           {!loading && <ArrowRight className="size-4" />}
         </Button>
       </form>
 
       <div className="mt-6 border-t border-line pt-5 text-center text-sm text-content-secondary">
-        New to OilGas CRM?{' '}
+        Already have an account?{' '}
         <Link
-          to="/signup"
+          to="/login"
           className="font-medium text-brand-secondary hover:underline"
         >
-          Create an account
+          Sign in
         </Link>
       </div>
     </AuthLayout>

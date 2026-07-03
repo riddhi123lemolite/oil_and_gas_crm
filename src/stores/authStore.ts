@@ -1,61 +1,124 @@
 import { create } from 'zustand';
-import { STORAGE_KEYS, readStorage, writeStorage, removeStorage } from '@/lib/storage';
-import { DEMO_USER_ID_BY_ROLE } from '@/lib/mockAuth';
+import { supabase } from '@/lib/supabase';
+import {
+  findUserByEmail,
+  countUsers,
+  upsertRow,
+  type Identifiable,
+} from '@/lib/db';
+import { ensureSeeded } from '@/lib/seedLoader';
+import { generateId } from '@/lib/utils';
 import type { Role, User } from '@/types';
-import { useDataStore } from './dataStore';
 
 interface AuthState {
   currentUser: User | null;
   initialized: boolean;
-  init: () => void;
-  login: (email: string, password: string) => { ok: boolean; error?: string };
-  logout: () => void;
-  switchRole: (role: Role) => void;
+  init: () => Promise<void>;
+  login: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>;
+  logout: () => Promise<void>;
 }
 
-function findUser(predicate: (u: User) => boolean): User | undefined {
-  return useDataStore.getState().users.find(predicate);
+/**
+ * Find the profile row for a signed-in email, creating one if it doesn't exist.
+ * The very first profile in an empty workspace becomes the ADMIN.
+ */
+async function ensureProfile(
+  email: string,
+  name: string,
+  preferAdmin = false,
+): Promise<User> {
+  const existing = await findUserByEmail<User>(email);
+  if (existing) return existing;
+
+  const count = await countUsers();
+  const role: Role = preferAdmin || count === 0 ? 'ADMIN' : 'SALES_EXECUTIVE';
+  const profile: User = {
+    id: generateId('user'),
+    userCode: `U${String(count + 1).padStart(3, '0')}`,
+    name: name || email.split('@')[0] || 'Team member',
+    email,
+    phone: '',
+    password: '',
+    role,
+    city: '',
+    state: '',
+    active: true,
+    createdAt: new Date().toISOString(),
+  };
+  await upsertRow('users', profile as unknown as Identifiable);
+  return profile;
 }
+
+let listenerBound = false;
 
 export const useAuthStore = create<AuthState>((set) => ({
   currentUser: null,
   initialized: false,
 
-  init: () => {
-    const savedId = readStorage<string | null>(STORAGE_KEYS.auth, null);
-    const user = savedId ? findUser((u) => u.id === savedId) : undefined;
-    set({ currentUser: user ?? null, initialized: true });
+  init: async () => {
+    // Clear local state immediately if the session ends (logout / expiry / other tab).
+    if (!listenerBound) {
+      listenerBound = true;
+      supabase.auth.onAuthStateChange((event) => {
+        if (event === 'SIGNED_OUT') set({ currentUser: null });
+      });
+    }
+
+    const { data } = await supabase.auth.getSession();
+    const sessionUser = data.session?.user;
+    if (sessionUser?.email) {
+      const firstEver = (await countUsers()) === 0;
+      await ensureSeeded();
+      const name = (sessionUser.user_metadata?.full_name as string | undefined) ?? '';
+      const profile = await ensureProfile(sessionUser.email, name, firstEver);
+      set({ currentUser: profile, initialized: true });
+    } else {
+      set({ currentUser: null, initialized: true });
+    }
   },
 
-  login: (email, password) => {
-    const user = findUser(
-      (u) =>
-        u.email.toLowerCase() === email.trim().toLowerCase() &&
-        u.password === password,
-    );
-    if (!user) {
-      return { ok: false, error: 'Invalid email or password.' };
-    }
-    if (!user.active) {
-      return { ok: false, error: 'This account has been deactivated.' };
-    }
-    writeStorage(STORAGE_KEYS.auth, user.id);
-    useDataStore
-      .getState()
-      .update('users', user.id, { lastLoginAt: new Date().toISOString() });
-    set({ currentUser: { ...user, lastLoginAt: new Date().toISOString() } });
+  login: async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password,
+    });
+    if (error) return { ok: false, error: error.message };
+
+    const firstEver = (await countUsers()) === 0;
+    await ensureSeeded();
+    const name = (data.user.user_metadata?.full_name as string | undefined) ?? '';
+    const profile = await ensureProfile(data.user.email ?? email, name, firstEver);
+    const withLogin: User = { ...profile, lastLoginAt: new Date().toISOString() };
+    await upsertRow('users', withLogin as unknown as Identifiable);
+    set({ currentUser: withLogin });
     return { ok: true };
   },
 
-  logout: () => {
-    removeStorage(STORAGE_KEYS.auth);
-    set({ currentUser: null });
+  signup: async (name, email, password) => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { full_name: name } },
+    });
+    if (error) return { ok: false, error: error.message };
+
+    // Email confirmation on → no session yet; user must verify first.
+    if (!data.session) return { ok: true, needsConfirmation: true };
+
+    const firstEver = (await countUsers()) === 0;
+    await ensureSeeded();
+    const profile = await ensureProfile(data.user?.email ?? email, name, firstEver);
+    set({ currentUser: profile });
+    return { ok: true, needsConfirmation: false };
   },
 
-  switchRole: (role) => {
-    const user = findUser((u) => u.id === DEMO_USER_ID_BY_ROLE[role]);
-    if (!user) return;
-    writeStorage(STORAGE_KEYS.auth, user.id);
-    set({ currentUser: user });
+  logout: async () => {
+    await supabase.auth.signOut();
+    set({ currentUser: null });
   },
 }));

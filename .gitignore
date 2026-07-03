@@ -2,6 +2,11 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# environment files (NEVER commit these — they hold your keys)
+.env
+.env.*
+!.env.example
 .DS_Store
 .vscode/*
 !.vscode/extensions.json

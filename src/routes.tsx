@@ -5,6 +5,7 @@ import { RequireAuth } from '@/components/layout/RequireAuth';
 
 // Auth (eager — small, needed first)
 import Login from '@/pages/auth/Login';
+import Signup from '@/pages/auth/Signup';
 import ForgotPassword from '@/pages/auth/ForgotPassword';
 import ResetPassword from '@/pages/auth/ResetPassword';
 import OtpVerification from '@/pages/auth/OtpVerification';
@@ -94,6 +95,7 @@ const NotFound = lazy(() => import('@/pages/NotFound'));
 
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
+  { path: '/signup', element: <Signup /> },
   { path: '/forgot-password', element: <ForgotPassword /> },
   { path: '/reset-password', element: <ResetPassword /> },
   { path: '/otp', element: <OtpVerification /> },
