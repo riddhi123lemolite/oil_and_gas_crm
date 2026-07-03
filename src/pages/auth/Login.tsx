@@ -5,6 +5,7 @@ import toast from 'react-hot-toast';
 import { AuthLayout } from './AuthLayout';
 import { useAuthStore } from '@/stores/authStore';
 import { useDataStore } from '@/stores/dataStore';
+import { DEMO_MODE } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/forms/FormField';
@@ -13,8 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 export default function Login() {
   const navigate = useNavigate();
   const login = useAuthStore((s) => s.login);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(DEMO_MODE ? 'demo@oilgas.in' : '');
+  const [password, setPassword] = useState(DEMO_MODE ? 'demo1234' : '');
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
   const [error, setError] = useState('');
@@ -42,6 +43,12 @@ export default function Login() {
       heading="Welcome back"
       subheading="Sign in to your OilGas CRM workspace"
     >
+      {DEMO_MODE && (
+        <div className="mb-4 rounded-md border border-brand-secondary/30 bg-brand-secondary/10 px-3 py-2 text-xs font-medium text-brand-secondary">
+          Demo mode — any email &amp; password works. Just click Sign In.
+        </div>
+      )}
+
       <form onSubmit={submit} className="space-y-4">
         <FormField label="Email Address" htmlFor="email">
           <div className="relative">

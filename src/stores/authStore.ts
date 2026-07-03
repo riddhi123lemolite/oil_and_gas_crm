@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { supabase } from '@/lib/supabase';
+import { DEMO_MODE } from '@/lib/config';
+import { readStorage, writeStorage, removeStorage } from '@/lib/storage';
 import {
   findUserByEmail,
   countUsers,
@@ -22,6 +24,9 @@ interface AuthState {
   ) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>;
   logout: () => Promise<void>;
 }
+
+// Remembers who is "signed in" during a demo session.
+const DEMO_SESSION_KEY = 'oilgas-crm:demo:session';
 
 /**
  * Find the profile row for a signed-in email, creating one if it doesn't exist.
@@ -61,7 +66,20 @@ export const useAuthStore = create<AuthState>((set) => ({
   initialized: false,
 
   init: async () => {
-    // Clear local state immediately if the session ends (logout / expiry / other tab).
+    // ---- Demo mode: restore a previous demo session if there is one ----
+    if (DEMO_MODE) {
+      const savedEmail = readStorage<string | null>(DEMO_SESSION_KEY, null);
+      if (savedEmail) {
+        await ensureSeeded();
+        const profile = await ensureProfile(savedEmail, savedEmail.split('@')[0] ?? 'Demo User', true);
+        set({ currentUser: profile, initialized: true });
+      } else {
+        set({ currentUser: null, initialized: true });
+      }
+      return;
+    }
+
+    // ---- Normal mode: use the Supabase session ----
     if (!listenerBound) {
       listenerBound = true;
       supabase.auth.onAuthStateChange((event) => {
@@ -83,6 +101,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   login: async (email, password) => {
+    // Demo mode: accept anything and go straight in (as an admin).
+    if (DEMO_MODE) {
+      const em = (email || 'demo@oilgas.in').trim();
+      await ensureSeeded();
+      const profile = await ensureProfile(em, em.split('@')[0] ?? 'Demo User', true);
+      writeStorage(DEMO_SESSION_KEY, em);
+      set({ currentUser: profile });
+      return { ok: true };
+    }
+
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
@@ -100,6 +128,16 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   signup: async (name, email, password) => {
+    // Demo mode: creating an account just logs you in with sample data.
+    if (DEMO_MODE) {
+      const em = (email || 'demo@oilgas.in').trim();
+      await ensureSeeded();
+      const profile = await ensureProfile(em, name || em.split('@')[0] || 'Demo User', true);
+      writeStorage(DEMO_SESSION_KEY, em);
+      set({ currentUser: profile });
+      return { ok: true, needsConfirmation: false };
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
@@ -118,6 +156,11 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: async () => {
+    if (DEMO_MODE) {
+      removeStorage(DEMO_SESSION_KEY);
+      set({ currentUser: null });
+      return;
+    }
     await supabase.auth.signOut();
     set({ currentUser: null });
   },
