@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { router } from './routes';
-import { ensureSeeded } from './lib/seedLoader';
 import { useDataStore } from './stores/dataStore';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
@@ -30,11 +29,14 @@ export default function App() {
     (async () => {
       useThemeStore.getState().init();
       useUiStore.getState().init();
-      setLabel('Loading demo data…');
-      await ensureSeeded();
+      setLabel('Connecting…');
+      await useAuthStore.getState().init();
       if (!active) return;
-      useDataStore.getState().hydrate();
-      useAuthStore.getState().init();
+      if (useAuthStore.getState().currentUser) {
+        setLabel('Loading your workspace…');
+        await useDataStore.getState().hydrate();
+        if (!active) return;
+      }
       setReady(true);
     })();
     return () => {

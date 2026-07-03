@@ -1,5 +1,16 @@
 import { create } from 'zustand';
-import { STORAGE_KEYS, readStorage, writeStorage } from '@/lib/storage';
+import toast from 'react-hot-toast';
+import {
+  fetchAllCollections,
+  upsertRow,
+  deleteRow,
+  replaceCollection,
+  getSetting,
+  setSetting,
+  subscribeToChanges,
+  type EntityTable,
+  type Identifiable,
+} from '@/lib/db';
 import { DEFAULT_PERMISSIONS } from '@/lib/permissions';
 import type { PermAction, PermModule } from '@/lib/permissions';
 import { generateId } from '@/lib/utils';
@@ -66,7 +77,7 @@ interface DataState extends Collections {
   permissions: PermMatrix;
   hydrated: boolean;
 
-  hydrate: () => void;
+  hydrate: () => Promise<void>;
   add: <K extends CollKey>(key: K, item: Collections[K][number]) => void;
   update: <K extends CollKey>(
     key: K,
@@ -100,6 +111,13 @@ const COLL_KEYS: CollKey[] = [
   'notifications', 'documents', 'auditLog',
 ];
 
+export const SETTINGS_KEYS = {
+  definitions: 'definitions',
+  company: 'company',
+  permissions: 'permissions',
+  seedVersion: 'seed_version',
+} as const;
+
 const emptyCollections = (): Collections => ({
   users: [], leads: [], customers: [], items: [], proposals: [], orders: [],
   invoices: [], payments: [], routes: [], dispatches: [], vehicles: [],
@@ -132,93 +150,130 @@ const EMPTY_COMPANY: CompanySettings = {
   terms: '',
 };
 
-export const useDataStore = create<DataState>((set, get) => ({
-  ...emptyCollections(),
-  definitions: EMPTY_DEFS,
-  company: EMPTY_COMPANY,
-  permissions: DEFAULT_PERMISSIONS,
-  hydrated: false,
+// Report a failed background write to the user without breaking the UI.
+function persistError(err: unknown): void {
+  console.error('[dataStore] save failed', err);
+  toast.error('Could not save to the server. Please check your connection.');
+}
 
-  hydrate: () => {
-    const next: Partial<DataState> = { hydrated: true };
-    for (const key of COLL_KEYS) {
-      (next as Record<string, unknown>)[key] = readStorage(
-        STORAGE_KEYS[key],
-        [],
-      );
-    }
-    next.definitions = readStorage(STORAGE_KEYS.definitions, EMPTY_DEFS);
-    next.company = readStorage(STORAGE_KEYS.company, EMPTY_COMPANY);
-    next.permissions = readStorage(
-      STORAGE_KEYS.permissions,
-      DEFAULT_PERMISSIONS,
-    );
-    set(next);
-  },
+let unsubscribeRealtime: (() => void) | null = null;
 
-  add: (key, item) => {
-    const next = [item, ...get()[key]] as Collections[typeof key];
-    writeStorage(STORAGE_KEYS[key], next);
-    set({ [key]: next } as unknown as Partial<DataState>);
-  },
+export const useDataStore = create<DataState>((set, get) => {
+  // Apply a change that arrived over realtime (another user, or another tab).
+  function applyRealtimeUpsert(table: EntityTable, row: Identifiable): void {
+    const key = table as CollKey;
+    set((state) => {
+      const list = state[key] as unknown as Identifiable[];
+      const exists = list.some((r) => r.id === row.id);
+      const nextList = exists
+        ? list.map((r) => (r.id === row.id ? row : r))
+        : [row, ...list];
+      return { [key]: nextList } as unknown as Partial<DataState>;
+    });
+  }
 
-  update: (key, id, patch) => {
-    const next = get()[key].map((row) =>
-      row.id === id ? { ...row, ...patch } : row,
-    ) as Collections[typeof key];
-    writeStorage(STORAGE_KEYS[key], next);
-    set({ [key]: next } as unknown as Partial<DataState>);
-  },
+  function applyRealtimeDelete(table: EntityTable, id: string): void {
+    const key = table as CollKey;
+    set((state) => {
+      const list = state[key] as unknown as Identifiable[];
+      return { [key]: list.filter((r) => r.id !== id) } as unknown as Partial<DataState>;
+    });
+  }
 
-  remove: (key, id) => {
-    const next = get()[key].filter(
-      (row) => row.id !== id,
-    ) as Collections[typeof key];
-    writeStorage(STORAGE_KEYS[key], next);
-    set({ [key]: next } as unknown as Partial<DataState>);
-  },
+  return {
+    ...emptyCollections(),
+    definitions: EMPTY_DEFS,
+    company: EMPTY_COMPANY,
+    permissions: DEFAULT_PERMISSIONS,
+    hydrated: false,
 
-  replace: (key, items) => {
-    writeStorage(STORAGE_KEYS[key], items);
-    set({ [key]: items } as unknown as Partial<DataState>);
-  },
+    hydrate: async () => {
+      const [collections, definitions, company, permissions] = await Promise.all([
+        fetchAllCollections(),
+        getSetting<Definitions>(SETTINGS_KEYS.definitions, EMPTY_DEFS),
+        getSetting<CompanySettings>(SETTINGS_KEYS.company, EMPTY_COMPANY),
+        getSetting<PermMatrix>(SETTINGS_KEYS.permissions, DEFAULT_PERMISSIONS),
+      ]);
 
-  setDefinitions: (d) => {
-    writeStorage(STORAGE_KEYS.definitions, d);
-    set({ definitions: d });
-  },
+      const next: Partial<DataState> = { hydrated: true, definitions, company, permissions };
+      for (const key of COLL_KEYS) {
+        (next as Record<string, unknown>)[key] = collections[key];
+      }
+      set(next);
 
-  setCompany: (c) => {
-    writeStorage(STORAGE_KEYS.company, c);
-    set({ company: c });
-  },
+      // Start (or restart) the live sync once we have data.
+      if (unsubscribeRealtime) unsubscribeRealtime();
+      unsubscribeRealtime = subscribeToChanges(applyRealtimeUpsert, applyRealtimeDelete);
+    },
 
-  setPermissions: (p) => {
-    writeStorage(STORAGE_KEYS.permissions, p);
-    set({ permissions: p });
-  },
+    add: (key, item) => {
+      const next = [item, ...get()[key]] as Collections[typeof key];
+      set({ [key]: next } as unknown as Partial<DataState>);
+      upsertRow(key as EntityTable, item as unknown as Identifiable).catch(persistError);
+    },
 
-  logActivity: (entityType, entityId, type, title, userId, description) => {
-    const activity: Activity = {
-      id: generateId('act'),
-      type,
-      title,
-      description,
-      entityType,
-      entityId,
-      userId,
-      createdAt: new Date().toISOString(),
-    };
-    get().add('activities', activity);
-  },
+    update: (key, id, patch) => {
+      let updated: Identifiable | undefined;
+      const next = get()[key].map((row) => {
+        if (row.id === id) {
+          const merged = { ...row, ...patch };
+          updated = merged as unknown as Identifiable;
+          return merged;
+        }
+        return row;
+      }) as Collections[typeof key];
+      set({ [key]: next } as unknown as Partial<DataState>);
+      if (updated) upsertRow(key as EntityTable, updated).catch(persistError);
+    },
 
-  pushNotification: (n) => {
-    const notif: AppNotification = {
-      ...n,
-      id: generateId('notif'),
-      read: false,
-      createdAt: new Date().toISOString(),
-    };
-    get().add('notifications', notif);
-  },
-}));
+    remove: (key, id) => {
+      const next = get()[key].filter((row) => row.id !== id) as Collections[typeof key];
+      set({ [key]: next } as unknown as Partial<DataState>);
+      deleteRow(key as EntityTable, id).catch(persistError);
+    },
+
+    replace: (key, items) => {
+      set({ [key]: items } as unknown as Partial<DataState>);
+      replaceCollection(key as EntityTable, items as unknown as Identifiable[]).catch(persistError);
+    },
+
+    setDefinitions: (d) => {
+      set({ definitions: d });
+      setSetting(SETTINGS_KEYS.definitions, d).catch(persistError);
+    },
+
+    setCompany: (c) => {
+      set({ company: c });
+      setSetting(SETTINGS_KEYS.company, c).catch(persistError);
+    },
+
+    setPermissions: (p) => {
+      set({ permissions: p });
+      setSetting(SETTINGS_KEYS.permissions, p).catch(persistError);
+    },
+
+    logActivity: (entityType, entityId, type, title, userId, description) => {
+      const activity: Activity = {
+        id: generateId('act'),
+        type,
+        title,
+        description,
+        entityType,
+        entityId,
+        userId,
+        createdAt: new Date().toISOString(),
+      };
+      get().add('activities', activity);
+    },
+
+    pushNotification: (n) => {
+      const notif: AppNotification = {
+        ...n,
+        id: generateId('notif'),
+        read: false,
+        createdAt: new Date().toISOString(),
+      };
+      get().add('notifications', notif);
+    },
+  };
+});

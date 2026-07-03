@@ -1,54 +1,68 @@
-import { STORAGE_KEYS, writeStorage, readStorage } from './storage';
+import {
+  getSetting,
+  setSetting,
+  bulkInsert,
+  clearAllTables,
+  type EntityTable,
+  type Identifiable,
+} from './db';
 import { DEFAULT_PERMISSIONS } from './permissions';
 import type { SeedData } from './seed/generate';
 
-// Bump this to force every browser to re-seed on next load.
+// Bump to force a one-time re-seed of the shared database on next sign-in.
 const SEED_VERSION = '2026.05.21-1';
 
-function persistSeed(data: SeedData): void {
-  writeStorage(STORAGE_KEYS.users, data.users);
-  writeStorage(STORAGE_KEYS.leads, data.leads);
-  writeStorage(STORAGE_KEYS.customers, data.customers);
-  writeStorage(STORAGE_KEYS.items, data.items);
-  writeStorage(STORAGE_KEYS.proposals, data.proposals);
-  writeStorage(STORAGE_KEYS.orders, data.orders);
-  writeStorage(STORAGE_KEYS.invoices, data.invoices);
-  writeStorage(STORAGE_KEYS.payments, data.payments);
-  writeStorage(STORAGE_KEYS.routes, data.routes);
-  writeStorage(STORAGE_KEYS.dispatches, data.dispatches);
-  writeStorage(STORAGE_KEYS.vehicles, data.vehicles);
-  writeStorage(STORAGE_KEYS.drivers, data.drivers);
-  writeStorage(STORAGE_KEYS.inventory, data.inventory);
-  writeStorage(STORAGE_KEYS.tasks, data.tasks);
-  writeStorage(STORAGE_KEYS.activities, data.activities);
-  writeStorage(STORAGE_KEYS.messages, data.messages);
-  writeStorage(STORAGE_KEYS.channels, data.channels);
-  writeStorage(STORAGE_KEYS.emails, data.emails);
-  writeStorage(STORAGE_KEYS.callLogs, data.callLogs);
-  writeStorage(STORAGE_KEYS.notifications, data.notifications);
-  writeStorage(STORAGE_KEYS.documents, data.documents);
-  writeStorage(STORAGE_KEYS.auditLog, data.auditLog);
-  writeStorage(STORAGE_KEYS.definitions, data.definitions);
-  writeStorage(STORAGE_KEYS.company, data.company);
-  writeStorage(STORAGE_KEYS.permissions, DEFAULT_PERMISSIONS);
+async function persistSeed(data: SeedData): Promise<void> {
+  const collections: Array<[EntityTable, Identifiable[]]> = [
+    ['users', data.users as unknown as Identifiable[]],
+    ['leads', data.leads as unknown as Identifiable[]],
+    ['customers', data.customers as unknown as Identifiable[]],
+    ['items', data.items as unknown as Identifiable[]],
+    ['proposals', data.proposals as unknown as Identifiable[]],
+    ['orders', data.orders as unknown as Identifiable[]],
+    ['invoices', data.invoices as unknown as Identifiable[]],
+    ['payments', data.payments as unknown as Identifiable[]],
+    ['routes', data.routes as unknown as Identifiable[]],
+    ['dispatches', data.dispatches as unknown as Identifiable[]],
+    ['vehicles', data.vehicles as unknown as Identifiable[]],
+    ['drivers', data.drivers as unknown as Identifiable[]],
+    ['inventory', data.inventory as unknown as Identifiable[]],
+    ['tasks', data.tasks as unknown as Identifiable[]],
+    ['activities', data.activities as unknown as Identifiable[]],
+    ['messages', data.messages as unknown as Identifiable[]],
+    ['channels', data.channels as unknown as Identifiable[]],
+    ['emails', data.emails as unknown as Identifiable[]],
+    ['callLogs', data.callLogs as unknown as Identifiable[]],
+    ['notifications', data.notifications as unknown as Identifiable[]],
+    ['documents', data.documents as unknown as Identifiable[]],
+    ['auditLog', data.auditLog as unknown as Identifiable[]],
+  ];
+
+  // Insert every collection, then the singleton settings.
+  await Promise.all(collections.map(([table, rows]) => bulkInsert(table, rows)));
+  await setSetting('definitions', data.definitions);
+  await setSetting('company', data.company);
+  await setSetting('permissions', DEFAULT_PERMISSIONS);
 }
 
 /**
- * Ensure the browser's localStorage holds a full set of demo data.
- * The generator (which bundles faker) is dynamically imported so it stays
- * out of the initial bundle — it only loads on first run or after a reset.
+ * Ensure the shared Supabase database holds a full set of demo data.
+ * Runs once (guarded by a seed_version flag); the generator that bundles
+ * faker is imported dynamically so it stays out of the main app bundle.
  */
 export async function ensureSeeded(force = false): Promise<void> {
-  const current = readStorage<string | null>(STORAGE_KEYS.seedVersion, null);
+  const current = await getSetting<string | null>('seed_version', null);
   if (!force && current === SEED_VERSION) return;
+
+  if (force) await clearAllTables();
 
   const { generateSeed } = await import('./seed/generate');
   const data = generateSeed();
-  persistSeed(data);
-  writeStorage(STORAGE_KEYS.seedVersion, SEED_VERSION);
+  await persistSeed(data);
+  await setSetting('seed_version', SEED_VERSION);
 }
 
-/** Used by "Reset Demo Data" — wipes user changes and regenerates. */
+/** Used by "Reset Demo Data" — wipes changes and regenerates sample data. */
 export async function reseed(): Promise<void> {
   await ensureSeeded(true);
 }

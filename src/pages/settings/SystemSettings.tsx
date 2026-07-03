@@ -20,7 +20,7 @@ export default function SystemSettings() {
   const handleReset = async () => {
     setResetting(true);
     await reseed();
-    hydrate();
+    await hydrate();
     setResetting(false);
     toast.success('Demo data has been reset to its original state');
   };
