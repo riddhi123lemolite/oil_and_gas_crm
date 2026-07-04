@@ -131,7 +131,7 @@ export function Sidebar() {
             </button>
             {!isCollapsed && (
               <div className="mt-1 px-2.5 text-[10px] text-content-muted">
-                OilGas CRM v1.0.0 · Demo
+                Clientio v1.0.0 · Demo
               </div>
             )}
           </div>

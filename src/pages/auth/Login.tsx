@@ -41,7 +41,7 @@ export default function Login() {
   return (
     <AuthLayout
       heading="Welcome back"
-      subheading="Sign in to your OilGas CRM workspace"
+      subheading="Sign in to your Clientio workspace"
     >
       {DEMO_MODE && (
         <div className="mb-4 rounded-md border border-brand-secondary/30 bg-brand-secondary/10 px-3 py-2 text-xs font-medium text-brand-secondary">
@@ -120,7 +120,7 @@ export default function Login() {
       </form>
 
       <div className="mt-6 border-t border-line pt-5 text-center text-sm text-content-secondary">
-        New to OilGas CRM?{' '}
+        New to Clientio?{' '}
         <Link
           to="/signup"
           className="font-medium text-brand-secondary hover:underline"

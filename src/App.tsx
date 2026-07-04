@@ -22,7 +22,7 @@ function BootScreen({ label }: { label: string }) {
 
 export default function App() {
   const [ready, setReady] = useState(false);
-  const [label, setLabel] = useState('Starting OilGas CRM…');
+  const [label, setLabel] = useState('Starting Clientio…');
 
   useEffect(() => {
     let active = true;

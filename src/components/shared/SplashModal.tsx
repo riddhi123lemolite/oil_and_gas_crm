@@ -34,7 +34,7 @@ export function SplashModal() {
   return (
     <Dialog open={!splashSeen} onOpenChange={(o) => !o && dismissSplash()}>
       <DialogContent size="md" hideClose>
-        <DialogTitle className="sr-only">Welcome to OilGas CRM</DialogTitle>
+        <DialogTitle className="sr-only">Welcome to Clientio</DialogTitle>
         <DialogBody className="pt-7">
           <div className="flex flex-col items-center text-center">
             <Logo showWordmark={false} />
@@ -42,7 +42,7 @@ export function SplashModal() {
               <Sparkles className="size-3" /> Interactive Demo
             </div>
             <h2 className="mt-3 font-display text-xl font-bold text-content">
-              Welcome to OilGas CRM
+              Welcome to Clientio
             </h2>
             <p className="mt-1 max-w-sm text-sm text-content-muted">
               A click-through prototype for petroleum, gas & petrochemical

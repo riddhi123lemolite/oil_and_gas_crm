@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import { Logo } from '@/components/shared/Logo';
-import { Droplets, TrendingUp, Truck, ShieldCheck } from 'lucide-react';
+import { TrendingUp, Truck, ShieldCheck } from 'lucide-react';
 
 const HIGHLIGHTS = [
   { icon: TrendingUp, text: 'Track leads, proposals & margins per KL' },
@@ -35,9 +35,30 @@ export function AuthLayout({
 
         <div className="relative flex flex-1 flex-col p-12 text-white">
           <div className="flex items-center gap-2.5">
-            <Droplets className="size-7 text-brand-secondary" />
+            <svg viewBox="0 0 512 512" className="size-8 shrink-0" aria-hidden="true">
+              <defs>
+                <linearGradient id="clientioTileBrand" x1="0" y1="0" x2="0.35" y2="1">
+                  <stop offset="0" stopColor="#134668" />
+                  <stop offset="1" stopColor="#0C3149" />
+                </linearGradient>
+              </defs>
+              <rect width="512" height="512" rx="118" fill="url(#clientioTileBrand)" />
+              <g transform="translate(111,111) scale(2.9)" fill="none">
+                <rect x="24" y="58" width="13" height="22" rx="4" fill="#2B6088" />
+                <rect x="43.5" y="44" width="13" height="36" rx="4" fill="#2B6088" />
+                <rect x="63" y="30" width="13" height="50" rx="4" fill="#F47719" />
+                <path
+                  d="M26 50 L46 40 L69 22"
+                  stroke="#F47719"
+                  strokeWidth="6"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <circle cx="69" cy="22" r="6.5" fill="#F47719" />
+              </g>
+            </svg>
             <span className="font-display text-lg font-bold">
-              OilGas CRM
+              Client<span className="text-brand-secondary">io</span>
             </span>
           </div>
 
@@ -65,7 +86,7 @@ export function AuthLayout({
           </div>
 
           <div className="relative text-xs text-white/40">
-            © 2026 OilGas CRM · Interactive prototype · All data is mocked
+            © 2026 Clientio · Interactive prototype · All data is mocked
           </div>
         </div>
       </div>
