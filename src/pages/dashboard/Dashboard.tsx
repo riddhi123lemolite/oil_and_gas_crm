@@ -253,7 +253,7 @@ export default function Dashboard() {
           icon={Trophy}
           delta={18.0}
           accent="#C2410C"
-          onClick={() => navigate('/proposals')}
+          onClick={() => navigate('/proposals?status=WON')}
         />
       </div>
 

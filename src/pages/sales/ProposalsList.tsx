@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, FileText, ShieldAlert } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -16,10 +16,12 @@ import type { Proposal } from '@/types';
 
 export default function ProposalsList() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { can } = useAuth();
   const { customerName } = useLookups();
   const proposals = useDataStore((s) => s.proposals);
-  const [status, setStatus] = useState('all');
+  // Allow a starting status via the URL, e.g. /proposals?status=WON
+  const [status, setStatus] = useState(searchParams.get('status') ?? 'all');
 
   const filtered = useMemo(
     () => proposals.filter((p) => status === 'all' || p.status === status),
