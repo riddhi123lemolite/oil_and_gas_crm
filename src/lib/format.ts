@@ -18,11 +18,10 @@ export function formatINR(amount: number | undefined | null): string {
     amount === undefined || amount === null || Number.isNaN(amount)
       ? 0
       : amount * cur.rate;
+  // No forced fraction digits — each currency uses its own (INR 2, KWD/BHD/OMR 3).
   return new Intl.NumberFormat(cur.locale, {
     style: 'currency',
     currency: cur.code,
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 2,
   }).format(value);
 }
 

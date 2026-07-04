@@ -167,8 +167,7 @@ export function Topbar() {
             className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-content-secondary transition-colors hover:bg-muted"
             aria-label="Switch currency"
           >
-            <span className="num">{activeCur.symbol}</span>
-            <span className="hidden sm:inline">{activeCur.code}</span>
+            <span className="num font-semibold">{activeCur.code}</span>
             <ChevronDown className="size-3.5" />
           </button>
         </DropdownMenuTrigger>
@@ -178,7 +177,7 @@ export function Topbar() {
             <DropdownMenuItem key={c.code} onClick={() => setCurrency(c.code)}>
               <span className="flex w-full items-center justify-between gap-4">
                 <span>
-                  <span className="num mr-2 inline-block w-6 text-content-muted">
+                  <span className="num mr-2 inline-block w-12 text-xs text-content-muted">
                     {c.symbol}
                   </span>
                   {c.name}

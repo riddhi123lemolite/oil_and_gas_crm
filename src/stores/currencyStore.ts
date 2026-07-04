@@ -11,13 +11,20 @@ export interface Currency {
 }
 
 // All amounts in the app are stored in INR; these convert for display only.
+// `rate` = value of 1 INR in that currency (indicative demo rates).
 export const CURRENCIES: Currency[] = [
   { code: 'INR', symbol: '₹', name: 'Indian Rupee', locale: 'en-IN', rate: 1 },
   { code: 'USD', symbol: '$', name: 'US Dollar', locale: 'en-US', rate: 0.012 },
+  { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar', locale: 'en-CA', rate: 0.016 },
   { code: 'EUR', symbol: '€', name: 'Euro', locale: 'en-IE', rate: 0.011 },
-  { code: 'AED', symbol: 'د.إ', name: 'UAE Dirham', locale: 'en-AE', rate: 0.044 },
   { code: 'GBP', symbol: '£', name: 'British Pound', locale: 'en-GB', rate: 0.0095 },
-  { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar', locale: 'en-SG', rate: 0.016 },
+  // GCC currencies
+  { code: 'AED', symbol: 'AED', name: 'UAE Dirham', locale: 'en-AE', rate: 0.044 },
+  { code: 'SAR', symbol: 'SAR', name: 'Saudi Riyal', locale: 'en-SA', rate: 0.045 },
+  { code: 'QAR', symbol: 'QAR', name: 'Qatari Riyal', locale: 'en-QA', rate: 0.0437 },
+  { code: 'KWD', symbol: 'KWD', name: 'Kuwaiti Dinar', locale: 'en-KW', rate: 0.00369 },
+  { code: 'BHD', symbol: 'BHD', name: 'Bahraini Dinar', locale: 'en-BH', rate: 0.00452 },
+  { code: 'OMR', symbol: 'OMR', name: 'Omani Rial', locale: 'en-OM', rate: 0.00463 },
 ];
 
 const STORAGE_KEY = 'oilgas-crm:currency';
