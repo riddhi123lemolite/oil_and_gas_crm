@@ -10,6 +10,7 @@ import {
 } from '@/lib/db';
 import { ensureSeeded } from '@/lib/seedLoader';
 import { generateId } from '@/lib/utils';
+import { useDataStore } from './dataStore';
 import type { Role, User } from '@/types';
 
 interface AuthState {
@@ -23,6 +24,8 @@ interface AuthState {
     password: string,
   ) => Promise<{ ok: boolean; error?: string; needsConfirmation?: boolean }>;
   logout: () => Promise<void>;
+  // Demo-only: instantly view the app as a different role.
+  switchRole: (role: Role) => void;
 }
 
 // Remembers who is "signed in" during a demo session.
@@ -163,5 +166,17 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
     await supabase.auth.signOut();
     set({ currentUser: null });
+  },
+
+  switchRole: (role) => {
+    // Prefer a real seeded staff member with this role (so the name changes too);
+    // otherwise just re-badge the current user with the chosen role.
+    const demoUser = useDataStore.getState().users.find((u) => u.role === role);
+    set((state) => {
+      if (!state.currentUser) return {};
+      const nextUser: User = demoUser ?? { ...state.currentUser, role };
+      return { currentUser: nextUser };
+    });
+    if (DEMO_MODE && demoUser?.email) writeStorage(DEMO_SESSION_KEY, demoUser.email);
   },
 }));

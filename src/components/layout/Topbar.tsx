@@ -9,10 +9,12 @@ import {
   ChevronRight,
   LogOut,
   UserCog,
+  Repeat,
   Target,
   Building2,
   FileText,
   CheckSquare,
+  Check,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/authStore';
@@ -21,6 +23,9 @@ import { useUiStore } from '@/stores/uiStore';
 import { useDataStore } from '@/stores/dataStore';
 import { ALL_NAV_ITEMS } from '@/lib/nav';
 import { ROLE_LABELS } from '@/lib/constants';
+import { DEMO_ACCOUNTS } from '@/lib/mockAuth';
+import { DEMO_MODE } from '@/lib/config';
+import type { Role } from '@/types';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -94,7 +99,7 @@ function Breadcrumbs() {
 export function Topbar() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { logout } = useAuthStore();
+  const { logout, switchRole } = useAuthStore();
   const { theme, toggle } = useThemeStore();
   const { setMobileSidebar, setCommandOpen } = useUiStore();
   const notifications = useDataStore((s) => s.notifications);
@@ -254,6 +259,29 @@ export function Topbar() {
           <DropdownMenuItem onClick={() => navigate('/profile')}>
             <UserCog /> Profile Settings
           </DropdownMenuItem>
+          {DEMO_MODE && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel>
+                <span className="flex items-center gap-1.5">
+                  <Repeat className="size-3" /> Switch Role (Demo)
+                </span>
+              </DropdownMenuLabel>
+              {DEMO_ACCOUNTS.map((acc) => (
+                <DropdownMenuItem
+                  key={acc.role}
+                  onClick={() => switchRole(acc.role as Role)}
+                >
+                  <span className="flex w-full items-center justify-between">
+                    {acc.label}
+                    {user?.role === acc.role && (
+                      <Check className="size-3.5 text-brand-secondary" />
+                    )}
+                  </span>
+                </DropdownMenuItem>
+              ))}
+            </>
+          )}
           <DropdownMenuSeparator />
           <DropdownMenuItem
             destructive
