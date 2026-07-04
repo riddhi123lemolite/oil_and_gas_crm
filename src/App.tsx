@@ -6,6 +6,7 @@ import { useDataStore } from './stores/dataStore';
 import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
 import { useUiStore } from './stores/uiStore';
+import { useCurrencyStore } from './stores/currencyStore';
 import { Logo } from './components/shared/Logo';
 
 function BootScreen({ label }: { label: string }) {
@@ -29,6 +30,7 @@ export default function App() {
     (async () => {
       useThemeStore.getState().init();
       useUiStore.getState().init();
+      useCurrencyStore.getState().init();
       setLabel('Connecting…');
       await useAuthStore.getState().init();
       if (!active) return;

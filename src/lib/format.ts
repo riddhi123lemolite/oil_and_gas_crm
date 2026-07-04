@@ -1,43 +1,50 @@
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
+import { activeCurrency } from '@/stores/currencyStore';
 import type { Unit } from '@/types';
 
 // ---------------------------------------------------------------------------
-// Currency — Indian numbering (lakh / crore)
+// Currency — amounts are stored in INR and converted to the selected
+// display currency (see the switcher in the top bar).
 // ---------------------------------------------------------------------------
-
-const inrFormatter = new Intl.NumberFormat('en-IN', {
-  maximumFractionDigits: 2,
-  minimumFractionDigits: 2,
-});
 
 const inrWhole = new Intl.NumberFormat('en-IN', {
   maximumFractionDigits: 0,
 });
 
-/** Format a rupee amount as "₹ 1,23,456.00". */
+/** Format a money amount (stored in INR) in the selected currency. */
 export function formatINR(amount: number | undefined | null): string {
-  if (amount === undefined || amount === null || Number.isNaN(amount)) {
-    return '₹ 0.00';
-  }
-  return `₹ ${inrFormatter.format(amount)}`;
+  const cur = activeCurrency();
+  const value =
+    amount === undefined || amount === null || Number.isNaN(amount)
+      ? 0
+      : amount * cur.rate;
+  return new Intl.NumberFormat(cur.locale, {
+    style: 'currency',
+    currency: cur.code,
+    maximumFractionDigits: 2,
+    minimumFractionDigits: 2,
+  }).format(value);
 }
 
-/** Compact rupee amount — "₹1.23 Cr", "₹4.50 L", "₹12,500". */
+/** Compact money — INR keeps lakh/crore; others use K/M/B compact notation. */
 export function formatINRCompact(amount: number | undefined | null): string {
-  if (amount === undefined || amount === null || Number.isNaN(amount)) {
-    return '₹0';
+  const cur = activeCurrency();
+  const raw =
+    amount === undefined || amount === null || Number.isNaN(amount) ? 0 : amount;
+
+  if (cur.code === 'INR') {
+    const abs = Math.abs(raw);
+    if (abs >= 1_00_00_000) return `₹${(raw / 1_00_00_000).toFixed(2)} Cr`;
+    if (abs >= 1_00_000) return `₹${(raw / 1_00_000).toFixed(2)} L`;
+    return `₹${inrWhole.format(raw)}`;
   }
-  const abs = Math.abs(amount);
-  if (abs >= 1_00_00_000) {
-    return `₹${(amount / 1_00_00_000).toFixed(2)} Cr`;
-  }
-  if (abs >= 1_00_000) {
-    return `₹${(amount / 1_00_000).toFixed(2)} L`;
-  }
-  if (abs >= 1_000) {
-    return `₹${inrWhole.format(amount)}`;
-  }
-  return `₹${inrWhole.format(amount)}`;
+
+  return new Intl.NumberFormat(cur.locale, {
+    style: 'currency',
+    currency: cur.code,
+    notation: 'compact',
+    maximumFractionDigits: 2,
+  }).format(raw * cur.rate);
 }
 
 export function formatNumber(value: number, fractionDigits = 0): string {

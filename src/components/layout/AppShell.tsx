@@ -10,9 +10,12 @@ import { KeyboardShortcutsModal } from '@/components/shared/KeyboardShortcutsMod
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { useCurrencyStore } from '@/stores/currencyStore';
 
 export function AppShell() {
   useGlobalShortcuts();
+  // Re-render the page content when the currency changes so every amount reformats.
+  const currency = useCurrencyStore((s) => s.code);
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -21,7 +24,7 @@ export function AppShell() {
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />
           <main className="flex-1 pb-20 lg:pb-0">
-            <div className="mx-auto max-w-[1600px] p-4 sm:p-5 lg:p-6">
+            <div key={currency} className="mx-auto max-w-[1600px] p-4 sm:p-5 lg:p-6">
               <ErrorBoundary>
                 <Suspense
                   fallback={

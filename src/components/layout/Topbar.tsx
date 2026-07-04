@@ -15,6 +15,7 @@ import {
   FileText,
   CheckSquare,
   Check,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/authStore';
@@ -25,6 +26,7 @@ import { ALL_NAV_ITEMS } from '@/lib/nav';
 import { ROLE_LABELS } from '@/lib/constants';
 import { DEMO_ACCOUNTS } from '@/lib/mockAuth';
 import { DEMO_MODE } from '@/lib/config';
+import { useCurrencyStore, CURRENCIES } from '@/stores/currencyStore';
 import type { Role } from '@/types';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { Button } from '@/components/ui/button';
@@ -100,6 +102,9 @@ export function Topbar() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { logout, switchRole } = useAuthStore();
+  const currencyCode = useCurrencyStore((s) => s.code);
+  const setCurrency = useCurrencyStore((s) => s.setCurrency);
+  const activeCur = CURRENCIES.find((c) => c.code === currencyCode) ?? CURRENCIES[0]!;
   const { theme, toggle } = useThemeStore();
   const { setMobileSidebar, setCommandOpen } = useUiStore();
   const notifications = useDataStore((s) => s.notifications);
@@ -152,6 +157,38 @@ export function Topbar() {
           <DropdownMenuItem onClick={() => navigate('/tasks/new')}>
             <CheckSquare /> Task
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Currency switcher */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-content-secondary transition-colors hover:bg-muted"
+            aria-label="Switch currency"
+          >
+            <span className="num">{activeCur.symbol}</span>
+            <span className="hidden sm:inline">{activeCur.code}</span>
+            <ChevronDown className="size-3.5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Display currency</DropdownMenuLabel>
+          {CURRENCIES.map((c) => (
+            <DropdownMenuItem key={c.code} onClick={() => setCurrency(c.code)}>
+              <span className="flex w-full items-center justify-between gap-4">
+                <span>
+                  <span className="num mr-2 inline-block w-6 text-content-muted">
+                    {c.symbol}
+                  </span>
+                  {c.name}
+                </span>
+                {currencyCode === c.code && (
+                  <Check className="size-3.5 text-brand-secondary" />
+                )}
+              </span>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
