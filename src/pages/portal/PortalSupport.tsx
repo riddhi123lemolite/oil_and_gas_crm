@@ -8,6 +8,7 @@ import { FormField } from '@/components/forms/FormField';
 import { SelectField } from '@/components/forms/SelectField';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 
 const FAQ = [
   { q: 'How do I track my order?', a: 'Open Orders → Product Tracking and select a dispatch to see its live milestone timeline.' },
@@ -17,9 +18,8 @@ const FAQ = [
 ];
 
 export default function PortalSupport() {
-  const customers = useDataStore((s) => s.customers);
   const users = useDataStore((s) => s.users);
-  const me = customers[0];
+  const me = usePortalCustomer();
   const manager = users.find((u) => u.id === me?.ownerId) ?? users[0];
 
   const [subject, setSubject] = useState('');

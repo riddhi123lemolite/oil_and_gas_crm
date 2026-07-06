@@ -5,6 +5,7 @@ import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
 import type { OrderStatus } from '@/types';
 import type { BadgeTone } from '@/lib/constants';
@@ -22,8 +23,7 @@ export default function PortalOrders() {
   const [params] = useSearchParams();
   const status = params.get('status') ?? 'active';
   const orders = useDataStore((s) => s.orders);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
 
   const rows = useMemo(() => {
     const mine = me ? orders.filter((o) => o.customerId === me.id) : [];

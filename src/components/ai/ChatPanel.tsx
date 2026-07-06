@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, Send, Square, Copy, RefreshCw, ArrowRight, Check } from 'lucide-react';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { useAuthStore } from '@/stores/authStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useLiveMarket } from '@/hooks/useLiveMarket';
@@ -22,6 +23,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const payments = useDataStore((s) => s.payments);
   const notifications = useDataStore((s) => s.notifications);
   const items = useDataStore((s) => s.items);
+  const selectedCustomer = usePortalCustomer();
   const { oil, fuel } = useLiveMarket();
 
   const { conversations, activeId, newConversation, addMessage } = useAiStore();
@@ -33,7 +35,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
 
   const ctx: AiContext = useMemo(() => {
     const isC = role === 'CUSTOMER';
-    const me = customers[0];
+    const me = selectedCustomer;
     const scope = <T extends { customerId: string }>(arr: T[]) => (isC && me ? arr.filter((x) => x.customerId === me.id) : arr);
     return {
       role,
@@ -50,7 +52,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       fuel,
       canErp: can('erp', 'view'),
     };
-  }, [role, currentUser, customers, invoices, dispatches, orders, payments, notifications, items, oil, fuel, can]);
+  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, notifications, items, oil, fuel, can]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

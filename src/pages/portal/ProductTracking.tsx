@@ -3,6 +3,7 @@ import { Boxes, Truck, User, MapPin, Navigation, Package, CheckCircle2 } from 'l
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatQty, formatINR, formatDate } from '@/lib/format';
 import { DISPATCH_STATUS, ITEM_CATEGORY } from '@/lib/constants';
 import type { DispatchStatus } from '@/types';
@@ -23,8 +24,7 @@ export default function ProductTracking() {
   const items = useDataStore((s) => s.items);
   const dispatches = useDataStore((s) => s.dispatches);
   const routes = useDataStore((s) => s.routes);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
 
   const itemName = useMemo(() => {
     const map = new Map(items.map((i) => [i.id, i.name]));

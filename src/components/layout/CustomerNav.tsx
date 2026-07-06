@@ -6,6 +6,7 @@ import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useAuthStore } from '@/stores/authStore';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer, usePortalCustomers, usePortalStore } from '@/hooks/usePortalCustomer';
 import { readStorage, writeStorage } from '@/lib/storage';
 import { cn } from '@/lib/utils';
 
@@ -14,8 +15,7 @@ const EXPAND_KEY = 'oilgas-crm:cust-nav-expanded';
 function useBadges(): Record<BadgeKey, number> {
   const invoices = useDataStore((s) => s.invoices);
   const notifications = useDataStore((s) => s.notifications);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
   const myInv = me ? invoices.filter((i) => i.customerId === me.id) : [];
   return {
     notifications: notifications.filter((n) => !n.read).length,
@@ -44,27 +44,51 @@ function Badge({ n }: { n: number }) {
 
 // -------- Sidebar header: avatar, name, company, id, account status --------
 export function CustomerHeader({ collapsed }: { collapsed: boolean }) {
-  const user = useAuthStore((s) => s.currentUser);
-  const me = useDataStore((s) => s.customers)[0];
-  const name = user?.name ?? 'Customer';
+  const me = usePortalCustomer();
+  const accounts = usePortalCustomers();
+  const index = usePortalStore((s) => s.index);
+  const setIndex = usePortalStore((s) => s.setIndex);
+  const label = me?.companyName ?? 'Customer';
   if (collapsed) {
     return (
       <div className="flex justify-center border-b border-line py-3">
-        <EntityAvatar name={name} size="sm" />
+        <EntityAvatar name={label} size="sm" />
       </div>
     );
   }
   return (
     <div className="border-b border-line p-4">
       <div className="flex items-center gap-3">
-        <EntityAvatar name={name} size="md" />
+        <EntityAvatar name={label} size="md" />
         <div className="min-w-0">
-          <div className="truncate font-semibold text-content">{name}</div>
-          <div className="truncate text-xs text-content-muted">{me?.companyName ?? '—'}</div>
+          <div className="truncate font-semibold text-content">{label}</div>
+          <div className="truncate text-xs text-content-muted">{me?.industry ?? '—'}</div>
         </div>
       </div>
+
+      {/* Demo account switcher — view the portal as any of these customers */}
+      {accounts.length > 1 && (
+        <label className="mt-3 block">
+          <span className="mb-1 block text-[10px] font-semibold uppercase tracking-wide text-content-muted">
+            Viewing account
+          </span>
+          <select
+            value={Math.min(index, accounts.length - 1)}
+            onChange={(e) => setIndex(Number(e.target.value))}
+            aria-label="Switch customer account"
+            className="input-base h-9 text-sm font-medium"
+          >
+            {accounts.map((c, i) => (
+              <option key={c.id} value={i}>
+                {c.companyName}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
       <div className="mt-2.5 flex items-center justify-between text-[11px]">
-        <span className="num text-content-muted">ID: {me?.code ?? user?.userCode ?? '—'}</span>
+        <span className="num text-content-muted">ID: {me?.code ?? '—'}</span>
         <span className="inline-flex items-center gap-1 rounded-full bg-success/10 px-2 py-0.5 font-medium text-success">
           <span className="size-1.5 rounded-full bg-success" /> {me?.active ? 'Active' : 'Inactive'}
         </span>

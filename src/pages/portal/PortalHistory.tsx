@@ -6,6 +6,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { SelectField } from '@/components/forms/SelectField';
 import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
 import { exportToExcel } from '@/lib/excel';
 import { INVOICE_STATUS } from '@/lib/constants';
@@ -17,8 +18,7 @@ export default function PortalHistory() {
   const invoices = useDataStore((s) => s.invoices);
   const dispatches = useDataStore((s) => s.dispatches);
   const items = useDataStore((s) => s.items);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
 
   const itemName = useMemo(() => {
     const map = new Map(items.map((i) => [i.id, i.name]));

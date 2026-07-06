@@ -9,13 +9,13 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { MarketTicker } from '@/components/portal/MarketTicker';
 import { useLiveMarket } from '@/hooks/useLiveMarket';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { useAuthStore } from '@/stores/authStore';
 import { formatINR, formatDate } from '@/lib/format';
 import { INVOICE_STATUS } from '@/lib/constants';
 
 export default function PortalDashboard() {
   const user = useAuthStore((s) => s.currentUser);
-  const customers = useDataStore((s) => s.customers);
   const invoices = useDataStore((s) => s.invoices);
   const dispatches = useDataStore((s) => s.dispatches);
   const orders = useDataStore((s) => s.orders);
@@ -23,7 +23,7 @@ export default function PortalDashboard() {
   const notifications = useDataStore((s) => s.notifications);
   const { oil, fuel } = useLiveMarket();
 
-  const me = customers[0];
+  const me = usePortalCustomer();
   const myInvoices = me ? invoices.filter((i) => i.customerId === me.id) : [];
   const myDispatches = me ? dispatches.filter((d) => d.customerId === me.id) : [];
   const myOrders = me ? orders.filter((o) => o.customerId === me.id) : [];

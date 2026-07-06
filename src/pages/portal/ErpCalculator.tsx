@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Calculator, Plus, Trash2, Copy, RotateCcw } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { formatNumber } from '@/lib/format';
+import { formatNumber, formatKL } from '@/lib/format';
 import { computeErp } from '@/lib/erp';
 import { generateId } from '@/lib/utils';
 
@@ -64,8 +64,9 @@ export default function ErpCalculator() {
       />
 
       {/* Summary */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <SummaryTile label="Total Litre" value={`${formatNumber(totalLitre, 2)} L`} />
+        <SummaryTile label="Total KL" value={formatKL(totalLitre)} accent="#2563EB" />
         <SummaryTile label="Total Kg" value={`${formatNumber(totalKg, 2)} kg`} />
         <SummaryTile label="Avg Density" value={`${formatNumber(avgDensity, 2)} g/L`} accent="#0891B2" />
         <SummaryTile label="Avg Price" value={`${inr(avgPrice)} /L`} accent="#00A878" />

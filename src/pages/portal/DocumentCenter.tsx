@@ -10,6 +10,7 @@ import { SelectField } from '@/components/forms/SelectField';
 import { Dialog, DialogContent, DialogBody, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatDate } from '@/lib/format';
 import type { BadgeTone } from '@/lib/constants';
 
@@ -41,8 +42,7 @@ export default function DocumentCenter() {
   const dispatches = useDataStore((s) => s.dispatches);
   const orders = useDataStore((s) => s.orders);
   const payments = useDataStore((s) => s.payments);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
   const [params] = useSearchParams();
   const [type, setType] = useState(params.get('type') ?? 'all');
   const [preview, setPreview] = useState<Doc | null>(null);

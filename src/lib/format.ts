@@ -54,10 +54,21 @@ export function formatNumber(value: number, fractionDigits = 0): string {
   }).format(value);
 }
 
-/** Quantity with unit — "1,234.500 KL". */
+/** Quantity with unit — "1,234.500 KL".
+ *  Bulk litre volumes are shown in kilolitres (1 KL = 1,000 L), the industry
+ *  norm, so KL appears everywhere a large liquid volume is displayed. Small
+ *  litre quantities (< 1 KL) stay in litres. */
 export function formatQty(value: number, unit: Unit): string {
+  if (unit === 'L' && Math.abs(value) >= 1000) {
+    return `${formatNumber(value / 1000, 3)} KL`;
+  }
   const decimals = unit === 'KL' || unit === 'MT' ? 3 : 0;
   return `${formatNumber(value, decimals)} ${unit}`;
+}
+
+/** Litres expressed in kilolitres — "1,234.500 KL". */
+export function formatKL(litres: number): string {
+  return `${formatNumber(litres / 1000, 3)} KL`;
 }
 
 // ---------------------------------------------------------------------------

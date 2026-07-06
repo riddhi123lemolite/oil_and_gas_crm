@@ -3,6 +3,7 @@ import { Wallet, CreditCard, Landmark, Banknote, Smartphone, FileCheck, Download
 import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
 
 const METHODS = [
@@ -16,8 +17,7 @@ const METHODS = [
 export default function PortalPayments() {
   const payments = useDataStore((s) => s.payments);
   const invoices = useDataStore((s) => s.invoices);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
 
   const invNo = useMemo(() => {
     const map = new Map(invoices.map((i) => [i.id, i.number]));

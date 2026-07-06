@@ -1,13 +1,12 @@
 import { Building2, MapPin, FileText, Users } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { EmptyState } from '@/components/shared/EmptyState';
-import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR } from '@/lib/format';
 import type { Address } from '@/types';
 
 export default function CompanyInfo() {
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
 
   if (!me) {
     return (

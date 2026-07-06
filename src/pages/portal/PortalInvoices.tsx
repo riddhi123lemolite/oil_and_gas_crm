@@ -4,6 +4,7 @@ import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useDataStore } from '@/stores/dataStore';
+import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
 import { INVOICE_STATUS } from '@/lib/constants';
 import type { InvoiceStatus } from '@/types';
@@ -18,8 +19,7 @@ const FILTERS: { key: InvoiceStatus | 'ALL'; label: string }[] = [
 
 export default function PortalInvoices() {
   const invoices = useDataStore((s) => s.invoices);
-  const customers = useDataStore((s) => s.customers);
-  const me = customers[0];
+  const me = usePortalCustomer();
   const [filter, setFilter] = useState<InvoiceStatus | 'ALL'>('ALL');
 
   const mine = (me ? invoices.filter((i) => i.customerId === me.id) : [])
