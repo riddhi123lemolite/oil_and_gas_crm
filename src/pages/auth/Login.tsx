@@ -6,6 +6,7 @@ import { AuthLayout } from './AuthLayout';
 import { useAuthStore } from '@/stores/authStore';
 import { useDataStore } from '@/stores/dataStore';
 import { DEMO_MODE } from '@/lib/config';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { FormField } from '@/components/forms/FormField';
@@ -13,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 
 export default function Login() {
   const navigate = useNavigate();
+  const t = useT();
   const login = useAuthStore((s) => s.login);
   const [email, setEmail] = useState(DEMO_MODE ? 'demo@oilgas.in' : '');
   const [password, setPassword] = useState(DEMO_MODE ? 'demo1234' : '');
@@ -40,17 +42,17 @@ export default function Login() {
 
   return (
     <AuthLayout
-      heading="Welcome back"
-      subheading="Sign in to your Clientio workspace"
+      heading={t('Welcome back')}
+      subheading={t('Sign in to your Sarvadesk workspace')}
     >
       {DEMO_MODE && (
         <div className="mb-4 rounded-md border border-brand-secondary/30 bg-brand-secondary/10 px-3 py-2 text-xs font-medium text-brand-secondary">
-          Demo mode — any email &amp; password works. Just click Sign In.
+          {t('Demo mode — any email & password works. Just click Sign In.')}
         </div>
       )}
 
       <form onSubmit={submit} className="space-y-4">
-        <FormField label="Email Address" htmlFor="email">
+        <FormField label={t('Email Address')} htmlFor="email">
           <div className="relative">
             <Mail className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-content-muted" />
             <Input
@@ -65,7 +67,7 @@ export default function Login() {
           </div>
         </FormField>
 
-        <FormField label="Password" htmlFor="password">
+        <FormField label={t('Password')} htmlFor="password">
           <div className="relative">
             <Lock className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-content-muted" />
             <Input
@@ -103,29 +105,29 @@ export default function Login() {
               checked={remember}
               onCheckedChange={(v) => setRemember(!!v)}
             />
-            Remember me
+            {t('Remember me')}
           </label>
           <Link
             to="/forgot-password"
             className="text-sm font-medium text-brand-secondary hover:underline"
           >
-            Forgot password?
+            {t('Forgot password?')}
           </Link>
         </div>
 
         <Button type="submit" className="w-full" loading={loading}>
-          Sign In
+          {t('Sign In')}
           {!loading && <ArrowRight className="size-4" />}
         </Button>
       </form>
 
       <div className="mt-6 border-t border-line pt-5 text-center text-sm text-content-secondary">
-        New to Clientio?{' '}
+        {t('New to Sarvadesk?')}{' '}
         <Link
           to="/signup"
           className="font-medium text-brand-secondary hover:underline"
         >
-          Create an account
+          {t('Create an account')}
         </Link>
       </div>
     </AuthLayout>

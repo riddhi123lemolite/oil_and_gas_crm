@@ -7,6 +7,7 @@ import { useAuthStore } from './stores/authStore';
 import { useThemeStore } from './stores/themeStore';
 import { useUiStore } from './stores/uiStore';
 import { useCurrencyStore } from './stores/currencyStore';
+import { useLanguageStore, LANGUAGES } from './lib/i18n';
 import { Logo } from './components/shared/Logo';
 
 function BootScreen({ label }: { label: string }) {
@@ -23,7 +24,15 @@ function BootScreen({ label }: { label: string }) {
 
 export default function App() {
   const [ready, setReady] = useState(false);
-  const [label, setLabel] = useState('Starting Clientio…');
+  const [label, setLabel] = useState('Starting Sarvadesk…');
+  const langCode = useLanguageStore((s) => s.code);
+
+  // Apply the selected language + text direction (RTL for Arabic) to <html>.
+  useEffect(() => {
+    const lang = LANGUAGES.find((l) => l.code === langCode);
+    document.documentElement.lang = langCode;
+    document.documentElement.dir = lang?.dir ?? 'ltr';
+  }, [langCode]);
 
   useEffect(() => {
     let active = true;
@@ -31,6 +40,7 @@ export default function App() {
       useThemeStore.getState().init();
       useUiStore.getState().init();
       useCurrencyStore.getState().init();
+      useLanguageStore.getState().init();
       setLabel('Connecting…');
       await useAuthStore.getState().init();
       if (!active) return;

@@ -2,6 +2,7 @@ import { NavLink } from 'react-router-dom';
 import { PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import { NAV_GROUPS, type NavItem } from '@/lib/nav';
 import { useAuth } from '@/hooks/useAuth';
+import { useT } from '@/lib/i18n';
 import { useUiStore } from '@/stores/uiStore';
 import { Logo } from '@/components/shared/Logo';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -17,6 +18,7 @@ function SidebarLink({
   onNavigate: () => void;
 }) {
   const Icon = item.icon;
+  const t = useT();
   const link = (
     <NavLink
       to={item.path}
@@ -38,14 +40,14 @@ function SidebarLink({
             <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-r bg-brand-secondary" />
           )}
           <Icon className="size-[18px] shrink-0" strokeWidth={1.5} />
-          {!collapsed && <span className="truncate">{item.label}</span>}
+          {!collapsed && <span className="truncate">{t(item.label)}</span>}
         </>
       )}
     </NavLink>
   );
 
   return collapsed ? (
-    <Tooltip content={item.label} side="right">
+    <Tooltip content={t(item.label)} side="right">
       {link}
     </Tooltip>
   ) : (
@@ -55,6 +57,7 @@ function SidebarLink({
 
 export function Sidebar() {
   const { can } = useAuth();
+  const t = useT();
   const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebar } =
     useUiStore();
 
@@ -90,7 +93,7 @@ export function Sidebar() {
               <div key={group.label}>
                 {!isCollapsed && (
                   <div className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
-                    {group.label}
+                    {t(group.label)}
                   </div>
                 )}
                 {isCollapsed && (
@@ -125,13 +128,13 @@ export function Sidebar() {
               ) : (
                 <>
                   <PanelLeftClose className="size-[18px]" strokeWidth={1.5} />
-                  <span>Collapse</span>
+                  <span>{t('Collapse')}</span>
                 </>
               )}
             </button>
             {!isCollapsed && (
               <div className="mt-1 px-2.5 text-[10px] text-content-muted">
-                Clientio v1.0.0 · Demo
+                Sarvadesk v1.0.0 · Demo
               </div>
             )}
           </div>

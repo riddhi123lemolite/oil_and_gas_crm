@@ -16,6 +16,7 @@ import {
   CheckSquare,
   Check,
   ChevronDown,
+  Globe,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/authStore';
@@ -27,6 +28,7 @@ import { ROLE_LABELS } from '@/lib/constants';
 import { DEMO_ACCOUNTS } from '@/lib/mockAuth';
 import { DEMO_MODE } from '@/lib/config';
 import { useCurrencyStore, CURRENCIES } from '@/stores/currencyStore';
+import { useT, useLanguageStore, LANGUAGES } from '@/lib/i18n';
 import type { Role } from '@/types';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { Button } from '@/components/ui/button';
@@ -105,6 +107,9 @@ export function Topbar() {
   const currencyCode = useCurrencyStore((s) => s.code);
   const setCurrency = useCurrencyStore((s) => s.setCurrency);
   const activeCur = CURRENCIES.find((c) => c.code === currencyCode) ?? CURRENCIES[0]!;
+  const t = useT();
+  const langCode = useLanguageStore((s) => s.code);
+  const setLanguage = useLanguageStore((s) => s.setLanguage);
   const { theme, toggle } = useThemeStore();
   const { setMobileSidebar, setCommandOpen } = useUiStore();
   const notifications = useDataStore((s) => s.notifications);
@@ -130,7 +135,7 @@ export function Topbar() {
         className="ml-auto flex h-9 items-center gap-2 rounded-md border border-line bg-base px-3 text-sm text-content-muted transition-colors hover:border-brand-secondary/40 md:w-64"
       >
         <Search className="size-4" />
-        <span className="hidden md:inline">Search anything…</span>
+        <span className="hidden md:inline">{t('Search anything…')}</span>
         <kbd className="ml-auto hidden rounded border border-line bg-surface px-1.5 py-0.5 font-mono text-[10px] md:inline">
           ⌘K
         </kbd>
@@ -144,19 +149,45 @@ export function Topbar() {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuLabel>Create New</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('Create New')}</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => navigate('/leads/new')}>
-            <Target /> Lead
+            <Target /> {t('Lead')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/customers/new')}>
-            <Building2 /> Customer
+            <Building2 /> {t('Customer')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/proposals/new')}>
-            <FileText /> Proposal
+            <FileText /> {t('Proposal')}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => navigate('/tasks/new')}>
-            <CheckSquare /> Task
+            <CheckSquare /> {t('Task')}
           </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {/* Language switcher */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            className="flex items-center gap-1 rounded-md px-2 py-1.5 text-sm font-medium text-content-secondary transition-colors hover:bg-muted"
+            aria-label="Switch language"
+          >
+            <Globe className="size-[18px]" />
+            <span className="hidden uppercase sm:inline">{langCode}</span>
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-48">
+          <DropdownMenuLabel>{t('Language')}</DropdownMenuLabel>
+          {LANGUAGES.map((l) => (
+            <DropdownMenuItem key={l.code} onClick={() => setLanguage(l.code)}>
+              <span className="flex w-full items-center justify-between gap-4">
+                {l.name}
+                {langCode === l.code && (
+                  <Check className="size-3.5 text-brand-secondary" />
+                )}
+              </span>
+            </DropdownMenuItem>
+          ))}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -172,7 +203,7 @@ export function Topbar() {
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-56">
-          <DropdownMenuLabel>Display currency</DropdownMenuLabel>
+          <DropdownMenuLabel>{t('Display currency')}</DropdownMenuLabel>
           {CURRENCIES.map((c) => (
             <DropdownMenuItem key={c.code} onClick={() => setCurrency(c.code)}>
               <span className="flex w-full items-center justify-between gap-4">
@@ -222,7 +253,7 @@ export function Topbar() {
         <PopoverContent align="end" className="w-80 p-0">
           <div className="flex items-center justify-between border-b border-line px-3.5 py-2.5">
             <span className="font-display text-sm font-semibold">
-              Notifications
+              {t('Notifications')}
             </span>
             {unread > 0 && (
               <button
@@ -235,7 +266,7 @@ export function Topbar() {
                 }
                 className="text-xs font-medium text-brand-secondary hover:underline"
               >
-                Mark all read
+                {t('Mark all read')}
               </button>
             )}
           </div>
@@ -293,14 +324,14 @@ export function Topbar() {
         <DropdownMenuContent align="end" className="w-56">
           <DropdownMenuLabel>{user?.email}</DropdownMenuLabel>
           <DropdownMenuItem onClick={() => navigate('/profile')}>
-            <UserCog /> Profile Settings
+            <UserCog /> {t('Profile Settings')}
           </DropdownMenuItem>
           {DEMO_MODE && (
             <>
               <DropdownMenuSeparator />
               <DropdownMenuLabel>
                 <span className="flex items-center gap-1.5">
-                  <Repeat className="size-3" /> Switch Role (Demo)
+                  <Repeat className="size-3" /> {t('Switch Role (Demo)')}
                 </span>
               </DropdownMenuLabel>
               {DEMO_ACCOUNTS.map((acc) => (
@@ -326,7 +357,7 @@ export function Topbar() {
               navigate('/login');
             }}
           >
-            <LogOut /> Sign Out
+            <LogOut /> {t('Sign Out')}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

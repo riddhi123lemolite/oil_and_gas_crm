@@ -5,7 +5,7 @@ interface LogoProps {
   className?: string;
 }
 
-/** Clientio brand mark — an oil-derrick app icon. */
+/** Sarvadesk brand mark — an oil-derrick app icon. */
 export function Logo({ showWordmark = true, className }: LogoProps) {
   return (
     <div className={cn('flex items-center gap-2.5', className)}>
@@ -34,7 +34,7 @@ export function Logo({ showWordmark = true, className }: LogoProps) {
       {showWordmark && (
         <div className="leading-tight">
           <div className="font-display text-base font-bold text-content">
-            Client<span className="text-brand-secondary">io</span>
+            Sarva<span className="text-brand-secondary">desk</span>
           </div>
           <div className="text-[10px] font-medium uppercase tracking-wider text-content-muted">
             Petro Trading Suite

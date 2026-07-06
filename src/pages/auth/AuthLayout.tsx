@@ -58,7 +58,7 @@ export function AuthLayout({
               </g>
             </svg>
             <span className="font-display text-lg font-bold">
-              Client<span className="text-brand-secondary">io</span>
+              Sarva<span className="text-brand-secondary">desk</span>
             </span>
           </div>
 
@@ -86,7 +86,7 @@ export function AuthLayout({
           </div>
 
           <div className="relative text-xs text-white/40">
-            © 2026 Clientio · Interactive prototype · All data is mocked
+            © 2026 Sarvadesk · Interactive prototype · All data is mocked
           </div>
         </div>
       </div>
