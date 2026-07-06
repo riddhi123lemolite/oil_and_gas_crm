@@ -150,7 +150,11 @@ export function can(
   module: PermModule,
   action: PermAction,
 ): boolean {
-  return permissions[role]?.[module]?.includes(action) ?? false;
+  // Fall back to built-in defaults when a role/module is absent from a stored
+  // (possibly older) matrix — so newly added modules work without a re-seed.
+  const perms =
+    permissions[role]?.[module] ?? DEFAULT_PERMISSIONS[role]?.[module] ?? [];
+  return perms.includes(action);
 }
 
 /** Margin / cost-rate visibility — hidden from executives. */
