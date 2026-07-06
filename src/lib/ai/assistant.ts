@@ -373,28 +373,39 @@ function compare(s: string, ctx: AiContext): AiReply {
 }
 
 function invoices(s: string, ctx: AiContext, detail: boolean): AiReply {
-  let list = ctx.invoices;
+  const cust = matchCustomer(s, ctx);
+  const who = cust ? `**${cust.companyName}**` : 'You';
+  const hasVerb = cust ? 'has' : 'have';
+  let list = cust ? ctx.invoices.filter((i) => i.customerId === cust.id) : ctx.invoices;
   let scope = '';
   if (/overdue/.test(s)) { list = list.filter((i) => i.status === 'OVERDUE'); scope = 'overdue '; }
   else if (/pending|unpaid|due|outstanding/.test(s)) { list = list.filter((i) => i.status !== 'PAID'); scope = 'pending '; }
   else if (/\bpaid\b/.test(s)) { list = list.filter((i) => i.status === 'PAID'); scope = 'paid '; }
   list = [...list].sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate));
-  if (list.length === 0) return { blocks: [text(`You have no ${scope}invoices.`)] };
+  const to = route(ctx.role, 'invoices');
+  const download = /download|send|email|\bpdf\b/.test(s);
+  const withNote = (blocks: AiBlock[]) => (download ? [text("I can't download files from chat, but here's the invoice — use the **PDF** button on the Invoices page."), ...blocks] : blocks);
+
+  if (list.length === 0) return { blocks: [text(`${who} ${hasVerb} no ${scope}invoices.`)] };
 
   const total = list.reduce((n, i) => n + i.total, 0);
-  const to = route(ctx.role, 'invoices');
 
   if (!detail) {
-    const reply: AiReply = { blocks: [text(`You have **${list.length}** ${scope}invoice${list.length === 1 ? '' : 's'} totalling **${formatINR(total)}**.`)] };
+    // Name the invoice when there's exactly one (e.g. "which one is unpaid?").
+    const only = list.length === 1 ? list[0] : undefined;
+    const line = only
+      ? `${who} ${hasVerb} one ${scope}invoice — **${only.number}** for **${formatINR(only.total)}** (${only.status.toLowerCase()}).`
+      : `${who} ${hasVerb} **${list.length}** ${scope}invoice${list.length === 1 ? '' : 's'} totalling **${formatINR(total)}**.`;
+    const reply: AiReply = { blocks: withNote([text(line)]) };
     if (to) reply.action = { label: 'Open Invoices', to };
     return reply;
   }
   const rows = list.slice(0, 12).map((i) => [i.number, formatDate(i.invoiceDate), formatINR(i.total), i.status]);
   const reply: AiReply = {
-    blocks: [
-      text(`**${list.length}** ${scope}invoice${list.length === 1 ? '' : 's'} · total **${formatINR(total)}**:`),
+    blocks: withNote([
+      text(`${cust ? cust.companyName + ' — ' : ''}**${list.length}** ${scope}invoice${list.length === 1 ? '' : 's'} · total **${formatINR(total)}**:`),
       { kind: 'table', columns: ['Invoice', 'Date', 'Amount', 'Status'], rows },
-    ],
+    ]),
   };
   if (to) reply.action = { label: 'Open Invoices', to };
   return reply;
@@ -431,11 +442,14 @@ function payments(s: string, ctx: AiContext, detail: boolean): AiReply {
     return { blocks: [text(`**${rec.length}** payment${rec.length === 1 ? '' : 's'} received this month, totalling **${formatINR(sum)}**.`)], action: to ? { label: 'Open Payments', to } : undefined };
   }
 
-  const unpaid = ctx.invoices.filter((i) => i.status !== 'PAID');
+  const cust = matchCustomer(s, ctx);
+  const scopeInv = cust ? ctx.invoices.filter((i) => i.customerId === cust.id) : ctx.invoices;
+  const unpaid = scopeInv.filter((i) => i.status !== 'PAID');
   const outstanding = unpaid.reduce((n, i) => n + (i.total - i.amountPaid), 0);
-  const overdue = ctx.invoices.filter((i) => i.status === 'OVERDUE').length;
+  const overdue = scopeInv.filter((i) => i.status === 'OVERDUE').length;
+  const lead = cust ? `**${cust.companyName}** owes` : 'Total outstanding is';
   return {
-    blocks: [text(`Total outstanding is **${formatINR(outstanding)}** across **${unpaid.length}** unpaid invoice${unpaid.length === 1 ? '' : 's'}${overdue ? `, **${overdue}** overdue` : ''}.`)],
+    blocks: [text(`${lead} **${formatINR(outstanding)}** across **${unpaid.length}** unpaid invoice${unpaid.length === 1 ? '' : 's'}${overdue ? `, **${overdue}** overdue` : ''}.`)],
     action: to ? { label: 'Open Payments', to } : undefined,
   };
 }
@@ -568,78 +582,184 @@ function capabilities(ctx: AiContext): AiReply {
 }
 
 // ===========================================================================
-// Multi-turn context ("what about diesel?", "compare them", "and in 2024?")
-// Fills the slots (subject / period / region) that the current query is missing
-// from the most recent prior turns of the conversation, then cross-session
-// memory. This is what lets the bot "take references from previous chats".
+// Structured conversation memory (slot state) + query expansion.
+//
+// ChatPanel keeps one ConvContext per chat thread and passes the prior one in;
+// expandQuery() merges the new message's slots over it and restates a COMPLETE
+// query. That is what lets pure follow-ups — "and the year before that?",
+// "what about diesel?", "break that down by month", "which one is unpaid?",
+// "now compare it with the previous year" — carry topic, product, period,
+// region, metric, status and customer forward without the user repeating them.
 // ===========================================================================
 
-function isFollowUp(s: string): boolean {
-  if (/^(what about|how about|and about|and for|what of|and |also |& )/.test(s)) return true;
-  const words = s.replace(/[?.!,]/g, '').split(/\s+/).filter(Boolean);
-  return words.length <= 3 && PRODUCT_RE.test(s)
-    && !/(last|this|year|month|quarter|today|yesterday|price|invoice|payment|customer|analytic|report|transport|deliver|sold|sell)/.test(s);
+export interface ConvContext {
+  intent?: 'volume' | 'compare' | 'prices' | 'invoices' | 'payments' | 'orders' | 'customers' | 'notifications';
+  product?: string;
+  periodPhrase?: string;   // re-injectable, e.g. 'last year', '2024', 'last month'
+  periodYear?: number;     // resolved year, for relative navigation
+  region?: string;
+  transported?: boolean;
+  metric?: 'volume' | 'revenue';
+  status?: string;         // invoice status: overdue | unpaid | paid
+  customer?: string;       // company name
+  detail?: boolean;
 }
 
-/** Prior user turns (oldest→newest), then cross-session memory + the single previousQuery. */
-function priorsFrom(ctx: AiContext): string[] {
-  const hist = (ctx.history ?? []).filter((m) => m.role === 'user').map((m) => m.text);
-  const out = [...(ctx.memory ?? []), ...hist];
-  if (ctx.previousQuery) out.push(ctx.previousQuery);
-  return out.map((t) => t.toLowerCase().trim()).filter(Boolean);
-}
+const REL_BEFORE = /\b(year before( that)?|before that|the year before|previous year|prior year|preceding year|one year earlier|year earlier)\b/;
+const REL_AFTER = /\b(year after( that)?|after that|the year after|next year|following year|year later)\b/;
+const REL_SAME = /\b(same (period|time|year|month)|that period|that year)\b/;
+// Signals the message leans on earlier turns rather than standing alone.
+const FOLLOW_RE = /^(and\b|also\b|what about|how about|&|now\b|then\b)|\b(that|those|this one|these|it|them|same|again|previous|earlier|above|the (first|second|third|latest|last|unpaid|paid|next) one|break (it|that|this) down|by month|monthly)\b/;
 
-function pickRecent(priors: string[], test: (t: string) => boolean): string | undefined {
-  for (let i = priors.length - 1; i >= 0; i -= 1) {
-    const p = priors[i];
-    if (p && test(p)) return p;
-  }
+function statusWord(s: string): string | undefined {
+  if (/overdue/.test(s)) return 'overdue';
+  if (/unpaid|pending|due|outstanding/.test(s)) return 'unpaid';
+  if (/\bpaid\b/.test(s)) return 'paid';
   return undefined;
 }
 
-function needsContext(s: string, ctx: AiContext): boolean {
-  if (isFollowUp(s)) return true;
-  if (/\b(same|again|too|also|instead|that|those|this one|them|both|difference)\b/.test(s)) return true;
-  const hasSubject = !!resolveSubject(s, ctx);
-  const hasPeriod = PERIOD_RE.test(s);
-  if (!hasSubject && (hasPeriod || /\b(compare|comparison)\b/.test(s))) return true;
-  if (hasSubject && !hasPeriod && /^(and|what about|how about|&)/.test(s)) return true;
-  return false;
+function periodInfo(s: string): { phrase?: string; year?: number } {
+  const p = parsePeriod(s);
+  if (p.label === 'all time') return {};
+  const year = Number(p.start.slice(0, 4)) || undefined;
+  return { phrase: s.match(PERIOD_RE)?.[0] ?? (year ? String(year) : undefined), year };
 }
 
-function resolveWithContext(s: string, ctx: AiContext): string {
-  const priors = priorsFrom(ctx);
-  if (!priors.length || !needsContext(s, ctx)) return s;
+/** Match a customer by a distinctive word of their company name. Staff only. */
+function matchCustomer(s: string, ctx: AiContext): Customer | undefined {
+  if (ctx.role === 'CUSTOMER') return undefined;
+  let best: Customer | undefined;
+  let bestScore = 0;
+  for (const c of ctx.customers) {
+    const core = c.companyName.toLowerCase()
+      .replace(/\b(pvt|ltd|limited|private|llp|inc|co|company|corporation|corp|industries|enterprises|petroleum|energy|petro|oil|fuels?|traders?|trading|group|solutions|international)\b/g, ' ')
+      .replace(/[^a-z0-9 ]/g, ' ');
+    const hit = core.split(/\s+/).filter((w) => w.length >= 4 && s.includes(w)).length;
+    if (hit > bestScore) { best = c; bestScore = hit; }
+  }
+  return best;
+}
 
-  // Comparison phrasing ("compare them", "difference between them") needs 2+ subjects.
-  if (/\b(compare|comparison|versus|\bvs\b|both|them|difference)\b/.test(s)) {
-    const labels = findSubjects(s, ctx).map((x) => x.label);
-    for (let i = priors.length - 1; i >= 0 && labels.length < 2; i -= 1) {
-      const sub = resolveSubject(priors[i]!, ctx);
-      if (sub && !labels.includes(sub.label)) labels.push(sub.label);
+function classifyIntent(s: string): ConvContext['intent'] | undefined {
+  if (/\b(compare|comparison|versus|\bvs\b)\b/.test(s)) return 'compare';
+  if (isVolumeQuery(s)) return 'volume';
+  if (isPriceQuery(s)) return 'prices';
+  if (/invoice|bill/.test(s)) return 'invoices';
+  if (/payment|outstanding|owe|receivable|\bpaid\b|pending pay/.test(s)) return 'payments';
+  if (/order|dispatch|transit|shipment|arriv|\btrack\b/.test(s)) return 'orders';
+  if (/customer|client/.test(s)) return 'customers';
+  if (/notification|alert/.test(s)) return 'notifications';
+  return undefined;
+}
+
+function deriveContext(s: string, ctx: AiContext, intent: ConvContext['intent']): ConvContext {
+  const info = periodInfo(s);
+  return {
+    intent,
+    product: resolveSubject(s, ctx)?.label,
+    periodPhrase: info.phrase,
+    periodYear: info.year,
+    region: detectRegion(s)?.name,
+    transported: /(transport|dispatch|deliver|moved|shipped|hauled|carried)/.test(s) && !/\b(sold|sell|bought|revenue|sales)\b/.test(s),
+    metric: /revenue|turnover|\bsales\b|worth|value/.test(s) ? 'revenue' : 'volume',
+    status: statusWord(s),
+    customer: matchCustomer(s, ctx)?.companyName,
+    detail: wantsDetail(s),
+  };
+}
+
+/** Restate a complete query the dispatcher understands, from merged slots. */
+function restate(c: ConvContext, raw: string): string {
+  const period = c.periodPhrase ?? '';
+  const region = c.region === 'India' ? 'across India' : c.region ?? '';
+  const detail = c.detail ? 'analytics ' : '';
+  const cust = c.customer ? `for ${c.customer}` : '';
+  switch (c.intent) {
+    case 'prices':
+      return `price of ${c.product ?? 'oil'} today${c.detail ? ' analytics' : ''}`;
+    case 'invoices':
+      return `${/download|send|email|pdf/.test(raw) ? 'download ' : ''}${detail}show ${c.status ?? ''} invoices ${cust}`.replace(/\s+/g, ' ').trim();
+    case 'payments':
+      return `${detail}${/who|which/.test(raw) ? 'who has ' : ''}${c.status ?? 'outstanding'} payments ${cust}`.replace(/\s+/g, ' ').trim();
+    case 'orders':
+      return `${detail}shipments ${/transit/.test(raw) ? 'in transit' : /deliver/.test(raw) ? 'delivered' : ''}`.replace(/\s+/g, ' ').trim();
+    case 'customers':
+      return `${detail}customers`;
+    case 'notifications':
+      return 'notifications';
+    case 'volume':
+    default: {
+      const salesWord = !c.product && c.metric === 'revenue' ? 'sales' : '';
+      return `${detail}how much ${c.product ?? salesWord} ${c.transported ? 'transported' : 'sold'} ${region} ${period}`.replace(/\s+/g, ' ').trim();
     }
-    if (labels.length >= 2) {
-      const per = s.match(PERIOD_RE)?.[0] ?? pickRecent(priors, (t) => PERIOD_RE.test(t))?.match(PERIOD_RE)?.[0] ?? '';
-      return `compare ${labels.slice(0, 3).join(' and ')} ${per}`.trim().toLowerCase();
-    }
+  }
+}
+
+/** Merge a new message with the thread's prior context and return an expanded,
+ *  self-contained query + the updated context to store for the next turn. */
+export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiContext): { query: string; context: ConvContext } {
+  const s = raw.toLowerCase().trim();
+  const ownIntent = classifyIntent(s);
+  const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
+  const standalone = !!ownIntent && !followMarker
+    && (!!resolveSubject(s, ctx) || PERIOD_RE.test(s) || ownIntent !== 'volume');
+
+  if (!prev || standalone) return { query: s, context: deriveContext(s, ctx, ownIntent) };
+
+  // ---- follow-up: layer new slots over the prior context ----
+  const c: ConvContext = { ...prev };
+  if (ownIntent) c.intent = ownIntent;
+  if (/analytic|report|breakdown|break (it|that|this) down|by month|monthly|trend|\bcompare\b/.test(s)) c.detail = true;
+  const sub = resolveSubject(s, ctx);
+  if (sub) c.product = sub.label;
+  const reg = detectRegion(s);
+  if (reg) c.region = reg.name;
+  if (/revenue|turnover|\bsales\b|worth|value/.test(s)) c.metric = 'revenue';
+  else if (/quantity|volume|litre|\bkl\b/.test(s)) c.metric = 'volume';
+  const st = statusWord(s);
+  if (st) c.status = st;
+  const cust = matchCustomer(s, ctx);
+  if (cust) c.customer = cust.companyName;
+
+  // Relative / absolute time navigation.
+  const baseYear = prev.periodYear ?? new Date().getFullYear();
+  if (PERIOD_RE.test(s)) { const info = periodInfo(s); c.periodPhrase = info.phrase; c.periodYear = info.year; }
+  else if (REL_BEFORE.test(s)) { c.periodYear = baseYear - 1; c.periodPhrase = String(baseYear - 1); }
+  else if (REL_AFTER.test(s)) { c.periodYear = baseYear + 1; c.periodPhrase = String(baseYear + 1); }
+
+  if (c.intent === 'compare') {
+    const prods = findSubjects(s, ctx).map((x) => x.label);
+    if (prev.product && !prods.includes(prev.product)) prods.unshift(prev.product);
+    if (prods.length >= 2) return { query: `compare ${[...new Set(prods)].slice(0, 3).join(' and ')} ${c.periodPhrase ?? ''}`.trim(), context: c };
+    // Otherwise compare two periods: the prior year vs the navigated one.
+    const yA = prev.periodYear ?? baseYear;
+    const yB = c.periodYear ?? baseYear - 1;
+    return { query: `compare ${c.product ? c.product + ' ' : ''}${yA} vs ${yB}`.trim(), context: { ...c, periodYear: yB } };
   }
 
-  let out = s;
-  if (!resolveSubject(out, ctx)) {
-    const p = pickRecent(priors, (t) => !!resolveSubject(t, ctx));
-    const sub = p ? resolveSubject(p, ctx) : null;
-    if (sub) out += ' ' + sub.label;
-  }
-  if (!PERIOD_RE.test(out)) {
-    const m = pickRecent(priors, (t) => PERIOD_RE.test(t))?.match(PERIOD_RE);
-    if (m) out += ' ' + m[0];
-  }
-  if (!detectRegion(out)) {
-    const p = pickRecent(priors, (t) => !!detectRegion(t));
-    const reg = p ? detectRegion(p) : null;
-    if (reg) out += ' ' + reg.name;
-  }
-  return out.toLowerCase();
+  return { query: restate(c, s), context: c };
+}
+
+function comparePeriods(s: string, ctx: AiContext, years: number[]): AiReply {
+  const subject = resolveSubject(s, ctx);
+  const subjIds = subject ? new Set(subject.ids) : null;
+  const label = subject?.label ?? 'total sales';
+  const rows = [...new Set(years)].sort((a, b) => b - a).slice(0, 4).map((y) => {
+    let kl = 0; let rev = 0;
+    for (const inv of ctx.invoices) {
+      if (inv.invoiceDate.slice(0, 4) !== String(y)) continue;
+      for (const li of inv.items) {
+        if (subjIds && !subjIds.has(li.itemId)) continue;
+        kl += li.unit === 'L' ? li.quantity / 1000 : li.quantity;
+        rev += li.amount;
+      }
+    }
+    return [String(y), formatQty(kl, 'KL'), formatINR(rev)];
+  });
+  return {
+    blocks: [text(`${cap(label)} — year on year:`), { kind: 'table', columns: ['Year', 'Volume', 'Revenue'], rows }],
+    action: { label: 'Open Sales Reports', to: route(ctx.role, 'history') ?? '/reports/sales' },
+  };
 }
 
 // ===========================================================================
@@ -660,18 +780,21 @@ const isPriceQuery = (s: string) =>
   || (PRODUCT_RE.test(s) && /(today|now|current|latest)/.test(s));
 
 export function runAssistant(query: string, ctx: AiContext): AiReply {
-  let s = query.toLowerCase().trim();
+  // The query is already context-expanded by ChatPanel (see expandQuery); here
+  // we only classify and answer.
+  const s = query.toLowerCase().trim();
   if (!s || /^(hi|hello|hey|help|what can you do|good (morning|afternoon|evening))\b/.test(s)) return capabilities(ctx);
-
-  // Fill missing subject/period/region from the conversation history + memory.
-  s = resolveWithContext(s, ctx);
 
   const detail = wantsDetail(s);
 
   const nav = navigation(s, ctx);
   if (nav) return nav;
 
-  if (/\b(compare|comparison|versus|\bvs\b)\b/.test(s)) return compare(s, ctx);
+  if (/\b(compare|comparison|versus|\bvs\b)\b/.test(s)) {
+    const years = (s.match(/20\d{2}/g) ?? []).map(Number);
+    if (years.length >= 2 && findSubjects(s, ctx).length < 2) return comparePeriods(s, ctx, years);
+    return compare(s, ctx);
+  }
   if (isVolumeQuery(s)) return volume(s, ctx, detail);
   if (isPriceQuery(s)) return prices(s, ctx, detail);
   if (/(calculat|weighted|avg density|average density|blend|\berp\b)/.test(s)) return erp(s, ctx);

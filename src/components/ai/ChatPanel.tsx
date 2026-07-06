@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useLiveMarket } from '@/hooks/useLiveMarket';
 import { useAiStore, type AiMessage } from '@/stores/aiStore';
-import { suggestedPrompts, type AiBlock, type AiContext, type AiReply } from '@/lib/ai/assistant';
+import { expandQuery, suggestedPrompts, type AiBlock, type AiContext, type AiReply } from '@/lib/ai/assistant';
 import { selectEngine } from '@/lib/ai/llm';
 import { recallRelevant, rememberQuery, capturePreference } from '@/lib/ai/memory';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
@@ -28,7 +28,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const selectedCustomer = usePortalCustomer();
   const { oil, fuel } = useLiveMarket();
 
-  const { conversations, activeId, newConversation, addMessage } = useAiStore();
+  const { conversations, activeId, newConversation, addMessage, setContext } = useAiStore();
   const [streamingId, setStreamingId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -76,11 +76,16 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
         }))
       : [];
     const memory = recallRelevant(userId, q);
+    // Expand the raw message against this thread's structured context so
+    // follow-ups ("and the year before that?", "which one is unpaid?") carry
+    // topic / product / period / customer forward.
+    const { query: expanded, context: nextContext } = expandQuery(q, active?.context, ctx);
     addMessage(convId, { id: generateId('m'), role: 'user', text: q, createdAt: new Date().toISOString() });
     setInput('');
-    const reply = await selectEngine().ask(q, { ...ctx, previousQuery, history, memory });
+    const reply = await selectEngine().ask(expanded, { ...ctx, previousQuery, history, memory });
     const msg: AiMessage = { id: generateId('m'), role: 'assistant', reply, createdAt: new Date().toISOString() };
     addMessage(convId, msg);
+    setContext(convId, nextContext);
     setStreamingId(msg.id);
     rememberQuery(userId, q);
     capturePreference(userId, q);

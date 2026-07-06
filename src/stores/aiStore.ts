@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { readStorage, writeStorage } from '@/lib/storage';
 import { generateId } from '@/lib/utils';
 import { useAuthStore } from '@/stores/authStore';
-import type { AiReply } from '@/lib/ai/assistant';
+import type { AiReply, ConvContext } from '@/lib/ai/assistant';
 
 export interface AiMessage {
   id: string;
@@ -17,6 +17,8 @@ export interface Conversation {
   title: string;
   messages: AiMessage[];
   createdAt: string;
+  /** Structured slot memory for this thread (topic/product/period/…). */
+  context?: ConvContext;
 }
 
 const BASE_KEY = 'oilgas-crm:ai-conversations';
@@ -32,6 +34,7 @@ interface AiState {
   newConversation: () => string;
   setActive: (id: string) => void;
   addMessage: (convId: string, msg: AiMessage) => void;
+  setContext: (convId: string, context: ConvContext) => void;
   rename: (id: string, title: string) => void;
   remove: (id: string) => void;
 }
@@ -64,6 +67,12 @@ export const useAiStore = create<AiState>((set, get) => ({
       const title = c.messages.length === 0 && msg.role === 'user' && msg.text ? msg.text.slice(0, 40) : c.title;
       return { ...c, title, messages: [...c.messages, msg] };
     });
+    writeStorage(get().userKey, conversations);
+    set({ conversations });
+  },
+
+  setContext: (convId, context) => {
+    const conversations = get().conversations.map((c) => (c.id === convId ? { ...c, context } : c));
     writeStorage(get().userKey, conversations);
     set({ conversations });
   },
