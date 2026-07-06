@@ -1,18 +1,29 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Route as RouteIcon, MapPin } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
+import { SelectField } from '@/components/forms/SelectField';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
 import { formatINR, formatNumber } from '@/lib/format';
+import { ROUTE_COUNTRIES, INTERNATIONAL_ROUTES } from '@/lib/transportRoutes';
 import type { TransportRoute } from '@/types';
 
 export default function TransportRoutes() {
   const navigate = useNavigate();
-  const routes = useDataStore((s) => s.routes);
+  const storeRoutes = useDataStore((s) => s.routes);
+  const [country, setCountry] = useState('IN');
+
+  // India is served by the live store (seeded + user-added). Every other
+  // country shows its curated corridor set.
+  const routes = useMemo(
+    () => (country === 'IN' ? storeRoutes : INTERNATIONAL_ROUTES[country] ?? []),
+    [country, storeRoutes],
+  );
+  const countryName = ROUTE_COUNTRIES.find((c) => c.code === country)?.name ?? 'India';
 
   const columns = useMemo<ColumnDef<TransportRoute, unknown>[]>(
     () => [
@@ -86,12 +97,23 @@ export default function TransportRoutes() {
     <div className="space-y-5">
       <PageHeader
         title="Transport Routes"
-        description={`${routes.length} routes in your network`}
+        description={`${routes.length} routes across ${countryName}`}
         icon={<RouteIcon />}
         actions={
-          <Button onClick={() => navigate('/routes/new')}>
-            <Plus className="size-4" /> Add Route
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="w-56">
+              <SelectField
+                value={country}
+                onChange={setCountry}
+                options={ROUTE_COUNTRIES.map((c) => ({ value: c.code, label: `${c.flag} ${c.name}` }))}
+              />
+            </div>
+            {country === 'IN' && (
+              <Button onClick={() => navigate('/routes/new')}>
+                <Plus className="size-4" /> Add Route
+              </Button>
+            )}
+          </div>
         }
       />
       <DataTable
