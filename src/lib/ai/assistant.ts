@@ -50,6 +50,10 @@ export interface AiContext {
   canErp: boolean;
   /** Previous user message — used to resolve follow-ups like "what about diesel?" */
   previousQuery?: string;
+  /** Prior turns of the current conversation (oldest→newest) for multi-turn memory. */
+  history?: { role: 'user' | 'assistant'; text: string }[];
+  /** Recalled cross-session context lines (recent queries, saved preferences/facts). */
+  memory?: string[];
 }
 
 export interface AiEngine {
@@ -86,6 +90,8 @@ function route(role: Role, key: string): string | undefined {
 const DETAIL_RE = /\b(analytic|analysis|report|dashboard|compare|comparison|versus|vs|trend|statistic|breakdown|monthly report|yearly report|detailed|full detail|table|list all|show all|every item)\b/;
 
 const PRODUCT_RE = /\b(brent|wti|crude|petroleum|diesel|hsd|petrol|gasoline|motor spirit|furnace|transformer|ldo|lubricant|lube|grease|glycol|meg|deg|teg|solvent|toluene|benzene|xylene|acetone|ipa|plastic|granule|hdpe|ldpe|lldpe|polypropylene|resin|wax|white oil|oil|fuel|kerosene)\b/;
+
+const PERIOD_RE = /(last year|this year|last month|this month|last quarter|year to date|yesterday|today|last 12 months|\b20\d{2}\b)/;
 
 // Keyword → item-family predicates. Specific fuels are listed before the
 // generic crude/oil bucket so "diesel" doesn't fall into "oil & fuel".
@@ -562,7 +568,10 @@ function capabilities(ctx: AiContext): AiReply {
 }
 
 // ===========================================================================
-// Follow-up context ("what about diesel?")
+// Multi-turn context ("what about diesel?", "compare them", "and in 2024?")
+// Fills the slots (subject / period / region) that the current query is missing
+// from the most recent prior turns of the conversation, then cross-session
+// memory. This is what lets the bot "take references from previous chats".
 // ===========================================================================
 
 function isFollowUp(s: string): boolean {
@@ -572,9 +581,65 @@ function isFollowUp(s: string): boolean {
     && !/(last|this|year|month|quarter|today|yesterday|price|invoice|payment|customer|analytic|report|transport|deliver|sold|sell)/.test(s);
 }
 
-function reconstruct(prev: string, s: string): string {
-  const subj = s.replace(/^(what about|how about|and about|and for|what of|and |also |& )/, '').trim();
-  return `${prev.replace(new RegExp(PRODUCT_RE, 'gi'), ' ')} ${subj}`.replace(/\s+/g, ' ').trim();
+/** Prior user turns (oldest→newest), then cross-session memory + the single previousQuery. */
+function priorsFrom(ctx: AiContext): string[] {
+  const hist = (ctx.history ?? []).filter((m) => m.role === 'user').map((m) => m.text);
+  const out = [...(ctx.memory ?? []), ...hist];
+  if (ctx.previousQuery) out.push(ctx.previousQuery);
+  return out.map((t) => t.toLowerCase().trim()).filter(Boolean);
+}
+
+function pickRecent(priors: string[], test: (t: string) => boolean): string | undefined {
+  for (let i = priors.length - 1; i >= 0; i -= 1) {
+    const p = priors[i];
+    if (p && test(p)) return p;
+  }
+  return undefined;
+}
+
+function needsContext(s: string, ctx: AiContext): boolean {
+  if (isFollowUp(s)) return true;
+  if (/\b(same|again|too|also|instead|that|those|this one|them|both|difference)\b/.test(s)) return true;
+  const hasSubject = !!resolveSubject(s, ctx);
+  const hasPeriod = PERIOD_RE.test(s);
+  if (!hasSubject && (hasPeriod || /\b(compare|comparison)\b/.test(s))) return true;
+  if (hasSubject && !hasPeriod && /^(and|what about|how about|&)/.test(s)) return true;
+  return false;
+}
+
+function resolveWithContext(s: string, ctx: AiContext): string {
+  const priors = priorsFrom(ctx);
+  if (!priors.length || !needsContext(s, ctx)) return s;
+
+  // Comparison phrasing ("compare them", "difference between them") needs 2+ subjects.
+  if (/\b(compare|comparison|versus|\bvs\b|both|them|difference)\b/.test(s)) {
+    const labels = findSubjects(s, ctx).map((x) => x.label);
+    for (let i = priors.length - 1; i >= 0 && labels.length < 2; i -= 1) {
+      const sub = resolveSubject(priors[i]!, ctx);
+      if (sub && !labels.includes(sub.label)) labels.push(sub.label);
+    }
+    if (labels.length >= 2) {
+      const per = s.match(PERIOD_RE)?.[0] ?? pickRecent(priors, (t) => PERIOD_RE.test(t))?.match(PERIOD_RE)?.[0] ?? '';
+      return `compare ${labels.slice(0, 3).join(' and ')} ${per}`.trim().toLowerCase();
+    }
+  }
+
+  let out = s;
+  if (!resolveSubject(out, ctx)) {
+    const p = pickRecent(priors, (t) => !!resolveSubject(t, ctx));
+    const sub = p ? resolveSubject(p, ctx) : null;
+    if (sub) out += ' ' + sub.label;
+  }
+  if (!PERIOD_RE.test(out)) {
+    const m = pickRecent(priors, (t) => PERIOD_RE.test(t))?.match(PERIOD_RE);
+    if (m) out += ' ' + m[0];
+  }
+  if (!detectRegion(out)) {
+    const p = pickRecent(priors, (t) => !!detectRegion(t));
+    const reg = p ? detectRegion(p) : null;
+    if (reg) out += ' ' + reg.name;
+  }
+  return out.toLowerCase();
 }
 
 // ===========================================================================
@@ -598,9 +663,8 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   let s = query.toLowerCase().trim();
   if (!s || /^(hi|hello|hey|help|what can you do|good (morning|afternoon|evening))\b/.test(s)) return capabilities(ctx);
 
-  // Resolve a short follow-up against the previous message.
-  const prev = ctx.previousQuery?.toLowerCase().trim();
-  if (prev && isFollowUp(s)) s = reconstruct(prev, s);
+  // Fill missing subject/period/region from the conversation history + memory.
+  s = resolveWithContext(s, ctx);
 
   const detail = wantsDetail(s);
 

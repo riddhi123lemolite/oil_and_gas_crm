@@ -23,3 +23,12 @@ const looksUnconfigured =
 
 export const DEMO_MODE =
   flag === 'true' ? true : flag === 'false' ? false : looksUnconfigured;
+
+// ---------------------------------------------------------------------------
+// AI assistant LLM engine. OFF by default — the grounded rule engine runs. Set
+// VITE_LLM_ENABLED=true (and deploy the backend proxy) to turn the LLM on; the
+// frontend never holds the Anthropic key. VITE_AI_PROXY_URL defaults to the
+// same-origin path that nginx forwards to the Node proxy.
+// ---------------------------------------------------------------------------
+export const LLM_ENABLED = (import.meta.env.VITE_LLM_ENABLED as string | undefined) === 'true';
+export const AI_PROXY_URL = (import.meta.env.VITE_AI_PROXY_URL as string | undefined) ?? '/api/ai';

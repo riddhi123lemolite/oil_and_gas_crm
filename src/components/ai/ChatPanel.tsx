@@ -7,7 +7,9 @@ import { useAuthStore } from '@/stores/authStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useLiveMarket } from '@/hooks/useLiveMarket';
 import { useAiStore, type AiMessage } from '@/stores/aiStore';
-import { ruleEngine, suggestedPrompts, type AiBlock, type AiContext, type AiReply } from '@/lib/ai/assistant';
+import { suggestedPrompts, type AiBlock, type AiContext, type AiReply } from '@/lib/ai/assistant';
+import { selectEngine } from '@/lib/ai/llm';
+import { recallRelevant, rememberQuery, capturePreference } from '@/lib/ai/memory';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { generateId } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -63,15 +65,25 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
     if (!q) return;
     let convId = activeId;
     if (!convId) convId = newConversation();
-    // Remember the previous user turn so the engine can resolve follow-ups
-    // like "what about diesel?" against it.
+    const userId = currentUser?.id;
+    // Full-thread history (oldest→newest) + one-hop previousQuery + recalled
+    // cross-session memory, so the engine can reference previous chats.
     const previousQuery = active ? [...active.messages].reverse().find((m) => m.role === 'user')?.text : undefined;
+    const history = active
+      ? active.messages.slice(-12).map((m) => ({
+          role: m.role,
+          text: m.role === 'user' ? (m.text ?? '') : m.reply ? replyToText(m.reply) : '',
+        }))
+      : [];
+    const memory = recallRelevant(userId, q);
     addMessage(convId, { id: generateId('m'), role: 'user', text: q, createdAt: new Date().toISOString() });
     setInput('');
-    const reply = await ruleEngine.ask(q, { ...ctx, previousQuery });
+    const reply = await selectEngine().ask(q, { ...ctx, previousQuery, history, memory });
     const msg: AiMessage = { id: generateId('m'), role: 'assistant', reply, createdAt: new Date().toISOString() };
     addMessage(convId, msg);
     setStreamingId(msg.id);
+    rememberQuery(userId, q);
+    capturePreference(userId, q);
   }
 
   function regenerate() {

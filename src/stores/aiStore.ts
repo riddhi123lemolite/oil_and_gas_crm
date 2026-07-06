@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { readStorage, writeStorage } from '@/lib/storage';
 import { generateId } from '@/lib/utils';
+import { useAuthStore } from '@/stores/authStore';
 import type { AiReply } from '@/lib/ai/assistant';
 
 export interface AiMessage {
@@ -18,11 +19,15 @@ export interface Conversation {
   createdAt: string;
 }
 
-const KEY = 'oilgas-crm:ai-conversations';
+const BASE_KEY = 'oilgas-crm:ai-conversations';
+// Conversations (and, alongside, memory) are namespaced per signed-in user so
+// history stays correct across logins.
+const keyFor = (userId?: string | null) => (userId ? `${BASE_KEY}:${userId}` : BASE_KEY);
 
 interface AiState {
   conversations: Conversation[];
   activeId: string | null;
+  userKey: string;
   init: () => void;
   newConversation: () => string;
   setActive: (id: string) => void;
@@ -31,23 +36,21 @@ interface AiState {
   remove: (id: string) => void;
 }
 
-function persist(conversations: Conversation[]) {
-  writeStorage(KEY, conversations);
-}
-
 export const useAiStore = create<AiState>((set, get) => ({
   conversations: [],
   activeId: null,
+  userKey: BASE_KEY,
 
   init: () => {
-    const conversations = readStorage<Conversation[]>(KEY, []);
-    set({ conversations, activeId: conversations[0]?.id ?? null });
+    const userKey = keyFor(useAuthStore.getState().currentUser?.id);
+    const conversations = readStorage<Conversation[]>(userKey, []);
+    set({ userKey, conversations, activeId: conversations[0]?.id ?? null });
   },
 
   newConversation: () => {
     const conv: Conversation = { id: generateId('conv'), title: 'New conversation', messages: [], createdAt: new Date().toISOString() };
     const conversations = [conv, ...get().conversations];
-    persist(conversations);
+    writeStorage(get().userKey, conversations);
     set({ conversations, activeId: conv.id });
     return conv.id;
   },
@@ -61,19 +64,19 @@ export const useAiStore = create<AiState>((set, get) => ({
       const title = c.messages.length === 0 && msg.role === 'user' && msg.text ? msg.text.slice(0, 40) : c.title;
       return { ...c, title, messages: [...c.messages, msg] };
     });
-    persist(conversations);
+    writeStorage(get().userKey, conversations);
     set({ conversations });
   },
 
   rename: (id, title) => {
     const conversations = get().conversations.map((c) => (c.id === id ? { ...c, title: title.trim() || c.title } : c));
-    persist(conversations);
+    writeStorage(get().userKey, conversations);
     set({ conversations });
   },
 
   remove: (id) => {
     const conversations = get().conversations.filter((c) => c.id !== id);
-    persist(conversations);
+    writeStorage(get().userKey, conversations);
     set({ conversations, activeId: get().activeId === id ? (conversations[0]?.id ?? null) : get().activeId });
   },
 }));
