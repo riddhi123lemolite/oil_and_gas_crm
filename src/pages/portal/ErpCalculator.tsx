@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Calculator, Plus, Trash2 } from 'lucide-react';
+import { Calculator, Plus, Trash2, Copy, RotateCcw } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { formatNumber } from '@/lib/format';
 import { generateId } from '@/lib/utils';
@@ -50,6 +50,15 @@ export default function ErpCalculator() {
   const update = (id: string, field: keyof Tank, value: string) =>
     setTanks((ts) => ts.map((t) => (t.id === id ? { ...t, [field]: value } : t)));
   const remove = (id: string) => setTanks((ts) => ts.filter((t) => t.id !== id));
+  const duplicate = (id: string) =>
+    setTanks((ts) => {
+      const src = ts.find((t) => t.id === id);
+      if (!src) return ts;
+      const copy: Tank = { ...src, id: generateId('tank'), note: `${src.note || 'Tank'} (copy)` };
+      const idx = ts.findIndex((t) => t.id === id);
+      return [...ts.slice(0, idx + 1), copy, ...ts.slice(idx + 1)];
+    });
+  const reset = () => setTanks([emptyTank('Tank 1'), emptyTank('Tank 2'), emptyTank('Tank 3')]);
   const addTank = () => {
     setTanks((ts) => [...ts, emptyTank(tankNo.trim() ? `Tank ${tankNo.trim()}` : `Tank ${ts.length + 1}`)]);
     setTankNo('');
@@ -102,13 +111,22 @@ export default function ErpCalculator() {
                 <span className="text-xs text-content-muted md:hidden">Kg</span>
                 <span className="num font-semibold text-success">{formatNumber(r.kg, 2)}</span>
               </div>
-              <button
-                onClick={() => remove(r.id)}
-                className="justify-self-end rounded-md p-2 text-danger transition-colors hover:bg-danger/10"
-                aria-label="Remove tank"
-              >
-                <Trash2 className="size-4" />
-              </button>
+              <div className="flex items-center justify-end gap-1">
+                <button
+                  onClick={() => duplicate(r.id)}
+                  className="rounded-md p-2 text-content-muted transition-colors hover:bg-muted hover:text-content"
+                  aria-label="Duplicate tank"
+                >
+                  <Copy className="size-4" />
+                </button>
+                <button
+                  onClick={() => remove(r.id)}
+                  className="rounded-md p-2 text-danger transition-colors hover:bg-danger/10"
+                  aria-label="Remove tank"
+                >
+                  <Trash2 className="size-4" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -127,6 +145,12 @@ export default function ErpCalculator() {
             className="inline-flex items-center gap-2 rounded-md bg-brand-secondary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-secondary/90"
           >
             <Plus className="size-4" /> Add Tank
+          </button>
+          <button
+            onClick={reset}
+            className="ml-auto inline-flex items-center gap-2 rounded-md border border-line px-4 py-2 text-sm font-medium text-content-secondary transition-colors hover:bg-muted"
+          >
+            <RotateCcw className="size-4" /> Reset
           </button>
         </div>
       </div>
@@ -152,13 +176,16 @@ function SummaryTile({ label, value, accent = '#0F3D5C' }: { label: string; valu
 }
 
 function NumCell({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const bad = value !== '' && (Number.isNaN(Number(value)) || Number(value) < 0);
   return (
     <div className="flex items-center justify-between gap-2 md:block">
       <span className="text-xs text-content-muted md:hidden">{label}</span>
       <input
         type="number"
         inputMode="decimal"
-        className="input-base w-full text-right md:w-full"
+        min="0"
+        step="any"
+        className={`input-base w-full text-right ${bad ? 'ring-2 ring-danger/40' : ''}`}
         placeholder="0"
         value={value}
         onChange={(e) => onChange(e.target.value)}

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { Wallet, CreditCard, Landmark, Banknote, Smartphone, FileCheck } from 'lucide-react';
+import { Wallet, CreditCard, Landmark, Banknote, Smartphone, FileCheck, Download } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useDataStore } from '@/stores/dataStore';
 import { formatINR, formatDate } from '@/lib/format';
@@ -79,6 +80,7 @@ export default function PortalPayments() {
                   <th className="px-4 py-2.5">Reference</th>
                   <th className="px-4 py-2.5">Date</th>
                   <th className="px-4 py-2.5 text-right">Amount</th>
+                  <th className="px-4 py-2.5 text-right">Receipt</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
@@ -92,6 +94,14 @@ export default function PortalPayments() {
                     <td className="px-4 py-2.5 num text-content-secondary">{p.reference}</td>
                     <td className="px-4 py-2.5 text-content-secondary">{formatDate(p.paidAt)}</td>
                     <td className="px-4 py-2.5 text-right num font-medium text-success">{formatINR(p.amount)}</td>
+                    <td className="px-4 py-2.5 text-right">
+                      <button
+                        onClick={() => toast.success(`Downloading receipt ${p.number}.pdf`)}
+                        className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted"
+                      >
+                        <Download className="size-3.5" /> PDF
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
