@@ -65,6 +65,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Tasks', path: '/tasks', icon: CheckSquare, module: 'tasks' },
       { label: 'My Day', path: '/my-day', icon: Sun, module: 'tasks' },
       { label: 'Calendar', path: '/calendar', icon: CalendarDays, module: 'tasks' },
+      { label: 'ERP Calculator', path: '/erp-calculator', icon: Calculator, module: 'erp' },
     ],
   },
   {
@@ -119,7 +120,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Integrations', path: '/settings/integrations', icon: Plug, module: 'settings' },
       { label: 'Audit Log', path: '/settings/audit', icon: ScrollText, module: 'settings' },
       { label: 'System', path: '/settings/system', icon: SlidersHorizontal, module: 'settings' },
-      { label: 'ERP Calculator', path: '/erp-calculator', icon: Calculator, module: 'erp' },
     ],
   },
 ];
