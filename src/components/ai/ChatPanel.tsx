@@ -63,9 +63,12 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
     if (!q) return;
     let convId = activeId;
     if (!convId) convId = newConversation();
+    // Remember the previous user turn so the engine can resolve follow-ups
+    // like "what about diesel?" against it.
+    const previousQuery = active ? [...active.messages].reverse().find((m) => m.role === 'user')?.text : undefined;
     addMessage(convId, { id: generateId('m'), role: 'user', text: q, createdAt: new Date().toISOString() });
     setInput('');
-    const reply = await ruleEngine.ask(q, ctx);
+    const reply = await ruleEngine.ask(q, { ...ctx, previousQuery });
     const msg: AiMessage = { id: generateId('m'), role: 'assistant', reply, createdAt: new Date().toISOString() };
     addMessage(convId, msg);
     setStreamingId(msg.id);
