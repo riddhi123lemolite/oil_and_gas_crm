@@ -699,6 +699,9 @@ function restate(c: ConvContext, raw: string): string {
  *  self-contained query + the updated context to store for the next turn. */
 export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiContext): { query: string; context: ConvContext } {
   const s = raw.toLowerCase().trim();
+  // Greetings / thanks / acknowledgements pass straight through and leave the
+  // thread's CRM context untouched, so the next real question still resolves.
+  if (smallTalkCategory(s)) return { query: s, context: prev ?? {} };
   const ownIntent = classifyIntent(s);
   const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
   const standalone = !!ownIntent && !followMarker
@@ -779,11 +782,82 @@ const isPriceQuery = (s: string) =>
   /\b(price|prices|trading|quote|market rate|benchmark)\b/.test(s)
   || (PRODUCT_RE.test(s) && /(today|now|current|latest)/.test(s));
 
+// ===========================================================================
+// Small talk — greetings, thanks, acknowledgements, farewells, appreciation.
+// These reply warmly and NEVER trigger CRM queries. Detected before routing,
+// and skipped by expandQuery so a bare "thanks" doesn't inherit the last
+// question's context.
+// ===========================================================================
+
+const pick = (arr: string[]): string => arr[Math.floor(Math.random() * arr.length)] ?? arr[0]!;
+
+type ChatCat = 'greeting' | 'thanks' | 'appreciation' | 'farewell' | 'ack';
+
+function smallTalkCategory(s: string): ChatCat | null {
+  const t = s.replace(/[!.,?]+$/g, '').trim();
+  const words = t.split(/\s+/).filter(Boolean);
+  // A message carrying a real CRM intent (or a long one) isn't small talk.
+  if (classifyIntent(t) || words.length > 8) return null;
+
+  if (/^(bye|good ?bye|see (you|ya)( (later|around|soon))?|catch you later|take care|good ?night|have a (good|great|nice) (day|night|one|evening)|talk (to you )?later|cya|ttyl)\b/.test(t)) return 'farewell';
+  if (/\b(thanks?|thank you|thank u|thankyou|thx|ty)\b/.test(t) || /\bappreciate (it|that|you|the help)\b/.test(t)) return 'thanks';
+  if (/\b(amazing|awesome job|great job|well done|nice work|good work|excellent|brilliant|impressive|you'?re the best|you'?re amazing|that helped( a lot)?|helped a lot|very helpful|super helpful|really helpful|that was helpful|love it|good stuff)\b/.test(t)) return 'appreciation';
+  if (/^(hi+|hey+|heya|hiya|hello+|yo|howdy|greetings|good (morning|afternoon|evening))\b/.test(t)) return 'greeting';
+  if (words.length <= 4 && /^(ok(ay)?|k|alright|all right|got it|sounds good|perfect|nice|great|cool|understood|makes sense|noted|fine|sure|yep|yeah|good|all good|no problem|np|thumbs up|👍)\b/.test(t)) return 'ack';
+  return null;
+}
+
+function smallTalkReply(cat: ChatCat, s: string): AiReply {
+  switch (cat) {
+    case 'greeting': {
+      const tod = /morning/.test(s) ? 'Good morning' : /afternoon/.test(s) ? 'Good afternoon' : /evening/.test(s) ? 'Good evening' : '';
+      const opts = [
+        `Hello! 👋 Welcome back. How may I assist you today?`,
+        `Hi there! How can I help you with your CRM today?`,
+        `Hey! Good to see you — what would you like to do?`,
+      ];
+      if (tod) opts.unshift(`${tod}! I hope you're having a great day. How may I help you today?`);
+      return { blocks: [text(pick(opts))] };
+    }
+    case 'thanks':
+      return { blocks: [text(pick([
+        `You're most welcome! If there's anything else you need, I'm here to help.`,
+        `Happy to help! Let me know if there's anything else you'd like to do.`,
+        `You're welcome! Feel free to ask if you need any further assistance.`,
+        `Glad I could help. Is there anything else you'd like me to look into?`,
+      ]))] };
+    case 'appreciation':
+      return { blocks: [text(pick([
+        `Thank you! I'm glad I could help.`,
+        `I appreciate the kind words. Let me know if there's anything else you need.`,
+        `I'm happy that was helpful. Feel free to ask anytime.`,
+      ]))] };
+    case 'farewell':
+      return { blocks: [text(pick([
+        `Goodbye! Have a wonderful day, and come back anytime you need help.`,
+        `Take care! I'll be right here whenever you need the CRM.`,
+        `Have a great day! Looking forward to helping you again.`,
+      ]))] };
+    case 'ack':
+    default:
+      return { blocks: [text(pick([
+        `Great! Let me know whenever you need anything else.`,
+        `Sounds good — I'm here if you need any further assistance.`,
+        `Perfect. Feel free to ask if you'd like help with anything else.`,
+      ]))] };
+  }
+}
+
 export function runAssistant(query: string, ctx: AiContext): AiReply {
   // The query is already context-expanded by ChatPanel (see expandQuery); here
   // we only classify and answer.
   const s = query.toLowerCase().trim();
-  if (!s || /^(hi|hello|hey|help|what can you do|good (morning|afternoon|evening))\b/.test(s)) return capabilities(ctx);
+  if (!s) return capabilities(ctx);
+
+  const chat = smallTalkCategory(s);
+  if (chat) return smallTalkReply(chat, s);
+
+  if (/^(help|what can you do|what do you do|how do you work)\b/.test(s)) return capabilities(ctx);
 
   const detail = wantsDetail(s);
 
