@@ -86,7 +86,7 @@ export default function PortalHistory() {
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
-                <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" tickFormatter={(v) => `${(v / 100000).toFixed(0)}L`} />
+                <YAxis tick={{ fontSize: 11 }} stroke="var(--text-muted)" tickFormatter={(v) => `₹${(v / 100000).toFixed(0)} Lakh`} />
                 <Tooltip formatter={(v: number) => formatINR(v)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                 <Area type="monotone" dataKey="total" stroke="#E87722" strokeWidth={2} fill="url(#spendFill)" />
               </AreaChart>

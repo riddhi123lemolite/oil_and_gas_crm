@@ -74,8 +74,10 @@ export default function Dashboard() {
 
   const stats = useMemo(() => {
     const totalSales = filtered.inv.reduce((s, i) => s + i.total, 0);
+    // Normalise every line to kilolitres (litre lines ÷ 1000) so the total is
+    // a single coherent volume rather than a mix of L and KL counts.
     const qty = filtered.inv.reduce(
-      (s, i) => s + i.items.reduce((q, li) => q + li.quantity, 0),
+      (s, i) => s + i.items.reduce((q, li) => q + (li.unit === 'L' ? li.quantity / 1000 : li.quantity), 0),
       0,
     );
     const margin = filtered.inv.reduce((s, i) => s + i.subtotal * 0.07, 0);
@@ -211,7 +213,7 @@ export default function Dashboard() {
         />
         <KpiCard
           label="Quantity Sold"
-          value={`${formatNumber(stats.qty)} u`}
+          value={`${formatNumber(stats.qty)} KL`}
           icon={Package2}
           delta={8.1}
           accent="#E87722"
