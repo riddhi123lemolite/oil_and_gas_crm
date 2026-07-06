@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import {
   Package, Truck, PackageCheck, Wallet, ReceiptIndianRupee, FileText, Bell,
-  TrendingUp, Fuel, ArrowUpRight, Boxes, FileDown, Calculator, History as HistoryIcon, LifeBuoy,
+  TrendingUp, Fuel, ArrowUpRight, Boxes, FileDown, History as HistoryIcon, LifeBuoy,
 } from 'lucide-react';
 import { KpiCard } from '@/components/shared/KpiCard';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -77,7 +77,6 @@ export default function PortalDashboard() {
         <QuickAction to="/portal/invoices" icon={<ReceiptIndianRupee className="size-5" />} label="View Invoices" />
         <QuickAction to="/portal/documents" icon={<FileDown className="size-5" />} label="Documents" />
         <QuickAction to="/portal/payments" icon={<Wallet className="size-5" />} label="Payments" />
-        <QuickAction to="/portal/calculator" icon={<Calculator className="size-5" />} label="ERP Calculator" />
         <QuickAction to="/portal/history" icon={<HistoryIcon className="size-5" />} label="History" />
         <QuickAction icon={<LifeBuoy className="size-5" />} label="Raise Ticket" onClick={() => toast.success('Support ticket raised — our team will reach out.')} />
       </div>

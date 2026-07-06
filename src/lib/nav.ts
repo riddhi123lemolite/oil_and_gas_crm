@@ -36,6 +36,7 @@ import {
   Plug,
   ScrollText,
   SlidersHorizontal,
+  Calculator,
   type LucideIcon,
 } from 'lucide-react';
 import type { PermModule } from './permissions';
@@ -118,6 +119,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Integrations', path: '/settings/integrations', icon: Plug, module: 'settings' },
       { label: 'Audit Log', path: '/settings/audit', icon: ScrollText, module: 'settings' },
       { label: 'System', path: '/settings/system', icon: SlidersHorizontal, module: 'settings' },
+      { label: 'ERP Calculator', path: '/erp-calculator', icon: Calculator, module: 'erp' },
     ],
   },
 ];

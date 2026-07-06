@@ -3,7 +3,7 @@ import {
   FolderOpen, ReceiptIndianRupee, FileText, ClipboardList, Receipt, FilePlus, FileMinus, Files,
   Wallet, AlertCircle, CalendarClock, Download,
   TrendingUp, Flame, BarChart3, Fuel, LineChart,
-  Calculator, Bell, Megaphone,
+  Bell, Megaphone,
   LifeBuoy, HelpCircle, Ticket, Phone,
   UserCircle, User, Building2, Settings,
   type LucideIcon,
@@ -87,12 +87,6 @@ export const CUSTOMER_NAV: CustNavSection[] = [
       { label: 'Fuel Prices', path: '/portal/market#fuel', icon: Fuel },
       { label: 'Market Trends', path: '/portal/market#trends', icon: LineChart },
     ],
-  },
-  {
-    id: 'erp',
-    label: 'ERP Tools',
-    icon: Calculator,
-    items: [{ label: 'ERP Calculator', path: '/portal/calculator', icon: Calculator }],
   },
   {
     id: 'notifications',

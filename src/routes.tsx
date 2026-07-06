@@ -216,7 +216,7 @@ export const router = createBrowserRouter([
       { path: 'portal/documents', element: <DocumentCenter /> },
       { path: 'portal/history', element: <PortalHistory /> },
       { path: 'portal/notifications', element: <PortalNotifications /> },
-      { path: 'portal/calculator', element: <ErpCalculator /> },
+      { path: 'erp-calculator', element: <ErpCalculator /> },
       { path: 'portal/orders', element: <PortalOrders /> },
       { path: 'portal/market', element: <PortalMarket /> },
       { path: 'portal/support', element: <PortalSupport /> },
