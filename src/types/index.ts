@@ -2,7 +2,12 @@
 // Entity type definitions for the OilGas CRM prototype.
 // ============================================================================
 
-export type Role = 'ADMIN' | 'SALES_MANAGER' | 'SALES_EXECUTIVE' | 'ACCOUNTS';
+export type Role =
+  | 'ADMIN'
+  | 'SALES_MANAGER'
+  | 'SALES_EXECUTIVE'
+  | 'ACCOUNTS'
+  | 'CUSTOMER';
 
 export interface User {
   id: string;

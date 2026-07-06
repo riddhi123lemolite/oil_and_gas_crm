@@ -35,6 +35,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   SALES_MANAGER: 'Sales Manager',
   SALES_EXECUTIVE: 'Sales Executive',
   ACCOUNTS: 'Accounts',
+  CUSTOMER: 'Customer',
 };
 
 export const LEAD_STATUS: Record<LeadStatus, LabelDef> = {

@@ -1,7 +1,8 @@
 import { lazy } from 'react';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { AppShell } from '@/components/layout/AppShell';
 import { RequireAuth } from '@/components/layout/RequireAuth';
+import { useAuthStore } from '@/stores/authStore';
 
 // Auth (eager — small, needed first)
 import Login from '@/pages/auth/Login';
@@ -93,6 +94,22 @@ const HelpCentre = lazy(() => import('@/pages/help/HelpCentre'));
 const ShortcutsPage = lazy(() => import('@/pages/help/ShortcutsPage'));
 const NotFound = lazy(() => import('@/pages/NotFound'));
 
+// Customer portal (5th role)
+const PortalDashboard = lazy(() => import('@/pages/portal/PortalDashboard'));
+const ProductTracking = lazy(() => import('@/pages/portal/ProductTracking'));
+const PortalPayments = lazy(() => import('@/pages/portal/PortalPayments'));
+const PortalInvoices = lazy(() => import('@/pages/portal/PortalInvoices'));
+const PortalHistory = lazy(() => import('@/pages/portal/PortalHistory'));
+const PortalNotifications = lazy(() => import('@/pages/portal/PortalNotifications'));
+const ErpCalculator = lazy(() => import('@/pages/portal/ErpCalculator'));
+
+// Customers land on their portal; staff see the main dashboard.
+function RoleHome() {
+  const role = useAuthStore((s) => s.currentUser?.role);
+  if (role === 'CUSTOMER') return <Navigate to="/portal" replace />;
+  return <Dashboard />;
+}
+
 export const router = createBrowserRouter([
   { path: '/login', element: <Login /> },
   { path: '/signup', element: <Signup /> },
@@ -106,7 +123,7 @@ export const router = createBrowserRouter([
       </RequireAuth>
     ),
     children: [
-      { index: true, element: <Dashboard /> },
+      { index: true, element: <RoleHome /> },
       { path: 'my-dashboard', element: <MyDashboard /> },
       { path: 'analytics', element: <SalesAnalytics /> },
 
@@ -183,6 +200,16 @@ export const router = createBrowserRouter([
 
       { path: 'help', element: <HelpCentre /> },
       { path: 'shortcuts', element: <ShortcutsPage /> },
+
+      // Customer portal
+      { path: 'portal', element: <PortalDashboard /> },
+      { path: 'portal/products', element: <ProductTracking /> },
+      { path: 'portal/payments', element: <PortalPayments /> },
+      { path: 'portal/invoices', element: <PortalInvoices /> },
+      { path: 'portal/history', element: <PortalHistory /> },
+      { path: 'portal/notifications', element: <PortalNotifications /> },
+      { path: 'portal/calculator', element: <ErpCalculator /> },
+
       { path: '*', element: <NotFound /> },
     ],
   },

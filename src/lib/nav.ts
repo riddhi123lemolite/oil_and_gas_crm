@@ -36,6 +36,7 @@ import {
   Plug,
   ScrollText,
   SlidersHorizontal,
+  Calculator,
   type LucideIcon,
 } from 'lucide-react';
 import type { PermModule } from './permissions';
@@ -118,6 +119,18 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'Integrations', path: '/settings/integrations', icon: Plug, module: 'settings' },
       { label: 'Audit Log', path: '/settings/audit', icon: ScrollText, module: 'settings' },
       { label: 'System', path: '/settings/system', icon: SlidersHorizontal, module: 'settings' },
+    ],
+  },
+  {
+    label: 'Customer Portal',
+    items: [
+      { label: 'Portal Dashboard', path: '/portal', icon: LayoutDashboard, module: 'portal' },
+      { label: 'Product Tracking', path: '/portal/products', icon: Boxes, module: 'portal' },
+      { label: 'Payments', path: '/portal/payments', icon: Wallet, module: 'portal' },
+      { label: 'Bills & Invoices', path: '/portal/invoices', icon: ReceiptIndianRupee, module: 'portal' },
+      { label: 'History', path: '/portal/history', icon: ScrollText, module: 'portal' },
+      { label: 'Announcements', path: '/portal/notifications', icon: Bell, module: 'portal' },
+      { label: 'ERP Calculator', path: '/portal/calculator', icon: Calculator, module: 'portal' },
     ],
   },
 ];

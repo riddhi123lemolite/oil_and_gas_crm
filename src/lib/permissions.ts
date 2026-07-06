@@ -18,7 +18,8 @@ export type PermModule =
   | 'communication'
   | 'reports'
   | 'staff'
-  | 'settings';
+  | 'settings'
+  | 'portal';
 
 export type PermAction = 'view' | 'create' | 'edit' | 'delete' | 'approve';
 
@@ -36,6 +37,7 @@ export const PERM_MODULES: { key: PermModule; label: string }[] = [
   { key: 'reports', label: 'Reports' },
   { key: 'staff', label: 'Staff Management' },
   { key: 'settings', label: 'Admin & Settings' },
+  { key: 'portal', label: 'Customer Portal' },
 ];
 
 export const PERM_ACTIONS: PermAction[] = [
@@ -67,6 +69,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     reports: ALL,
     staff: ALL,
     settings: ALL,
+    portal: [],
   },
   SALES_MANAGER: {
     dashboard: VIEW,
@@ -82,6 +85,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     reports: VIEW,
     staff: VIEW,
     settings: [],
+    portal: [],
   },
   SALES_EXECUTIVE: {
     dashboard: VIEW,
@@ -97,6 +101,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     reports: VIEW,
     staff: [],
     settings: [],
+    portal: [],
   },
   ACCOUNTS: {
     dashboard: VIEW,
@@ -112,6 +117,23 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     reports: VIEW,
     staff: [],
     settings: [],
+    portal: [],
+  },
+  CUSTOMER: {
+    dashboard: [],
+    leads: [],
+    customers: [],
+    items: [],
+    proposals: [],
+    orders: [],
+    invoices: [],
+    operations: [],
+    tasks: [],
+    communication: [],
+    reports: [],
+    staff: [],
+    settings: [],
+    portal: ALL,
   },
 };
 

@@ -40,6 +40,13 @@ export const DEMO_ACCOUNTS: DemoAccount[] = [
     label: 'Accounts',
     hint: 'Invoices and payments',
   },
+  {
+    email: 'customer@oilgas.in',
+    password: 'customer123',
+    role: 'CUSTOMER',
+    label: 'Customer',
+    hint: 'Client portal — bills, tracking, calculator',
+  },
 ];
 
 export const DEMO_USER_ID_BY_ROLE: Record<Role, string> = {
@@ -47,4 +54,5 @@ export const DEMO_USER_ID_BY_ROLE: Record<Role, string> = {
   SALES_MANAGER: 'user_02',
   SALES_EXECUTIVE: 'user_03',
   ACCOUNTS: 'user_04',
+  CUSTOMER: 'user_05',
 };

@@ -337,7 +337,10 @@ export function Topbar() {
               {DEMO_ACCOUNTS.map((acc) => (
                 <DropdownMenuItem
                   key={acc.role}
-                  onClick={() => switchRole(acc.role as Role)}
+                  onClick={() => {
+                    switchRole(acc.role as Role);
+                    navigate('/');
+                  }}
                 >
                   <span className="flex w-full items-center justify-between">
                     {acc.label}
