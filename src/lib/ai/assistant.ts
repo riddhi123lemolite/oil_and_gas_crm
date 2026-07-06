@@ -571,11 +571,11 @@ function capabilities(ctx: AiContext): AiReply {
     blocks: [
       text(`Hi ${ctx.userName?.split(' ')[0] ?? 'there'} 👋 Ask me naturally — I answer from your live CRM data. Try:`),
       { kind: 'list', items: [
-        '“How much diesel did we sell last year?”',
-        '“How much Brent oil was transported across India last month?”',
-        '“Who has pending payments?”',
-        '“What’s today’s Brent price?”',
-        'Add **“analytics”**, **“report”** or **“compare”** for tables & breakdowns.',
+        '“How much diesel did we sell last year?” — a quick answer',
+        '“Explain Brent crude” or “How is weighted density calculated?” — a full explanation',
+        '“How do I create an invoice?” — a step-by-step guide',
+        '“Show analytics for last year’s sales” — a report with tables',
+        '“Who has pending payments?”, “What’s today’s Brent price?”',
       ] },
     ],
   };
@@ -664,7 +664,7 @@ function deriveContext(s: string, ctx: AiContext, intent: ConvContext['intent'])
     metric: /revenue|turnover|\bsales\b|worth|value/.test(s) ? 'revenue' : 'volume',
     status: statusWord(s),
     customer: matchCustomer(s, ctx)?.companyName,
-    detail: wantsDetail(s),
+    detail: wantsDetail(s) || DETAIL_SEEK_RE.test(s),
   };
 }
 
@@ -702,6 +702,9 @@ export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiC
   // Greetings / thanks / acknowledgements pass straight through and leave the
   // thread's CRM context untouched, so the next real question still resolves.
   if (smallTalkCategory(s)) return { query: s, context: prev ?? {} };
+  // Concept explanations and how-to guides are self-contained — pass through
+  // without merging CRM slots (but keep the thread context for later).
+  if (guide(s) || explainConcept(s)) return { query: s, context: prev ?? {} };
   const ownIntent = classifyIntent(s);
   const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
   const standalone = !!ownIntent && !followMarker
@@ -712,7 +715,7 @@ export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiC
   // ---- follow-up: layer new slots over the prior context ----
   const c: ConvContext = { ...prev };
   if (ownIntent) c.intent = ownIntent;
-  if (/analytic|report|breakdown|break (it|that|this) down|by month|monthly|trend|\bcompare\b/.test(s)) c.detail = true;
+  if (/analytic|report|breakdown|break (it|that|this) down|by month|monthly|trend|\bcompare\b/.test(s) || DETAIL_SEEK_RE.test(s)) c.detail = true;
   const sub = resolveSubject(s, ctx);
   if (sub) c.product = sub.label;
   const reg = detectRegion(s);
@@ -848,6 +851,162 @@ function smallTalkReply(cat: ChatCat, s: string): AiReply {
   }
 }
 
+// ===========================================================================
+// Adaptive depth — concept explanations (Level 2/3) and how-to guides (Level 5).
+// These give rich, multi-paragraph answers when the user asks to understand a
+// concept or how to do something, instead of a one-liner. Data questions still
+// answer concisely, and escalate to a full breakdown when the phrasing asks for
+// detail (explain / breakdown / in detail / walk me through).
+// ===========================================================================
+
+const para = (t: string): AiBlock => ({ kind: 'text', text: t });
+const bullets = (items: string[]): AiBlock => ({ kind: 'list', items });
+
+/** Cue that the user wants an explanation rather than a data lookup. */
+const EXPLAIN_CUE = /\b(what('s| is| are)|explain|describe|tell me about|define|meaning of|what does .* mean|why (is|are|does|do)|how (is|are|does|do)\b.*\b(work|calculat|comput|derive|generat|mean))\b/;
+/** Phrasing that should deepen a DATA answer into a full breakdown. */
+const DETAIL_SEEK_RE = /\b(explain|elaborate|in detail|detailed|deep dive|full (report|breakdown|detail)|give (me )?(the )?details?|break (it|that|this) down|walk me through)\b/;
+
+const KNOWLEDGE: { re: RegExp; blocks: () => AiBlock[] }[] = [
+  { re: /weighted density|average density|blended density/, blocks: () => [
+    para(`**Weighted (blended) density** is the average density of oil across several tanks, weighted by how much volume each tank holds — not a plain average. It matters because tanks of the same product differ slightly in density, and stock and billing are done by weight (kg).`),
+    para(`The ERP Calculator computes it like this:`),
+    bullets([
+      `For each tank, **Kg = (Litre × Density) ÷ 1000**.`,
+      `**Total Kg** = sum of every tank's kg; **Total Litre** = sum of every tank's litres.`,
+      `**Weighted density (g/L) = (Total Kg ÷ Total Litre) × 1000**.`,
+    ]),
+    para(`**Example** — Tank A: 10,000 L @ 840 g/L → 8,400 kg. Tank B: 5,000 L @ 820 g/L → 4,100 kg. Totals: 15,000 L and 12,500 kg. Weighted density = (12,500 ÷ 15,000) × 1000 = **833.3 g/L** — nearer Tank A because it holds more volume. A plain average would wrongly give 830 g/L.`),
+  ] },
+  { re: /erp calculator|erp calc|costing tool/, blocks: () => [
+    para(`The **ERP Calculator** (Admin) turns tank readings into costing figures for a blended lot of oil. Per tank you enter the **purchase price (₹/L)**, **density (g/L)** and **volume (litres)**.`),
+    para(`It then returns:`),
+    bullets([
+      `**Kg per tank** = (Litre × Density) ÷ 1000`,
+      `**Total Litre / Total KL / Total Kg**`,
+      `**Weighted average density** = (Total Kg ÷ Total Litre) × 1000`,
+      `**Blended average price** = Total Price ÷ Total Litre`,
+      `**Total Price** across all tanks`,
+    ]),
+    para(`This gives an accurate per-kg and per-litre cost when stock from several tanks is mixed, so pricing and margins stay correct. It's an internal tool, visible to Admins only.`),
+  ] },
+  { re: /brent/, blocks: () => [
+    para(`**Brent Crude** is a light, sweet crude oil from the North Sea and the world's leading **price benchmark** — roughly two-thirds of internationally traded crude is priced against it.`),
+    para(`It's quoted in **US dollars per barrel (bbl)**. Because refined products (diesel, petrol) and many petrochemical feedstocks move with the crude price, Brent effectively sets the baseline for much of what this CRM trades.`),
+    para(`You can see the live, indicative Brent quote on the **Live Market** panel.`),
+  ] },
+  { re: /\bwti\b|west texas/, blocks: () => [
+    para(`**WTI (West Texas Intermediate)** is the main US crude benchmark, priced at Cushing, Oklahoma, in **USD per barrel**. It's slightly lighter and sweeter than Brent.`),
+    para(`WTI usually trades a little below Brent; that gap — the **Brent–WTI spread** — reflects US vs global supply, demand and shipping. Both appear on the Live Market panel.`),
+  ] },
+  { re: /crude oil|crude/, blocks: () => [
+    para(`**Crude oil** is unrefined petroleum, priced globally against benchmarks like **Brent** (North Sea) and **WTI** (US), in USD per barrel. Refineries turn it into diesel, petrol, LDO, furnace oil and petrochemical feedstocks — the products traded in this CRM — so crude sets the cost baseline for all of them.`),
+  ] },
+  { re: /natural gas|henry hub/, blocks: () => [
+    para(`**Natural gas** is a gaseous hydrocarbon used as fuel and feedstock. The common benchmark is **Henry Hub**, quoted in **USD per MMBtu**. It appears on the Live Market panel alongside the crude benchmarks.`),
+  ] },
+  { re: /kilolit|\bkl\b|kilo litre/, blocks: () => [
+    para(`**Kilolitre (KL)** is the standard bulk volume unit here — **1 KL = 1,000 litres**. Bulk fuels (diesel, petrol, LDO) trade in KL; smaller lots (lubricants) in litres. Weight is derived via density: **Kg = Litre × Density ÷ 1000**.`),
+  ] },
+  { re: /\b(hsd|high speed diesel|diesel)\b/, blocks: () => [
+    para(`**HSD (High-Speed Diesel)** is the standard automotive and industrial diesel — BS-VI grade in India. It's traded in **KL**, and its price tracks crude benchmarks plus duties and margins. Related grades in the catalogue include LDO (Light Diesel Oil) and Furnace Oil for industrial burners.`),
+  ] },
+  { re: /\b(motor spirit|petrol|gasoline)\b/, blocks: () => [
+    para(`**MS (Motor Spirit / petrol)** is the spark-ignition road fuel, BS-VI grade, traded in **KL**. Like diesel, its price moves with crude benchmarks plus taxes and margins.`),
+  ] },
+  { re: /\bgst\b|tax on|cgst|sgst|igst/, blocks: () => [
+    para(`Petroleum products in this CRM carry **18% GST**. It's split as **CGST + SGST** for in-state sales, or **IGST** for inter-state sales. Every invoice shows the split and the tax-inclusive total.`),
+  ] },
+  { re: /overdue|invoice status|unpaid mean|partial(ly)? paid/, blocks: () => [
+    para(`Invoice statuses in the CRM:`),
+    bullets([
+      `**UNPAID** — issued, nothing paid yet.`,
+      `**PARTIAL** — part-paid, a balance remains.`,
+      `**PAID** — fully settled.`,
+      `**OVERDUE** — past its due date with a balance still owing.`,
+    ]),
+    para(`An invoice turns **overdue** when today is past **invoice date + payment terms (NET days)** and money is still owed — usually a delayed payment or a customer running past their credit terms.`),
+  ] },
+  { re: /credit limit|payment terms|net \d+/, blocks: () => [
+    para(`**Credit limit** is the maximum outstanding balance a customer may carry. **Payment terms** are the NET days they have to pay (e.g. NET 30). When a customer's outstanding exceeds the limit, or an invoice runs past its terms, it drives the overdue/collections workflow.`),
+  ] },
+];
+
+function explainConcept(s: string): AiReply | null {
+  if (!EXPLAIN_CUE.test(s)) return null;
+  // A price / balance / volume lookup is data, not a concept explanation.
+  if (isPriceQuery(s) || isVolumeQuery(s) || /\b(price|rate|balance|outstanding|how much|how many|today|current|latest)\b/.test(s)) return null;
+  for (const k of KNOWLEDGE) if (k.re.test(s)) return { blocks: k.blocks() };
+  return null;
+}
+
+const GUIDES: { re: RegExp; title: string; steps: string[]; tips?: string[]; to?: string }[] = [
+  { re: /invoice|bill/, title: 'Create an invoice', to: '/invoices', steps: [
+    'Open **Sales → Invoices** and click **New Invoice** (or convert an accepted quotation/order).',
+    'Pick the **customer** — their GST, billing address and terms fill in automatically.',
+    'Add **line items**: product, quantity (KL/L) and rate; GST is applied per line.',
+    'Check the **subtotal, GST (CGST/SGST/IGST) and total**, and add any transport charge.',
+    '**Save** to issue it, then use the **PDF** button to download or share.',
+  ], tips: ['Converting an order or quotation copies the lines for you.', 'The due date is set from the customer\'s payment terms.'] },
+  { re: /payment|\bpay\b|collect|receipt/, title: 'Record a payment', to: '/payments', steps: [
+    'Open **Payments** (or the customer\'s invoice).',
+    'Click **Record Payment** and select the **invoice(s)** being settled.',
+    'Enter the **amount**, **mode** (NEFT / RTGS / UPI / Cheque / Cash) and a **reference**.',
+    'Save — the invoice moves to **Partial** or **Paid** and the customer\'s **outstanding** updates automatically.',
+    'Download the **receipt** from the payment row if the customer needs it.',
+  ], tips: ['Cheques are realised after clearing (2–3 working days).', 'Any overpayment can be adjusted against a future invoice.'] },
+  { re: /customer|client|account/, title: 'Add a customer', to: '/customers', steps: [
+    'Go to **Customers → New Customer**.',
+    'Enter the company name, **GSTIN / PAN**, industry and segment.',
+    'Add the **billing & shipping addresses** and at least one **contact**.',
+    'Set the **credit limit** and **payment terms (NET days)**.',
+    'Save — the account is ready for orders, invoices and the customer portal.',
+  ] },
+  { re: /quotation|proposal|quote/, title: 'Create a quotation', to: '/proposals', steps: [
+    'Open **Sales → Proposals → New**.',
+    'Choose the customer and add product lines with quantities and rates.',
+    'Review the totals — high-value quotes may need **approval**.',
+    'Send it; once accepted, **convert to an order or invoice** in one click.',
+  ] },
+  { re: /dispatch|deliver|track|shipment|logistics/, title: 'Schedule & track a dispatch', to: '/dispatch', steps: [
+    'Open **Operations → Dispatch** and create a dispatch against the order.',
+    'Assign the **vehicle, driver and route**, and set the scheduled date.',
+    'Status flows **Scheduled → Loading → In Transit → Delivered** as it moves.',
+    'Follow live status and current location under **Product Tracking** (or the customer portal).',
+  ] },
+  { re: /erp|calculator|costing|density/, title: 'Use the ERP Calculator', to: '/erp-calculator', steps: [
+    'Open **ERP Calculator** (Workspace — Admin).',
+    'Add a **tank** row and enter its **price (₹/L)**, **density (g/L)** and **litres**.',
+    'Use **+ Add Tank** to include more tanks for a blended lot.',
+    'Read the **Total KL / Kg, weighted density, blended price and total price** in the summary tiles.',
+  ] },
+];
+
+function guide(s: string): AiReply | null {
+  if (!/\b(how (do|can|to)\b|how do i|walk me through|guide me|show me how|steps to|step by step|process (for|of|to))\b/.test(s)) return null;
+  for (const g of GUIDES) {
+    if (g.re.test(s)) {
+      const blocks: AiBlock[] = [para(`**${g.title}** — step by step:`), { kind: 'list', items: g.steps.map((st, i) => `${i + 1}. ${st}`) }];
+      if (g.tips) blocks.push(para('**Tips:**'), bullets(g.tips));
+      return g.to ? { blocks, action: { label: 'Open', to: g.to } } : { blocks };
+    }
+  }
+  return null;
+}
+
+function comparePrices(s: string, ctx: AiContext): AiReply {
+  const all = [...ctx.oil, ...ctx.fuel];
+  const names = ['brent', 'wti', 'crude', 'natural gas', 'diesel', 'petrol', 'lpg', 'atf', 'cng'];
+  const wanted = names.filter((n) => s.includes(n));
+  let picked = all.filter((t) => wanted.some((n) => new RegExp(n, 'i').test(t.name)));
+  if (picked.length < 2) picked = ctx.oil;
+  const rows = picked.map((t) => [t.name, formatMarket(t), `${t.change >= 0 ? '▲' : '▼'} ${Math.abs(t.change).toFixed(2)}%`]);
+  const to = route(ctx.role, 'market');
+  const reply: AiReply = { blocks: [text('Here\'s how those benchmarks compare right now (indicative feed):'), { kind: 'table', columns: ['Instrument', 'Price', 'Change'], rows }] };
+  if (to) reply.action = { label: 'Open Live Market', to };
+  return reply;
+}
+
 export function runAssistant(query: string, ctx: AiContext): AiReply {
   // The query is already context-expanded by ChatPanel (see expandQuery); here
   // we only classify and answer.
@@ -859,12 +1018,25 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
 
   if (/^(help|what can you do|what do you do|how do you work)\b/.test(s)) return capabilities(ctx);
 
-  const detail = wantsDetail(s);
+  // How-to guidance (Level 5) and concept explanations (Level 2/3) come before
+  // data routing so "explain Brent" / "how do I create an invoice" get depth.
+  const g = guide(s);
+  if (g) return g;
+  const k = explainConcept(s);
+  if (k) return k;
+
+  // Data answers stay concise, but deepen to a full breakdown when asked.
+  const detail = wantsDetail(s) || DETAIL_SEEK_RE.test(s);
 
   const nav = navigation(s, ctx);
   if (nav) return nav;
 
   if (/\b(compare|comparison|versus|\bvs\b)\b/.test(s)) {
+    // Two market benchmarks with no sales context → compare their live prices.
+    const priceCompare = /\b(brent|wti|crude|natural gas|diesel|petrol|lpg|atf|cng)\b/.test(s)
+      && !/\b(sold|sell|sales|transport|deliver|volume|litre|revenue|bought|purchas)\b/.test(s)
+      && (/\b(price|prices|rate|benchmark|market)\b/.test(s) || findSubjects(s, ctx).length < 2);
+    if (priceCompare) return comparePrices(s, ctx);
     const years = (s.match(/20\d{2}/g) ?? []).map(Number);
     if (years.length >= 2 && findSubjects(s, ctx).length < 2) return comparePeriods(s, ctx, years);
     return compare(s, ctx);
