@@ -152,7 +152,7 @@ export type ItemCategory =
   | 'LUBRICANT'
   | 'SPECIALTY';
 
-export type Unit = 'KL' | 'MT' | 'L' | 'KG' | 'MTS' | 'DRUM' | 'BARREL';
+export type Unit = 'KL' | 'L';
 
 export interface PricePoint {
   date: string;

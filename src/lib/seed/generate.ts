@@ -508,8 +508,8 @@ export function generateSeed(): SeedData {
     );
     return chosen.map((it, idx) => {
       const qty = faker.number.int({
-        min: it.unit === 'KL' || it.unit === 'MT' ? 5 : 100,
-        max: it.unit === 'KL' || it.unit === 'MT' ? 90 : 5000,
+        min: it.unit === 'KL' ? 5 : 100,
+        max: it.unit === 'KL' ? 90 : 5000,
       });
       const rate = it.rate;
       const discount = faker.helpers.arrayElement([0, 0, 0, 2, 5]);

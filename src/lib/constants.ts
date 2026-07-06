@@ -167,7 +167,7 @@ export const PRIORITY: Record<Priority, LabelDef> = {
   URGENT: { label: 'Urgent', tone: 'danger' },
 };
 
-export const UNITS: Unit[] = ['KL', 'MT', 'L', 'KG', 'MTS', 'DRUM', 'BARREL'];
+export const UNITS: Unit[] = ['KL', 'L'];
 
 export const GST_RATES = [0, 5, 12, 18, 28];
 

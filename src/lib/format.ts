@@ -62,7 +62,7 @@ export function formatQty(value: number, unit: Unit): string {
   if (unit === 'L' && Math.abs(value) >= 1000) {
     return `${formatNumber(value / 1000, 3)} KL`;
   }
-  const decimals = unit === 'KL' || unit === 'MT' ? 3 : 0;
+  const decimals = unit === 'KL' ? 3 : 0;
   return `${formatNumber(value, decimals)} ${unit}`;
 }
 

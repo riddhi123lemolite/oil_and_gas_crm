@@ -7,10 +7,10 @@ import { SelectField } from '@/components/forms/SelectField';
 import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
-import { formatINR, formatDate } from '@/lib/format';
+import { formatINR, formatDate, formatQty } from '@/lib/format';
 import { exportToExcel } from '@/lib/excel';
 import { INVOICE_STATUS } from '@/lib/constants';
-import type { InvoiceStatus } from '@/types';
+import type { InvoiceStatus, Unit } from '@/types';
 
 const BAR_COLORS = ['#0F3D5C', '#E87722', '#00A878', '#7C3AED', '#0891B2', '#C2410C'];
 
@@ -39,9 +39,16 @@ export default function PortalHistory() {
   }, [myInvoices]);
 
   const topProducts = useMemo(() => {
-    const map = new Map<string, number>();
-    myDispatches.forEach((d) => map.set(d.itemId, (map.get(d.itemId) ?? 0) + d.quantity));
-    return [...map.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([id, qty]) => ({ name: itemName(id).slice(0, 16), qty }));
+    const qtyMap = new Map<string, number>();
+    const unitMap = new Map<string, Unit>();
+    myDispatches.forEach((d) => {
+      qtyMap.set(d.itemId, (qtyMap.get(d.itemId) ?? 0) + d.quantity);
+      unitMap.set(d.itemId, d.unit);
+    });
+    return [...qtyMap.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([id, qty]) => ({ name: itemName(id).slice(0, 16), qty, unit: unitMap.get(id) ?? 'KL' }));
   }, [myDispatches, itemName]);
 
   const rows = myInvoices
@@ -94,7 +101,7 @@ export default function PortalHistory() {
               <BarChart data={topProducts} layout="vertical" margin={{ left: 10, right: 8 }}>
                 <XAxis type="number" hide />
                 <YAxis type="category" dataKey="name" width={110} tick={{ fontSize: 11 }} stroke="var(--text-muted)" />
-                <Tooltip formatter={(v: number) => `${v.toLocaleString('en-IN')} units`} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+                <Tooltip formatter={(v: number, _n: string, item: any) => formatQty(v, (item?.payload?.unit ?? 'KL') as Unit)} contentStyle={{ fontSize: 12, borderRadius: 8 }} />
                 <Bar dataKey="qty" radius={[0, 4, 4, 0]}>
                   {topProducts.map((_, i) => (
                     <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
