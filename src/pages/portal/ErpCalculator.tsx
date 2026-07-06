@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Calculator, Plus, Trash2, Copy, RotateCcw } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { formatNumber } from '@/lib/format';
+import { computeErp } from '@/lib/erp';
 import { generateId } from '@/lib/utils';
 
 interface Tank {
@@ -32,20 +33,10 @@ export default function ErpCalculator() {
   const [tanks, setTanks] = useState<Tank[]>([emptyTank('Tank 1'), emptyTank('Tank 2'), emptyTank('Tank 3')]);
   const [tankNo, setTankNo] = useState('');
 
-  const rows = tanks.map((t) => {
-    const priceN = num(t.price);
-    const densityN = num(t.density);
-    const litreN = num(t.litre);
-    const kg = (litreN * densityN) / 1000; // kg = (litre × density) / 1000
-    const lineTotal = priceN * litreN; // price × litre
-    return { ...t, litreN, kg, lineTotal };
-  });
-
-  const totalLitre = rows.reduce((s, r) => s + r.litreN, 0);
-  const totalKg = rows.reduce((s, r) => s + r.kg, 0);
-  const totalPrice = rows.reduce((s, r) => s + r.lineTotal, 0);
-  const avgPrice = totalLitre ? totalPrice / totalLitre : 0; // Total Price ÷ Total Litre
-  const avgDensity = totalLitre ? (totalKg / totalLitre) * 1000 : 0; // weighted density
+  const numeric = tanks.map((t) => ({ price: num(t.price), density: num(t.density), litre: num(t.litre) }));
+  const erp = computeErp(numeric);
+  const rows = tanks.map((t, i) => ({ ...t, kg: erp.perTank[i]?.kg ?? 0 }));
+  const { totalLitre, totalKg, totalPrice, avgPrice, avgDensity } = erp;
 
   const update = (id: string, field: keyof Tank, value: string) =>
     setTanks((ts) => ts.map((t) => (t.id === id ? { ...t, [field]: value } : t)));

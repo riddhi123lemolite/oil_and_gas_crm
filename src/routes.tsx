@@ -109,6 +109,7 @@ const PortalSupport = lazy(() => import('@/pages/portal/PortalSupport'));
 const CompanyInfo = lazy(() => import('@/pages/portal/CompanyInfo'));
 const CustomerProfile = lazy(() => import('@/pages/portal/CustomerProfile'));
 const CustomerSettings = lazy(() => import('@/pages/portal/CustomerSettings'));
+const Assistant = lazy(() => import('@/pages/ai/Assistant'));
 
 // Customers land on their portal; staff see the main dashboard.
 function RoleHome() {
@@ -131,6 +132,7 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <RoleHome /> },
+      { path: 'assistant', element: <Assistant /> },
       { path: 'my-dashboard', element: <MyDashboard /> },
       { path: 'analytics', element: <SalesAnalytics /> },
 

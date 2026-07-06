@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Package, PackageOpen, Truck, History, PackageCheck,
+  LayoutDashboard, Sparkles, Package, PackageOpen, Truck, History, PackageCheck,
   FolderOpen, ReceiptIndianRupee, FileText, ClipboardList, Receipt, FilePlus, FileMinus, Files,
   Wallet, AlertCircle, CalendarClock, Download,
   TrendingUp, Flame, BarChart3, Fuel, LineChart,
@@ -38,6 +38,13 @@ export const CUSTOMER_NAV: CustNavSection[] = [
     icon: LayoutDashboard,
     flat: true,
     items: [{ label: 'Dashboard', path: '/portal', icon: LayoutDashboard }],
+  },
+  {
+    id: 'assistant',
+    label: 'AI Assistant',
+    icon: Sparkles,
+    flat: true,
+    items: [{ label: 'AI Assistant', path: '/assistant', icon: Sparkles }],
   },
   {
     id: 'orders',

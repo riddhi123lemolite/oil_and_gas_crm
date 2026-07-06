@@ -37,6 +37,7 @@ import {
   ScrollText,
   SlidersHorizontal,
   Calculator,
+  Sparkles,
   type LucideIcon,
 } from 'lucide-react';
 import type { PermModule } from './permissions';
@@ -58,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Workspace',
     items: [
       { label: 'Dashboard', path: '/', icon: LayoutDashboard, module: 'dashboard' },
+      { label: 'AI Assistant', path: '/assistant', icon: Sparkles, module: 'dashboard' },
       { label: 'My Dashboard', path: '/my-dashboard', icon: UserCircle, module: 'dashboard' },
       { label: 'Leads', path: '/leads', icon: Target, module: 'leads' },
       { label: 'Pipeline', path: '/leads/pipeline', icon: KanbanSquare, module: 'leads' },

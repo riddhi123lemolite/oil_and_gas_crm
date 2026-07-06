@@ -17,6 +17,7 @@ import {
   Check,
   ChevronDown,
   Globe,
+  Sparkles,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useAuthStore } from '@/stores/authStore';
@@ -164,6 +165,16 @@ export function Topbar() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {/* AI Assistant */}
+      <button
+        onClick={() => navigate('/assistant')}
+        className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-brand-secondary transition-colors hover:bg-brand-secondary/10"
+        aria-label="AI Assistant"
+      >
+        <Sparkles className="size-[18px]" />
+        <span className="hidden sm:inline">Ask AI</span>
+      </button>
 
       {/* Language switcher */}
       <DropdownMenu>
