@@ -11,6 +11,7 @@ import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
 import { TableSkeleton } from '@/components/ui/skeleton';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { useCurrencyStore } from '@/stores/currencyStore';
+import { AiFab } from '@/components/ai/AiFab';
 
 export function AppShell() {
   useGlobalShortcuts();
@@ -43,6 +44,7 @@ export function AppShell() {
         <CommandPalette />
         <SplashModal />
         <KeyboardShortcutsModal />
+        <AiFab />
       </div>
     </TooltipProvider>
   );

@@ -1,5 +1,6 @@
 import { format, formatDistanceToNow, parseISO, isValid } from 'date-fns';
 import { activeCurrency } from '@/stores/currencyStore';
+import { activeLocale } from '@/lib/i18n';
 import type { Unit } from '@/types';
 
 // ---------------------------------------------------------------------------
@@ -47,7 +48,7 @@ export function formatINRCompact(amount: number | undefined | null): string {
 }
 
 export function formatNumber(value: number, fractionDigits = 0): string {
-  return new Intl.NumberFormat('en-IN', {
+  return new Intl.NumberFormat(activeLocale(), {
     maximumFractionDigits: fractionDigits,
     minimumFractionDigits: fractionDigits,
   }).format(value);
@@ -72,19 +73,25 @@ function toDate(value: string | Date | undefined | null): Date | null {
 /** "21-05-2026". */
 export function formatDate(value?: string | Date | null): string {
   const date = toDate(value);
-  return date ? format(date, 'dd-MM-yyyy') : '—';
+  return date
+    ? new Intl.DateTimeFormat(activeLocale(), { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
+    : '—';
 }
 
 /** "21 May 2026". */
 export function formatDateLong(value?: string | Date | null): string {
   const date = toDate(value);
-  return date ? format(date, 'dd MMM yyyy') : '—';
+  return date
+    ? new Intl.DateTimeFormat(activeLocale(), { day: '2-digit', month: 'short', year: 'numeric' }).format(date)
+    : '—';
 }
 
 /** "21 May 2026, 4:30 PM". */
 export function formatDateTime(value?: string | Date | null): string {
   const date = toDate(value);
-  return date ? format(date, 'dd MMM yyyy, h:mm a') : '—';
+  return date
+    ? new Intl.DateTimeFormat(activeLocale(), { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
+    : '—';
 }
 
 /** "3 days ago". */

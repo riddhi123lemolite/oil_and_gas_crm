@@ -38,7 +38,40 @@ export const LANGUAGES: Language[] = [
   { code: 'sd', name: 'सिन्धी', dir: 'ltr' },
   { code: 'ar', name: 'العربية', dir: 'rtl' },
   { code: 'fr', name: 'Français', dir: 'ltr' },
+  { code: 'de', name: 'Deutsch', dir: 'ltr' },
+  { code: 'es', name: 'Español', dir: 'ltr' },
+  { code: 'it', name: 'Italiano', dir: 'ltr' },
+  { code: 'pt', name: 'Português', dir: 'ltr' },
+  { code: 'ru', name: 'Русский', dir: 'ltr' },
+  { code: 'zh', name: '中文', dir: 'ltr' },
+  { code: 'ja', name: '日本語', dir: 'ltr' },
+  { code: 'ko', name: '한국어', dir: 'ltr' },
 ];
+
+// BCP-47 locale per language, for date/number/currency formatting.
+const LOCALES: Record<string, string> = {
+  en: 'en-IN', hi: 'hi-IN', bn: 'bn-IN', mr: 'mr-IN', gu: 'gu-IN', pa: 'pa-IN',
+  ta: 'ta-IN', te: 'te-IN', kn: 'kn-IN', ml: 'ml-IN', or: 'or-IN', as: 'as-IN',
+  sa: 'sa-IN', ks: 'ks-IN', sd: 'sd-IN', ur: 'ur-PK', ar: 'ar-AE', fr: 'fr-FR',
+  de: 'de-DE', es: 'es-ES', it: 'it-IT', pt: 'pt-BR', ru: 'ru-RU', zh: 'zh-CN',
+  ja: 'ja-JP', ko: 'ko-KR',
+};
+
+export function localeFor(code: string): string {
+  return LOCALES[code] ?? 'en-IN';
+}
+
+/** Best-match supported language from the browser's preferences. */
+function detectLanguage(): LangCode {
+  const prefs = typeof navigator !== 'undefined' ? navigator.languages ?? [navigator.language] : [];
+  for (const p of prefs) {
+    if (!p) continue;
+    const base = p.toLowerCase().split('-')[0];
+    const hit = LANGUAGES.find((l) => l.code === base);
+    if (hit) return hit.code;
+  }
+  return 'en';
+}
 
 type Dict = Record<string, string>;
 
@@ -190,6 +223,86 @@ const translations: Record<string, Dict> = {
     'Welcome back': 'Bon retour', 'Sign in to your Sarvadesk workspace': 'Connectez-vous à votre espace Sarvadesk', 'Email Address': 'Adresse e-mail', Password: 'Mot de passe', 'Remember me': 'Se souvenir de moi', 'Forgot password?': 'Mot de passe oublié ?', 'Sign In': 'Se connecter', 'New to Sarvadesk?': 'Nouveau sur Sarvadesk ?', 'Create an account': 'Créer un compte',
     'Demo mode — any email & password works. Just click Sign In.': "Mode démo — n'importe quel e-mail et mot de passe fonctionnent. Cliquez sur Se connecter.",
   },
+  de: {
+    Workspace: 'Arbeitsbereich', Sales: 'Vertrieb', Operations: 'Betrieb', Communication: 'Kommunikation', Insights: 'Analysen', Admin: 'Verwaltung',
+    Dashboard: 'Dashboard', 'My Dashboard': 'Mein Dashboard', Leads: 'Leads', Pipeline: 'Pipeline', Customers: 'Kunden', Tasks: 'Aufgaben', 'My Day': 'Mein Tag', Calendar: 'Kalender',
+    'Items & Products': 'Artikel & Produkte', Proposals: 'Angebote', Quotations: 'Preisangebote', 'Sales Orders': 'Aufträge', Invoices: 'Rechnungen', Payments: 'Zahlungen',
+    'Transport Routes': 'Transportrouten', 'Dispatch Schedule': 'Versandplan', 'Trip Tracking': 'Fahrtverfolgung', Vehicles: 'Fahrzeuge', Drivers: 'Fahrer', Inventory: 'Lagerbestand',
+    Chat: 'Chat', Email: 'E-Mail', Notifications: 'Benachrichtigungen', 'Call Logs': 'Anrufprotokolle',
+    'Sales Analytics': 'Vertriebsanalyse', 'Sales Reports': 'Vertriebsberichte', 'Lead Funnel': 'Lead-Trichter', Geographic: 'Geografisch', 'Report Builder': 'Berichtsersteller',
+    Staff: 'Personal', Attendance: 'Anwesenheit', 'Roles & Permissions': 'Rollen & Berechtigungen', Definitions: 'Definitionen', Company: 'Unternehmen', Integrations: 'Integrationen', 'Audit Log': 'Audit-Protokoll', System: 'System',
+    Collapse: 'Einklappen', 'Create New': 'Neu erstellen', Lead: 'Lead', Customer: 'Kunde', Proposal: 'Angebot', Task: 'Aufgabe', 'Display currency': 'Anzeigewährung', Language: 'Sprache', 'Switch Role (Demo)': 'Rolle wechseln (Demo)', 'Profile Settings': 'Profileinstellungen', 'Sign Out': 'Abmelden', 'Mark all read': 'Alle als gelesen markieren', 'Search anything…': 'Suchen…',
+  },
+  es: {
+    Workspace: 'Espacio de trabajo', Sales: 'Ventas', Operations: 'Operaciones', Communication: 'Comunicación', Insights: 'Analíticas', Admin: 'Administración',
+    Dashboard: 'Panel', 'My Dashboard': 'Mi panel', Leads: 'Prospectos', Pipeline: 'Embudo', Customers: 'Clientes', Tasks: 'Tareas', 'My Day': 'Mi día', Calendar: 'Calendario',
+    'Items & Products': 'Artículos y productos', Proposals: 'Propuestas', Quotations: 'Cotizaciones', 'Sales Orders': 'Pedidos', Invoices: 'Facturas', Payments: 'Pagos',
+    'Transport Routes': 'Rutas de transporte', 'Dispatch Schedule': 'Programación de despacho', 'Trip Tracking': 'Seguimiento de viajes', Vehicles: 'Vehículos', Drivers: 'Conductores', Inventory: 'Inventario',
+    Chat: 'Chat', Email: 'Correo', Notifications: 'Notificaciones', 'Call Logs': 'Registros de llamadas',
+    'Sales Analytics': 'Analítica de ventas', 'Sales Reports': 'Informes de ventas', 'Lead Funnel': 'Embudo de prospectos', Geographic: 'Geográfico', 'Report Builder': 'Generador de informes',
+    Staff: 'Personal', Attendance: 'Asistencia', 'Roles & Permissions': 'Roles y permisos', Definitions: 'Definiciones', Company: 'Empresa', Integrations: 'Integraciones', 'Audit Log': 'Registro de auditoría', System: 'Sistema',
+    Collapse: 'Contraer', 'Create New': 'Crear nuevo', Lead: 'Prospecto', Customer: 'Cliente', Proposal: 'Propuesta', Task: 'Tarea', 'Display currency': 'Moneda de visualización', Language: 'Idioma', 'Switch Role (Demo)': 'Cambiar rol (demo)', 'Profile Settings': 'Configuración del perfil', 'Sign Out': 'Cerrar sesión', 'Mark all read': 'Marcar todo como leído', 'Search anything…': 'Buscar…',
+  },
+  it: {
+    Workspace: 'Area di lavoro', Sales: 'Vendite', Operations: 'Operazioni', Communication: 'Comunicazione', Insights: 'Analisi', Admin: 'Amministrazione',
+    Dashboard: 'Dashboard', 'My Dashboard': 'La mia dashboard', Leads: 'Lead', Pipeline: 'Pipeline', Customers: 'Clienti', Tasks: 'Attività', 'My Day': 'La mia giornata', Calendar: 'Calendario',
+    'Items & Products': 'Articoli e prodotti', Proposals: 'Proposte', Quotations: 'Preventivi', 'Sales Orders': 'Ordini', Invoices: 'Fatture', Payments: 'Pagamenti',
+    'Transport Routes': 'Rotte di trasporto', 'Dispatch Schedule': 'Programma spedizioni', 'Trip Tracking': 'Tracciamento viaggi', Vehicles: 'Veicoli', Drivers: 'Autisti', Inventory: 'Inventario',
+    Chat: 'Chat', Email: 'Email', Notifications: 'Notifiche', 'Call Logs': 'Registri chiamate',
+    'Sales Analytics': 'Analisi vendite', 'Sales Reports': 'Rapporti vendite', 'Lead Funnel': 'Imbuto lead', Geographic: 'Geografico', 'Report Builder': 'Generatore di report',
+    Staff: 'Personale', Attendance: 'Presenze', 'Roles & Permissions': 'Ruoli e permessi', Definitions: 'Definizioni', Company: 'Azienda', Integrations: 'Integrazioni', 'Audit Log': 'Registro attività', System: 'Sistema',
+    Collapse: 'Comprimi', 'Create New': 'Crea nuovo', Lead: 'Lead', Customer: 'Cliente', Proposal: 'Proposta', Task: 'Attività', 'Display currency': 'Valuta di visualizzazione', Language: 'Lingua', 'Switch Role (Demo)': 'Cambia ruolo (demo)', 'Profile Settings': 'Impostazioni profilo', 'Sign Out': 'Esci', 'Mark all read': 'Segna tutto come letto', 'Search anything…': 'Cerca…',
+  },
+  pt: {
+    Workspace: 'Área de trabalho', Sales: 'Vendas', Operations: 'Operações', Communication: 'Comunicação', Insights: 'Análises', Admin: 'Administração',
+    Dashboard: 'Painel', 'My Dashboard': 'Meu painel', Leads: 'Leads', Pipeline: 'Funil', Customers: 'Clientes', Tasks: 'Tarefas', 'My Day': 'Meu dia', Calendar: 'Calendário',
+    'Items & Products': 'Itens e produtos', Proposals: 'Propostas', Quotations: 'Cotações', 'Sales Orders': 'Pedidos', Invoices: 'Faturas', Payments: 'Pagamentos',
+    'Transport Routes': 'Rotas de transporte', 'Dispatch Schedule': 'Agenda de expedição', 'Trip Tracking': 'Rastreamento de viagens', Vehicles: 'Veículos', Drivers: 'Motoristas', Inventory: 'Estoque',
+    Chat: 'Chat', Email: 'E-mail', Notifications: 'Notificações', 'Call Logs': 'Registros de chamadas',
+    'Sales Analytics': 'Análise de vendas', 'Sales Reports': 'Relatórios de vendas', 'Lead Funnel': 'Funil de leads', Geographic: 'Geográfico', 'Report Builder': 'Construtor de relatórios',
+    Staff: 'Equipe', Attendance: 'Presença', 'Roles & Permissions': 'Funções e permissões', Definitions: 'Definições', Company: 'Empresa', Integrations: 'Integrações', 'Audit Log': 'Registro de auditoria', System: 'Sistema',
+    Collapse: 'Recolher', 'Create New': 'Criar novo', Lead: 'Lead', Customer: 'Cliente', Proposal: 'Proposta', Task: 'Tarefa', 'Display currency': 'Moeda de exibição', Language: 'Idioma', 'Switch Role (Demo)': 'Mudar função (demo)', 'Profile Settings': 'Configurações do perfil', 'Sign Out': 'Sair', 'Mark all read': 'Marcar tudo como lido', 'Search anything…': 'Pesquisar…',
+  },
+  ru: {
+    Workspace: 'Рабочая область', Sales: 'Продажи', Operations: 'Операции', Communication: 'Коммуникации', Insights: 'Аналитика', Admin: 'Администрирование',
+    Dashboard: 'Панель', 'My Dashboard': 'Моя панель', Leads: 'Лиды', Pipeline: 'Воронка', Customers: 'Клиенты', Tasks: 'Задачи', 'My Day': 'Мой день', Calendar: 'Календарь',
+    'Items & Products': 'Товары и продукты', Proposals: 'Предложения', Quotations: 'Расценки', 'Sales Orders': 'Заказы', Invoices: 'Счета', Payments: 'Платежи',
+    'Transport Routes': 'Маршруты', 'Dispatch Schedule': 'График отгрузки', 'Trip Tracking': 'Отслеживание рейсов', Vehicles: 'Транспорт', Drivers: 'Водители', Inventory: 'Склад',
+    Chat: 'Чат', Email: 'Почта', Notifications: 'Уведомления', 'Call Logs': 'Журнал звонков',
+    'Sales Analytics': 'Аналитика продаж', 'Sales Reports': 'Отчёты по продажам', 'Lead Funnel': 'Воронка лидов', Geographic: 'География', 'Report Builder': 'Конструктор отчётов',
+    Staff: 'Персонал', Attendance: 'Посещаемость', 'Roles & Permissions': 'Роли и права', Definitions: 'Определения', Company: 'Компания', Integrations: 'Интеграции', 'Audit Log': 'Журнал аудита', System: 'Система',
+    Collapse: 'Свернуть', 'Create New': 'Создать', Lead: 'Лид', Customer: 'Клиент', Proposal: 'Предложение', Task: 'Задача', 'Display currency': 'Валюта отображения', Language: 'Язык', 'Switch Role (Demo)': 'Сменить роль (демо)', 'Profile Settings': 'Настройки профиля', 'Sign Out': 'Выйти', 'Mark all read': 'Отметить всё как прочитанное', 'Search anything…': 'Поиск…',
+  },
+  zh: {
+    Workspace: '工作区', Sales: '销售', Operations: '运营', Communication: '沟通', Insights: '分析', Admin: '管理',
+    Dashboard: '仪表板', 'My Dashboard': '我的仪表板', Leads: '线索', Pipeline: '销售管道', Customers: '客户', Tasks: '任务', 'My Day': '我的一天', Calendar: '日历',
+    'Items & Products': '商品与产品', Proposals: '报价方案', Quotations: '报价单', 'Sales Orders': '销售订单', Invoices: '发票', Payments: '付款',
+    'Transport Routes': '运输路线', 'Dispatch Schedule': '调度计划', 'Trip Tracking': '行程跟踪', Vehicles: '车辆', Drivers: '司机', Inventory: '库存',
+    Chat: '聊天', Email: '邮件', Notifications: '通知', 'Call Logs': '通话记录',
+    'Sales Analytics': '销售分析', 'Sales Reports': '销售报表', 'Lead Funnel': '线索漏斗', Geographic: '地理', 'Report Builder': '报表生成器',
+    Staff: '员工', Attendance: '考勤', 'Roles & Permissions': '角色与权限', Definitions: '定义', Company: '公司', Integrations: '集成', 'Audit Log': '审计日志', System: '系统',
+    Collapse: '收起', 'Create New': '新建', Lead: '线索', Customer: '客户', Proposal: '报价', Task: '任务', 'Display currency': '显示货币', Language: '语言', 'Switch Role (Demo)': '切换角色（演示）', 'Profile Settings': '个人设置', 'Sign Out': '退出登录', 'Mark all read': '全部标为已读', 'Search anything…': '搜索…',
+  },
+  ja: {
+    Workspace: 'ワークスペース', Sales: '営業', Operations: '業務', Communication: 'コミュニケーション', Insights: '分析', Admin: '管理',
+    Dashboard: 'ダッシュボード', 'My Dashboard': 'マイダッシュボード', Leads: 'リード', Pipeline: 'パイプライン', Customers: '顧客', Tasks: 'タスク', 'My Day': 'マイデイ', Calendar: 'カレンダー',
+    'Items & Products': '商品・製品', Proposals: '提案', Quotations: '見積', 'Sales Orders': '受注', Invoices: '請求書', Payments: '支払い',
+    'Transport Routes': '輸送ルート', 'Dispatch Schedule': '配車スケジュール', 'Trip Tracking': '配送追跡', Vehicles: '車両', Drivers: 'ドライバー', Inventory: '在庫',
+    Chat: 'チャット', Email: 'メール', Notifications: '通知', 'Call Logs': '通話履歴',
+    'Sales Analytics': '売上分析', 'Sales Reports': '売上レポート', 'Lead Funnel': 'リードファネル', Geographic: '地域', 'Report Builder': 'レポートビルダー',
+    Staff: 'スタッフ', Attendance: '勤怠', 'Roles & Permissions': '役割と権限', Definitions: '定義', Company: '会社', Integrations: '連携', 'Audit Log': '監査ログ', System: 'システム',
+    Collapse: '折りたたむ', 'Create New': '新規作成', Lead: 'リード', Customer: '顧客', Proposal: '提案', Task: 'タスク', 'Display currency': '表示通貨', Language: '言語', 'Switch Role (Demo)': '役割を切替 (デモ)', 'Profile Settings': 'プロフィール設定', 'Sign Out': 'ログアウト', 'Mark all read': 'すべて既読にする', 'Search anything…': '検索…',
+  },
+  ko: {
+    Workspace: '워크스페이스', Sales: '영업', Operations: '운영', Communication: '커뮤니케이션', Insights: '분석', Admin: '관리',
+    Dashboard: '대시보드', 'My Dashboard': '내 대시보드', Leads: '리드', Pipeline: '파이프라인', Customers: '고객', Tasks: '작업', 'My Day': '마이 데이', Calendar: '캘린더',
+    'Items & Products': '품목 및 제품', Proposals: '제안서', Quotations: '견적', 'Sales Orders': '판매 주문', Invoices: '송장', Payments: '결제',
+    'Transport Routes': '운송 경로', 'Dispatch Schedule': '배차 일정', 'Trip Tracking': '운송 추적', Vehicles: '차량', Drivers: '기사', Inventory: '재고',
+    Chat: '채팅', Email: '이메일', Notifications: '알림', 'Call Logs': '통화 기록',
+    'Sales Analytics': '영업 분석', 'Sales Reports': '영업 보고서', 'Lead Funnel': '리드 퍼널', Geographic: '지역', 'Report Builder': '보고서 작성기',
+    Staff: '직원', Attendance: '근태', 'Roles & Permissions': '역할 및 권한', Definitions: '정의', Company: '회사', Integrations: '통합', 'Audit Log': '감사 로그', System: '시스템',
+    Collapse: '접기', 'Create New': '새로 만들기', Lead: '리드', Customer: '고객', Proposal: '제안', Task: '작업', 'Display currency': '표시 통화', Language: '언어', 'Switch Role (Demo)': '역할 전환 (데모)', 'Profile Settings': '프로필 설정', 'Sign Out': '로그아웃', 'Mark all read': '모두 읽음 표시', 'Search anything…': '검색…',
+  },
 };
 
 const STORAGE_KEY = 'oilgas-crm:language';
@@ -207,10 +320,22 @@ export const useLanguageStore = create<LangState>((set) => ({
     set({ code });
   },
   init: () => {
+    // 1) an explicit saved preference always wins for returning users.
     const saved = readStorage<LangCode | null>(STORAGE_KEY, null);
-    if (saved && LANGUAGES.some((l) => l.code === saved)) set({ code: saved });
+    if (saved && LANGUAGES.some((l) => l.code === saved)) {
+      set({ code: saved });
+      return;
+    }
+    // 2) otherwise auto-detect from the browser (falls back to English).
+    const detected = detectLanguage();
+    if (detected !== 'en') set({ code: detected });
   },
 }));
+
+/** Active BCP-47 locale (non-reactive) for use inside formatters. */
+export function activeLocale(): string {
+  return localeFor(useLanguageStore.getState().code);
+}
 
 export function translate(code: LangCode, key: string): string {
   if (code === 'en') return key;
