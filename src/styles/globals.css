@@ -131,6 +131,56 @@ body {
   }
 }
 
+/* ============ Right-to-left languages (Arabic, Urdu, Kashmiri) ============ */
+/* Keep numbers, currency and dates left-to-right so they read correctly. */
+[dir='rtl'] .num {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* Desktop sidebar pins to the right edge; flip its divider to the left. */
+[dir='rtl'] aside > .fixed {
+  left: auto;
+  right: 0;
+}
+[dir='rtl'] aside .border-r,
+[dir='rtl'] aside.border-r {
+  border-right-width: 0;
+  border-left-width: 1px;
+}
+
+/* Main column divider (top bar sits under it) — no change needed, but the
+   mobile drawer should slide in from the right. */
+[dir='rtl'] .lg\:hidden .absolute.left-0.w-72 {
+  left: auto;
+  right: 0;
+}
+
+/* Sidebar active-link accent bar moves to the trailing (right) edge. */
+[dir='rtl'] aside nav a .absolute.left-0 {
+  left: auto;
+  right: 0;
+  border-radius: 2px 0 0 2px;
+}
+
+/* Icons that sit inside inputs/buttons on the physical left move to the right. */
+[dir='rtl'] .left-2\.5 {
+  left: auto;
+  right: 0.625rem;
+}
+[dir='rtl'] .right-2\.5 {
+  right: auto;
+  left: 0.625rem;
+}
+[dir='rtl'] .pl-8 {
+  padding-left: 0.75rem;
+  padding-right: 2rem;
+}
+[dir='rtl'] .px-8 {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

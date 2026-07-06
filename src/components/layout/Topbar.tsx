@@ -176,7 +176,7 @@ export function Topbar() {
             <span className="hidden uppercase sm:inline">{langCode}</span>
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuContent align="end" className="max-h-[70vh] w-48 overflow-y-auto">
           <DropdownMenuLabel>{t('Language')}</DropdownMenuLabel>
           {LANGUAGES.map((l) => (
             <DropdownMenuItem key={l.code} onClick={() => setLanguage(l.code)}>
