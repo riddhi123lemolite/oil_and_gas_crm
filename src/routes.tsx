@@ -103,6 +103,12 @@ const DocumentCenter = lazy(() => import('@/pages/portal/DocumentCenter'));
 const PortalHistory = lazy(() => import('@/pages/portal/PortalHistory'));
 const PortalNotifications = lazy(() => import('@/pages/portal/PortalNotifications'));
 const ErpCalculator = lazy(() => import('@/pages/portal/ErpCalculator'));
+const PortalOrders = lazy(() => import('@/pages/portal/PortalOrders'));
+const PortalMarket = lazy(() => import('@/pages/portal/PortalMarket'));
+const PortalSupport = lazy(() => import('@/pages/portal/PortalSupport'));
+const CompanyInfo = lazy(() => import('@/pages/portal/CompanyInfo'));
+const CustomerProfile = lazy(() => import('@/pages/portal/CustomerProfile'));
+const CustomerSettings = lazy(() => import('@/pages/portal/CustomerSettings'));
 
 // Customers land on their portal; staff see the main dashboard.
 function RoleHome() {
@@ -211,6 +217,12 @@ export const router = createBrowserRouter([
       { path: 'portal/history', element: <PortalHistory /> },
       { path: 'portal/notifications', element: <PortalNotifications /> },
       { path: 'portal/calculator', element: <ErpCalculator /> },
+      { path: 'portal/orders', element: <PortalOrders /> },
+      { path: 'portal/market', element: <PortalMarket /> },
+      { path: 'portal/support', element: <PortalSupport /> },
+      { path: 'portal/company', element: <CompanyInfo /> },
+      { path: 'portal/profile', element: <CustomerProfile /> },
+      { path: 'portal/settings', element: <CustomerSettings /> },
 
       { path: '*', element: <NotFound /> },
     ],

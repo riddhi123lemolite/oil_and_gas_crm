@@ -6,6 +6,7 @@ import { useT } from '@/lib/i18n';
 import { useUiStore } from '@/stores/uiStore';
 import { Logo } from '@/components/shared/Logo';
 import { Tooltip } from '@/components/ui/tooltip';
+import { CustomerHeader, CustomerNav, CustomerFooter } from './CustomerNav';
 import { cn } from '@/lib/utils';
 
 function SidebarLink({
@@ -56,12 +57,13 @@ function SidebarLink({
 }
 
 export function Sidebar() {
-  const { can } = useAuth();
+  const { can, role } = useAuth();
   const t = useT();
   const { sidebarCollapsed, toggleSidebar, mobileSidebarOpen, setMobileSidebar } =
     useUiStore();
 
   const collapsed = sidebarCollapsed;
+  const isCustomer = role === 'CUSTOMER';
 
   const content = (mobile: boolean) => {
     const isCollapsed = mobile ? false : collapsed;
@@ -85,34 +87,42 @@ export function Sidebar() {
           )}
         </div>
 
-        <nav className="flex-1 space-y-4 overflow-y-auto px-3 py-4">
-          {NAV_GROUPS.map((group) => {
-            const visible = group.items.filter((it) => can(it.module, 'view'));
-            if (visible.length === 0) return null;
-            return (
-              <div key={group.label}>
-                {!isCollapsed && (
-                  <div className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
-                    {t(group.label)}
+        {isCustomer && <CustomerHeader collapsed={isCollapsed} />}
+
+        <nav className={cn('flex-1 overflow-y-auto px-3 py-4', !isCustomer && 'space-y-4')}>
+          {isCustomer ? (
+            <CustomerNav collapsed={isCollapsed} onNavigate={() => mobile && setMobileSidebar(false)} />
+          ) : (
+            NAV_GROUPS.map((group) => {
+              const visible = group.items.filter((it) => can(it.module, 'view'));
+              if (visible.length === 0) return null;
+              return (
+                <div key={group.label}>
+                  {!isCollapsed && (
+                    <div className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
+                      {t(group.label)}
+                    </div>
+                  )}
+                  {isCollapsed && <div className="mx-auto mb-1.5 h-px w-6 bg-line" />}
+                  <div className="space-y-0.5">
+                    {visible.map((item) => (
+                      <SidebarLink
+                        key={item.path}
+                        item={item}
+                        collapsed={isCollapsed}
+                        onNavigate={() => mobile && setMobileSidebar(false)}
+                      />
+                    ))}
                   </div>
-                )}
-                {isCollapsed && (
-                  <div className="mx-auto mb-1.5 h-px w-6 bg-line" />
-                )}
-                <div className="space-y-0.5">
-                  {visible.map((item) => (
-                    <SidebarLink
-                      key={item.path}
-                      item={item}
-                      collapsed={isCollapsed}
-                      onNavigate={() => mobile && setMobileSidebar(false)}
-                    />
-                  ))}
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          )}
         </nav>
+
+        {isCustomer && (
+          <CustomerFooter collapsed={isCollapsed} onNavigate={() => mobile && setMobileSidebar(false)} />
+        )}
 
         {!mobile && (
           <div className="shrink-0 border-t border-line p-3">

@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { FolderOpen, Download, Eye, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -28,16 +29,28 @@ const TYPE_TONE: Record<string, BadgeTone> = {
   'LR Copy': 'followup',
   'Weight Slip': 'warm',
   Certificate: 'success',
-  'Credit Note': 'neutral',
+  'Purchase Order': 'info',
+  Receipt: 'success',
+  'Credit Note': 'followup',
+  'Debit Note': 'warm',
+  Other: 'neutral',
 };
 
 export default function DocumentCenter() {
   const invoices = useDataStore((s) => s.invoices);
   const dispatches = useDataStore((s) => s.dispatches);
+  const orders = useDataStore((s) => s.orders);
+  const payments = useDataStore((s) => s.payments);
   const customers = useDataStore((s) => s.customers);
   const me = customers[0];
-  const [type, setType] = useState('all');
+  const [params] = useSearchParams();
+  const [type, setType] = useState(params.get('type') ?? 'all');
   const [preview, setPreview] = useState<Doc | null>(null);
+
+  // Keep the filter in sync with the sidebar's ?type= links.
+  useEffect(() => {
+    setType(params.get('type') ?? 'all');
+  }, [params]);
 
   const docs = useMemo<Doc[]>(() => {
     if (!me) return [];
@@ -55,9 +68,23 @@ export default function DocumentCenter() {
         out.push({ id: `lr-${d.id}`, title: `LR Copy ${d.number}`, type: 'LR Copy', date: d.scheduledAt, ref: d.number, sizeKb: 88 });
         out.push({ id: `ws-${d.id}`, title: `Weight Slip ${d.number}`, type: 'Weight Slip', date: d.scheduledAt, ref: d.number, sizeKb: 64 });
       });
+    orders
+      .filter((o) => o.customerId === me.id)
+      .forEach((o) => out.push({ id: `po-${o.id}`, title: `Purchase Order ${o.number}`, type: 'Purchase Order', date: o.orderDate, ref: o.number, sizeKb: 110 }));
+    payments
+      .filter((p) => p.customerId === me.id)
+      .forEach((p) => out.push({ id: `rc-${p.id}`, title: `Receipt ${p.number}`, type: 'Receipt', date: p.paidAt, ref: p.number, sizeKb: 72 }));
+    invoices
+      .filter((i) => i.customerId === me.id)
+      .forEach((i, idx) => {
+        if (idx % 6 === 0) out.push({ id: `cn-${i.id}`, title: `Credit Note CN-${i.number}`, type: 'Credit Note', date: i.invoiceDate, ref: i.number, sizeKb: 68 });
+        if (idx % 8 === 0) out.push({ id: `dn-${i.id}`, title: `Debit Note DN-${i.number}`, type: 'Debit Note', date: i.invoiceDate, ref: i.number, sizeKb: 66 });
+      });
     out.push({ id: 'cert-1', title: 'ISO 9001 Quality Certificate', type: 'Certificate', date: '2026-01-15', ref: 'CERT-ISO-9001', sizeKb: 340 });
+    out.push({ id: 'oth-1', title: 'KYC Declaration Form', type: 'Other', date: '2026-01-10', ref: 'KYC-2026', sizeKb: 210 });
+    out.push({ id: 'oth-2', title: 'Annual Rate Agreement', type: 'Other', date: '2026-04-01', ref: 'AGR-2026-27', sizeKb: 260 });
     return out.sort((a, b) => b.date.localeCompare(a.date));
-  }, [me, invoices, dispatches]);
+  }, [me, invoices, dispatches, orders, payments]);
 
   const types = useMemo(() => ['all', ...Array.from(new Set(docs.map((d) => d.type)))], [docs]);
   const filtered = type === 'all' ? docs : docs.filter((d) => d.type === type);
