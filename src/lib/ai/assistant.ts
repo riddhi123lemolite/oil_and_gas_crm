@@ -477,6 +477,64 @@ function orders(s: string, ctx: AiContext, detail: boolean): AiReply {
   return reply;
 }
 
+// Direct yes/no answers ("are they dispatched?", "any pending payments?",
+// "is everything paid?") resolved from the real data, instead of a bare count.
+function yesNo(s: string, ctx: AiContext): AiReply | null {
+  if (!/^(are|is|has|have|do|does|did|was|were|am|can|will|any\b)/.test(s.trim())) return null;
+
+  // --- shipment / dispatch / delivery status ---
+  if (/dispatch|shipped|\bship\b|in transit|on the way|out for delivery|deliver|arriv|reach|shipment/.test(s)) {
+    const list = ctx.dispatches;
+    const to = route(ctx.role, 'tracking');
+    const act = (t: string): AiReply => (to ? { blocks: [text(t)], action: { label: 'Open Product Tracking', to } } : { blocks: [text(t)] });
+    if (!list.length) return act('You don’t have any shipments on record right now.');
+    const inTransit = list.filter((d) => d.status === 'IN_TRANSIT').length;
+    const delivered = list.filter((d) => d.status === 'DELIVERED').length;
+    const dispatched = inTransit + delivered;
+    const n = list.length;
+
+    if (/deliver|arriv|reach/.test(s)) {
+      if (delivered === n) return act(`**Yes** — all **${n}** of your shipments have been **delivered**.`);
+      if (delivered === 0) return act(`**No** — none of your **${n}** shipment${n === 1 ? '' : 's'} ${n === 1 ? 'has' : 'have'} been delivered yet${inTransit ? ` (${inTransit} in transit)` : ''}.`);
+      return act(`**Partly** — **${delivered}** of **${n}** shipments delivered; the rest are still on the way.`);
+    }
+    if (/in transit|on the way/.test(s)) {
+      return inTransit
+        ? act(`**Yes** — **${inTransit}** of your **${n}** shipment${n === 1 ? '' : 's'} ${inTransit === 1 ? 'is' : 'are'} in transit.`)
+        : act('**No** — none of your shipments are in transit right now.');
+    }
+    // "dispatched" / "shipped"
+    if (dispatched === n) return act(`**Yes** — all **${n}** of your shipment${n === 1 ? '' : 's'} ${n === 1 ? 'has' : 'have'} been dispatched (${inTransit} in transit, ${delivered} delivered).`);
+    if (dispatched === 0) return act(`**No** — your **${n}** shipment${n === 1 ? '' : 's'} ${n === 1 ? 'is' : 'are'} still being prepared (scheduled/loading) and ${n === 1 ? 'hasn’t' : 'haven’t'} been dispatched yet.`);
+    return act(`**Partly** — **${dispatched}** of **${n}** shipments dispatched; **${n - dispatched}** still scheduled.`);
+  }
+
+  const toPay = route(ctx.role, 'payments');
+  const payAct = (t: string): AiReply => (toPay ? { blocks: [text(t)], action: { label: 'Open Payments', to: toPay } } : { blocks: [text(t)] });
+
+  // --- overdue invoices ---
+  if (/overdue/.test(s)) {
+    const overdue = ctx.invoices.filter((i) => i.status === 'OVERDUE');
+    if (!overdue.length) return payAct('**No** — you have no overdue invoices. 👍');
+    const bal = overdue.reduce((nn, i) => nn + (i.total - i.amountPaid), 0);
+    return payAct(`**Yes** — **${overdue.length}** invoice${overdue.length === 1 ? '' : 's'} ${overdue.length === 1 ? 'is' : 'are'} overdue (**${formatINR(bal)}** outstanding).`);
+  }
+
+  // --- pending payments / outstanding ---
+  if (/pending payment|outstanding|\bowe\b|unpaid|any (payment|due|bill)|everything paid|all paid|fully paid|\bdues\b/.test(s)) {
+    const unpaid = ctx.invoices.filter((i) => i.status !== 'PAID');
+    const overdue = ctx.invoices.filter((i) => i.status === 'OVERDUE').length;
+    if (/everything paid|all paid|fully paid/.test(s)) {
+      return unpaid.length === 0 ? payAct('**Yes** — everything is fully paid. 🎉') : payAct(`**No** — **${unpaid.length}** invoice${unpaid.length === 1 ? '' : 's'} still unpaid.`);
+    }
+    if (unpaid.length === 0) return payAct('**No** — you have no pending payments; everything is settled. 🎉');
+    const bal = unpaid.reduce((nn, i) => nn + (i.total - i.amountPaid), 0);
+    return payAct(`**Yes** — you have **${unpaid.length}** pending payment${unpaid.length === 1 ? '' : 's'} totalling **${formatINR(bal)}**${overdue ? `, **${overdue}** overdue` : ''}.`);
+  }
+
+  return null;
+}
+
 function customers(s: string, ctx: AiContext, detail: boolean): AiReply {
   if (ctx.role === 'CUSTOMER') {
     return { blocks: [text(`You're signed in for **${ctx.me?.companyName ?? 'your account'}**. For privacy, I only show your own orders, invoices, payments and documents.`)] };
@@ -1079,6 +1137,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   if (g) return g;
   const k = explainConcept(s);
   if (k) return k;
+
+  // Direct yes/no status questions ("are they dispatched?") answered from data.
+  const yn = yesNo(s, ctx);
+  if (yn) return yn;
 
   // Trained FAQ knowledge base — high-confidence feature/how-to answers, but
   // never for a live-data request (those must reach the data handlers below).
