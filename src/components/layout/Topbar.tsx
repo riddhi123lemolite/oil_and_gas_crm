@@ -63,6 +63,20 @@ const SEGMENT_LABELS: Record<string, string> = {
   leads: 'Leads',
 };
 
+// Where a breadcrumb segment should link: its own path if routable, otherwise
+// the nearest routable ancestor — so record-id crumbs like "Task_014" (which
+// have no page of their own) still redirect (e.g. back to /tasks) rather than
+// being dead text.
+function crumbTarget(acc: string): string | undefined {
+  if (ROUTABLE_PATHS.has(acc)) return acc;
+  const parts = acc.split('/').filter(Boolean);
+  for (let n = parts.length - 1; n >= 1; n -= 1) {
+    const ancestor = '/' + parts.slice(0, n).join('/');
+    if (ROUTABLE_PATHS.has(ancestor)) return ancestor;
+  }
+  return undefined;
+}
+
 function Breadcrumbs() {
   const { pathname } = useLocation();
   const segments = pathname.split('/').filter(Boolean);
@@ -78,14 +92,14 @@ function Breadcrumbs() {
     segments.forEach((seg) => {
       acc += `/${seg}`;
       const navMatch = ALL_NAV_ITEMS.find((i) => i.path === acc);
-      // Link an intermediate crumb to its own path when that path is routable
-      // (so "Portal" in Home › Portal › Documents redirects to /portal, etc.).
+      // Link every intermediate crumb somewhere valid: its own path if routable
+      // ("Portal" -> /portal), else the nearest ancestor ("Task_014" -> /tasks).
       crumbs.push({
         label:
           navMatch?.label ??
           SEGMENT_LABELS[seg] ??
-          seg.replace(/-/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
-        to: navMatch?.path ?? (ROUTABLE_PATHS.has(acc) ? acc : undefined),
+          seg.replace(/[-_]/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+        to: navMatch?.path ?? crumbTarget(acc),
       });
     });
   }
