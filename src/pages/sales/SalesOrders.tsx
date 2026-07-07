@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Plus } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
 import { useLookups } from '@/hooks/useLookups';
+import { useAuth } from '@/hooks/useAuth';
 import { formatINR, formatDate } from '@/lib/format';
 import type { BadgeTone } from '@/lib/constants';
 import type { OrderStatus, SalesOrder } from '@/types';
@@ -23,6 +25,7 @@ const ORDER_TONE: Record<OrderStatus, BadgeTone> = {
 export default function SalesOrders() {
   const navigate = useNavigate();
   const { customerName } = useLookups();
+  const { can } = useAuth();
   const orders = useDataStore((s) => s.orders);
 
   const columns = useMemo<ColumnDef<SalesOrder, unknown>[]>(
@@ -84,6 +87,13 @@ export default function SalesOrders() {
         title="Sales Orders"
         description={`${orders.length} confirmed sales orders`}
         icon={<ShoppingCart />}
+        actions={
+          can('orders', 'create') && (
+            <Button onClick={() => navigate('/orders/new')}>
+              <Plus className="size-4" /> Add Order
+            </Button>
+          )
+        }
       />
       <DataTable
         columns={columns}
