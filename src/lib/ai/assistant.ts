@@ -12,7 +12,7 @@
 //   5. Keep conversational context ("what about diesel?").
 // ---------------------------------------------------------------------------
 import type {
-  Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item,
+  Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item, User, AuditLogEntry,
 } from '@/types';
 import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
@@ -49,6 +49,9 @@ export interface AiContext {
   oil: LiveTicker[];
   fuel: LiveTicker[];
   canErp: boolean;
+  /** Staff directory + audit trail (used by admin-only handlers). */
+  users?: User[];
+  auditLog?: AuditLogEntry[];
   /** Previous user message — used to resolve follow-ups like "what about diesel?" */
   previousQuery?: string;
   /** Prior turns of the current conversation (oldest→newest) for multi-turn memory. */
@@ -588,6 +591,60 @@ function customerOrders(s: string, ctx: AiContext): AiReply | null {
     ? ` Latest shipment **${latest.number}** (${itemName.get(latest.itemId) ?? 'product'}) is **${human(latest.status)}**${latest.currentLocation ? ` near ${latest.currentLocation}` : ''}.`
     : '';
   return act([text(`**${cust.companyName}**: ${parts.join('; ')}.${latestLine}`)]);
+}
+
+/** Match a staff member by a distinctive word of their name. */
+function matchUser(s: string, ctx: AiContext): User | undefined {
+  let best: User | undefined;
+  let bestScore = 0;
+  for (const u of ctx.users ?? []) {
+    const tokens = u.name.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+    const hits = tokens.filter((t) => s.includes(t)).length;
+    if (hits > bestScore) { best = u; bestScore = hits; }
+  }
+  return best;
+}
+
+// "What's the audit log of Ashok Desai?" — admin-only audit trail, per person.
+function auditLogQuery(s: string, ctx: AiContext): AiReply | null {
+  if (!/audit log|audit trail|activity log|action log|what did \w+ do|actions? (by|of|for)/.test(s)) return null;
+  if (ctx.role !== 'ADMIN') return { blocks: [text('The audit log is available to **Admins** only.')] };
+
+  const entries = ctx.auditLog ?? [];
+  if (!entries.length) return { blocks: [text('No audit-log events have been recorded yet.')] };
+
+  const userName = (id: string) => ctx.users?.find((u) => u.id === id)?.name ?? '—';
+  const detail = wantsDetail(s) || DETAIL_SEEK_RE.test(s) || /audit log of|activity of/.test(s);
+  const action: AiAction = { label: 'Open Audit Log', to: '/settings/audit' };
+
+  const user = matchUser(s, ctx);
+  if (user) {
+    const mine = entries.filter((e) => e.userId === user.id).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    if (!mine.length) return { blocks: [text(`No audit-log activity is recorded for **${user.name}**.`)], action };
+    const byAction = new Map<string, number>();
+    mine.forEach((e) => byAction.set(e.action, (byAction.get(e.action) ?? 0) + 1));
+    const summary = [...byAction.entries()].map(([a, n]) => `${n} ${a.toLowerCase()}`).join(', ');
+    const latest = mine[0]!;
+    const blocks: AiBlock[] = [
+      text(`**${user.name}** has **${mine.length}** logged action${mine.length === 1 ? '' : 's'} (${summary}). Most recent: **${latest.action}** on ${latest.entity} — ${latest.detail} (${formatDate(latest.createdAt)}).`),
+    ];
+    if (detail) {
+      const rows = mine.slice(0, 15).map((e) => [formatDate(e.createdAt), e.action, e.entity, e.detail]);
+      blocks.push({ kind: 'table', columns: ['Date', 'Action', 'Entity', 'Detail'], rows });
+    }
+    return { blocks, action };
+  }
+
+  // No specific person → the most recent events across everyone.
+  const recent = [...entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const rows = recent.slice(0, 15).map((e) => [formatDate(e.createdAt), userName(e.userId), e.action, e.entity]);
+  return {
+    blocks: [
+      text(`**${entries.length}** audit events recorded. Most recent:`),
+      { kind: 'table', columns: ['Date', 'User', 'Action', 'Entity'], rows },
+    ],
+    action,
+  };
 }
 
 function customers(s: string, ctx: AiContext, detail: boolean): AiReply {
@@ -1200,6 +1257,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   // "Order status of <customer>" — staff live-tracking of a named customer.
   const cs = customerOrders(s, ctx);
   if (cs) return cs;
+
+  // "Audit log of <person>" — admin-only audit trail.
+  const al = auditLogQuery(s, ctx);
+  if (al) return al;
 
   // Trained FAQ knowledge base — high-confidence feature/how-to answers, but
   // never for a live-data request (those must reach the data handlers below).

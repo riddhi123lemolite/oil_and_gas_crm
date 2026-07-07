@@ -26,6 +26,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const payments = useDataStore((s) => s.payments);
   const notifications = useDataStore((s) => s.notifications);
   const items = useDataStore((s) => s.items);
+  const users = useDataStore((s) => s.users);
+  const auditLog = useDataStore((s) => s.auditLog);
   const selectedCustomer = usePortalCustomer();
   const { oil, fuel } = useLiveMarket();
 
@@ -54,8 +56,11 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       oil,
       fuel,
       canErp: can('erp', 'view'),
+      // Admin-only data; the audit handler enforces the role gate.
+      users: role === 'CUSTOMER' ? undefined : users,
+      auditLog: role === 'ADMIN' ? auditLog : undefined,
     };
-  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, notifications, items, oil, fuel, can]);
+  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, notifications, items, users, auditLog, oil, fuel, can]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
