@@ -1,0 +1,210 @@
+[
+  {
+    "category": "General",
+    "question": "What is this application?"
+  },
+  {
+    "category": "General",
+    "question": "What kind of business is this CRM for?"
+  },
+  {
+    "category": "Login & Access",
+    "question": "How do I log in?"
+  },
+  {
+    "category": "Login & Access",
+    "question": "Is my data saved permanently?"
+  },
+  {
+    "category": "Login & Access",
+    "question": "How do I reset the demo data?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "What user roles are there?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "What can an Admin do?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "What can a Sales Executive do?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "What can the Accounts role do?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "Who can see profit margins and cost prices?"
+  },
+  {
+    "category": "Roles & Permissions",
+    "question": "How do I change roles and permissions?"
+  },
+  {
+    "category": "Customer Portal",
+    "question": "As a customer, can I see other customers' data?"
+  },
+  {
+    "category": "Navigation",
+    "question": "What are the main sections of the CRM?"
+  },
+  {
+    "category": "Leads",
+    "question": "How do leads and the pipeline work?"
+  },
+  {
+    "category": "Leads",
+    "question": "How do I convert a lead into a customer?"
+  },
+  {
+    "category": "Customers",
+    "question": "How do I add a new customer?"
+  },
+  {
+    "category": "Customers",
+    "question": "What are customer segments?"
+  },
+  {
+    "category": "Customers",
+    "question": "What is a credit limit and payment terms?"
+  },
+  {
+    "category": "Products & Units",
+    "question": "What products does the CRM handle?"
+  },
+  {
+    "category": "Products & Units",
+    "question": "What units of measure are used?"
+  },
+  {
+    "category": "Currency",
+    "question": "Which currencies are supported?"
+  },
+  {
+    "category": "Currency",
+    "question": "How do I change the display currency?"
+  },
+  {
+    "category": "Language",
+    "question": "Which languages does the CRM support?"
+  },
+  {
+    "category": "Language",
+    "question": "How do I change the language?"
+  },
+  {
+    "category": "Quotations",
+    "question": "What is the difference between proposals and quotations?"
+  },
+  {
+    "category": "Quotations",
+    "question": "How do I create a quotation?"
+  },
+  {
+    "category": "Sales Orders",
+    "question": "How do sales orders work?"
+  },
+  {
+    "category": "Invoices",
+    "question": "How do I create an invoice?"
+  },
+  {
+    "category": "Invoices",
+    "question": "What invoice statuses are there?"
+  },
+  {
+    "category": "Invoices",
+    "question": "When does an invoice become overdue?"
+  },
+  {
+    "category": "Invoices",
+    "question": "What GST is applied to invoices?"
+  },
+  {
+    "category": "Payments",
+    "question": "How do I record a payment?"
+  },
+  {
+    "category": "Payments",
+    "question": "How do I see who has outstanding payments?"
+  },
+  {
+    "category": "Operations",
+    "question": "How does dispatch and logistics work?"
+  },
+  {
+    "category": "Operations",
+    "question": "What are Transport Routes and which countries are covered?"
+  },
+  {
+    "category": "Operations",
+    "question": "How do I track an order or shipment?"
+  },
+  {
+    "category": "ERP Calculator",
+    "question": "What is the ERP Calculator?"
+  },
+  {
+    "category": "ERP Calculator",
+    "question": "How is weighted density calculated?"
+  },
+  {
+    "category": "ERP Calculator",
+    "question": "Who can use the ERP Calculator?"
+  },
+  {
+    "category": "Reports & Analytics",
+    "question": "What reports and analytics are available?"
+  },
+  {
+    "category": "Reports & Analytics",
+    "question": "Can I export data to Excel or PDF?"
+  },
+  {
+    "category": "Communication",
+    "question": "What communication tools are built in?"
+  },
+  {
+    "category": "Customer Portal",
+    "question": "What can customers do in the portal?"
+  },
+  {
+    "category": "Customer Portal",
+    "question": "Can customers download their invoices?"
+  },
+  {
+    "category": "Customer Portal",
+    "question": "Can I switch between customer accounts in the demo?"
+  },
+  {
+    "category": "Market Prices",
+    "question": "Where can I see live oil and fuel prices?"
+  },
+  {
+    "category": "AI Assistant",
+    "question": "What can the AI assistant do?"
+  },
+  {
+    "category": "AI Assistant",
+    "question": "Does the assistant remember previous messages?"
+  },
+  {
+    "category": "AI Assistant",
+    "question": "Is the assistant powered by real AI?"
+  },
+  {
+    "category": "AI Assistant",
+    "question": "Can the assistant show me data I'm not allowed to see?"
+  },
+  {
+    "category": "Troubleshooting",
+    "question": "Why do recent months show no sales data?"
+  },
+  {
+    "category": "General",
+    "question": "Is this a live product or a demo?"
+  }
+]

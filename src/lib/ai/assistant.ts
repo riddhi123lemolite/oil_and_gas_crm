@@ -18,6 +18,7 @@ import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
 import { formatINR, formatDate, formatQty, formatNumber } from '@/lib/format';
 import { formatMarket } from '@/lib/market';
+import { faqStrong, faqFallback } from './faq';
 
 export type AiBlock =
   | { kind: 'text'; text: string }
@@ -702,9 +703,10 @@ export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiC
   // Greetings / thanks / acknowledgements pass straight through and leave the
   // thread's CRM context untouched, so the next real question still resolves.
   if (smallTalkCategory(s)) return { query: s, context: prev ?? {} };
-  // Concept explanations and how-to guides are self-contained — pass through
-  // without merging CRM slots (but keep the thread context for later).
-  if (guide(s) || explainConcept(s)) return { query: s, context: prev ?? {} };
+  // Concept explanations, how-to guides and trained FAQ questions are
+  // self-contained — pass through without merging CRM slots (but keep the
+  // thread context for later).
+  if (guide(s) || explainConcept(s) || faqStrong(s)) return { query: s, context: prev ?? {} };
   const ownIntent = classifyIntent(s);
   const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
   const standalone = !!ownIntent && !followMarker
@@ -1025,6 +1027,12 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   const k = explainConcept(s);
   if (k) return k;
 
+  // Trained FAQ knowledge base — high-confidence feature/how-to answers. The
+  // threshold is high enough that live-data questions ("how much diesel…")
+  // score too low to trigger it and fall through to the data handlers.
+  const faq = faqStrong(s);
+  if (faq) return faq;
+
   // Data answers stay concise, but deepen to a full breakdown when asked.
   const detail = wantsDetail(s) || DETAIL_SEEK_RE.test(s);
 
@@ -1050,8 +1058,12 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   if (/customer|client|active account/.test(s)) return customers(s, ctx, detail);
   if (/notification|alert|announce/.test(s)) return notifications(ctx);
 
+  // Last resort before the generic reply: a looser FAQ match.
+  const fb = faqFallback(s);
+  if (fb) return fb;
+
   return {
-    blocks: [text("I can help with sales & transport volumes, invoices, payments, shipments, customers and live prices — grounded in your CRM. Try “how much diesel did we sell last year?” or add “analytics” for a full breakdown.")],
+    blocks: [text("I can help with sales & transport volumes, invoices, payments, shipments, customers and live prices — grounded in your CRM. You can also ask me to **explain** a concept (e.g. “what is Brent crude?”) or **how to** do something (e.g. “how do I create an invoice?”).")],
   };
 }
 
