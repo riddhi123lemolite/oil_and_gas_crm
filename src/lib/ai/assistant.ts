@@ -706,7 +706,7 @@ export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiC
   // Concept explanations, how-to guides and trained FAQ questions are
   // self-contained — pass through without merging CRM slots (but keep the
   // thread context for later).
-  if (guide(s) || explainConcept(s) || faqStrong(s)) return { query: s, context: prev ?? {} };
+  if (guide(s) || explainConcept(s) || (!looksLikeData(s) && faqStrong(s))) return { query: s, context: prev ?? {} };
   const ownIntent = classifyIntent(s);
   const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
   const standalone = !!ownIntent && !followMarker
@@ -776,7 +776,7 @@ function comparePeriods(s: string, ctx: AiContext, years: number[]): AiReply {
 
 function isVolumeQuery(s: string): boolean {
   if (/top\s+\w*\s*customer|customer.{0,15}(revenue|spend|bought|buy|purchas)/.test(s)) return true;
-  if (/(revenue|turnover|\bsales\b|top (product|selling)|best.?sell|most sold|highest selling)/.test(s)) return true;
+  if (/(revenue|turnover|\bsales\b(?!\s+(executive|manager|managers|rep|reps|representative|representatives|team|teams|staff|person|people|role|roles|order|orders|target|targets|force|cycle|process|pipeline|department|head))|top (product|selling)|best.?sell|most sold|highest selling)/.test(s)) return true;
   const metric = /(quantity|volume|litre|liter|kilolit|\bkl\b|how much|how many)/.test(s);
   const verbz = /(transport|dispatch|deliver|moved|move|shipped|ship|hauled|carried|sold|sell|bought|buy|purchas|supplied|supply)/.test(s);
   const period = /(last year|this year|last month|this month|last quarter|year to date|yesterday|\b20\d{2}\b)/.test(s);
@@ -786,6 +786,16 @@ function isVolumeQuery(s: string): boolean {
 const isPriceQuery = (s: string) =>
   /\b(price|prices|trading|quote|market rate|benchmark)\b/.test(s)
   || (PRODUCT_RE.test(s) && /(today|now|current|latest)/.test(s));
+
+/** A live-data request (numbers from the CRM) rather than a feature/FAQ question.
+ *  Used to stop the FAQ index from shadowing the data handlers. */
+function looksLikeData(s: string): boolean {
+  if (isVolumeQuery(s) || isPriceQuery(s)) return true;
+  if (/\b(who has|who owes|top customers?|pending payments?|overdue invoices?|received this month|in transit|outstanding balance|most fuel|by revenue)\b/.test(s)) return true;
+  if (/\b(show|list|display|how many|how much|number of|total|count of)\b/.test(s)
+    && /(invoices?|bills?|payments?|orders?|shipments?|dispatch|customers?|leads?|outstanding|overdue|revenue|sales|stock|proposals?|quotations?)/.test(s)) return true;
+  return false;
+}
 
 // ===========================================================================
 // Small talk — greetings, thanks, acknowledgements, farewells, appreciation.
@@ -1027,11 +1037,12 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   const k = explainConcept(s);
   if (k) return k;
 
-  // Trained FAQ knowledge base — high-confidence feature/how-to answers. The
-  // threshold is high enough that live-data questions ("how much diesel…")
-  // score too low to trigger it and fall through to the data handlers.
-  const faq = faqStrong(s);
-  if (faq) return faq;
+  // Trained FAQ knowledge base — high-confidence feature/how-to answers, but
+  // never for a live-data request (those must reach the data handlers below).
+  if (!looksLikeData(s)) {
+    const faq = faqStrong(s);
+    if (faq) return faq;
+  }
 
   // Data answers stay concise, but deepen to a full breakdown when asked.
   const detail = wantsDetail(s) || DETAIL_SEEK_RE.test(s);
@@ -1059,8 +1070,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   if (/notification|alert|announce/.test(s)) return notifications(ctx);
 
   // Last resort before the generic reply: a looser FAQ match.
-  const fb = faqFallback(s);
-  if (fb) return fb;
+  if (!looksLikeData(s)) {
+    const fb = faqFallback(s);
+    if (fb) return fb;
+  }
 
   return {
     blocks: [text("I can help with sales & transport volumes, invoices, payments, shipments, customers and live prices — grounded in your CRM. You can also ask me to **explain** a concept (e.g. “what is Brent crude?”) or **how to** do something (e.g. “how do I create an invoice?”).")],
