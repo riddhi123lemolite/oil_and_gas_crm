@@ -33,12 +33,13 @@ export default function DriverForm() {
       licenseNo: '',
       licenseExpiry: '',
       experienceYears: 0,
-      currentVehicleId: '',
+      currentVehicleId: 'none',
     },
   });
 
   const onSubmit = (v: DriverFormValues) => {
     const id = generateId('drv');
+    const vehId = v.currentVehicleId && v.currentVehicleId !== 'none' ? v.currentVehicleId : undefined;
     const driver: Driver = {
       id,
       name: v.name,
@@ -46,12 +47,12 @@ export default function DriverForm() {
       licenseNo: v.licenseNo.toUpperCase(),
       licenseExpiry: new Date(v.licenseExpiry).toISOString(),
       experienceYears: v.experienceYears,
-      currentVehicleId: v.currentVehicleId || undefined,
+      currentVehicleId: vehId,
       active: true,
     };
     addDriver('drivers', driver);
     // Keep the chosen vehicle's driver in sync with this assignment.
-    if (v.currentVehicleId) updateVehicle('vehicles', v.currentVehicleId, { currentDriverId: id });
+    if (vehId) updateVehicle('vehicles', vehId, { currentDriverId: id });
     toast.success('Driver added');
     navigate('/drivers');
   };
@@ -88,10 +89,10 @@ export default function DriverForm() {
                   name="currentVehicleId"
                   render={({ field }) => (
                     <SelectField
-                      value={field.value ?? ''}
+                      value={field.value ?? 'none'}
                       onChange={field.onChange}
                       options={[
-                        { value: '', label: 'None' },
+                        { value: 'none', label: 'None' },
                         ...vehicles.map((veh) => ({
                           value: veh.id,
                           label: `${veh.registrationNo} · ${veh.type}`,

@@ -42,7 +42,7 @@ export default function VehicleForm() {
       rcExpiry: '',
       fitnessExpiry: '',
       insuranceExpiry: '',
-      currentDriverId: '',
+      currentDriverId: 'none',
     },
   });
   const ownerType = watch('ownerType');
@@ -58,7 +58,7 @@ export default function VehicleForm() {
       rcExpiry: v.rcExpiry ? new Date(v.rcExpiry).toISOString() : yearFromNow(),
       fitnessExpiry: v.fitnessExpiry ? new Date(v.fitnessExpiry).toISOString() : yearFromNow(),
       insuranceExpiry: v.insuranceExpiry ? new Date(v.insuranceExpiry).toISOString() : yearFromNow(),
-      currentDriverId: v.currentDriverId || undefined,
+      currentDriverId: v.currentDriverId && v.currentDriverId !== 'none' ? v.currentDriverId : undefined,
       active: true,
     };
     addVehicle('vehicles', vehicle);
@@ -109,10 +109,10 @@ export default function VehicleForm() {
                     name="contractMonths"
                     render={({ field }) => (
                       <SelectField
-                        value={field.value != null ? String(field.value) : ''}
+                        value={field.value != null ? String(field.value) : undefined}
                         onChange={field.onChange}
+                        placeholder="Select duration"
                         options={[
-                          { value: '', label: 'Select duration' },
                           { value: '3', label: '3 months' },
                           { value: '6', label: '6 months' },
                           { value: '12', label: '12 months' },
@@ -128,10 +128,10 @@ export default function VehicleForm() {
                   name="currentDriverId"
                   render={({ field }) => (
                     <SelectField
-                      value={field.value ?? ''}
+                      value={field.value ?? 'none'}
                       onChange={field.onChange}
                       options={[
-                        { value: '', label: 'Unassigned' },
+                        { value: 'none', label: 'Unassigned' },
                         ...drivers.map((d) => ({ value: d.id, label: d.name })),
                       ]}
                     />
