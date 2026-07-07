@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
-import { FolderOpen, Download, Eye, FileText } from 'lucide-react';
+import { FolderOpen, Download, Eye, FileText, ExternalLink } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatDate } from '@/lib/format';
-import { downloadBusinessDoc } from '@/lib/downloadDoc';
+import { downloadBusinessDoc, makeDocBlob } from '@/lib/downloadDoc';
 import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 import type { BadgeTone } from '@/lib/constants';
 import type { ProposalItem } from '@/types';
@@ -53,13 +53,19 @@ export default function DocumentCenter() {
   const me = usePortalCustomer();
   const [params] = useSearchParams();
   const [type, setType] = useState(params.get('type') ?? 'all');
-  const [preview, setPreview] = useState<Doc | null>(null);
+  const [preview, setPreview] = useState<{ doc: Doc; url: string } | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [viewingId, setViewingId] = useState<string | null>(null);
 
   // Keep the filter in sync with the sidebar's ?type= links.
   useEffect(() => {
     setType(params.get('type') ?? 'all');
   }, [params]);
+
+  // Free the object URL when the preview closes / the component unmounts.
+  useEffect(() => () => {
+    if (preview) URL.revokeObjectURL(preview.url);
+  }, [preview]);
 
   const docs = useMemo<Doc[]>(() => {
     if (!me) return [];
@@ -173,6 +179,25 @@ export default function DocumentCenter() {
     [me, buildDocData],
   );
 
+  // View: render the document and show it inline in the dialog.
+  const view = useCallback(
+    async (doc: Doc) => {
+      if (!me) return;
+      setViewingId(doc.id);
+      try {
+        const blob = await makeDocBlob(buildDocData(doc));
+        const url = URL.createObjectURL(blob);
+        setPreview((prev) => {
+          if (prev) URL.revokeObjectURL(prev.url);
+          return { doc, url };
+        });
+      } finally {
+        setViewingId(null);
+      }
+    },
+    [me, buildDocData],
+  );
+
   const columns = useMemo<ColumnDef<Doc, unknown>[]>(
     () => [
       {
@@ -194,9 +219,9 @@ export default function DocumentCenter() {
         header: '',
         enableSorting: false,
         cell: ({ row }) => (
-          <div className="flex items-center justify-end gap-1.5">
-            <Button variant="outline" size="icon-sm" aria-label="Preview" onClick={() => setPreview(row.original)}>
-              <Eye className="size-4" />
+          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <Button variant="outline" size="icon-sm" aria-label="View" loading={viewingId === row.original.id} onClick={() => view(row.original)}>
+              {viewingId !== row.original.id && <Eye className="size-4" />}
             </Button>
             <Button variant="outline" size="icon-sm" aria-label="Download" loading={busyId === row.original.id} onClick={() => download(row.original)}>
               {busyId !== row.original.id && <Download className="size-4" />}
@@ -205,17 +230,18 @@ export default function DocumentCenter() {
         ),
       },
     ],
-    [busyId, download],
+    [busyId, viewingId, view, download],
   );
 
   return (
     <div className="space-y-5">
-      <PageHeader title="Document Center" description="Invoices, e-invoices, challans, LR copies, certificates and more — download any as PDF." icon={<FolderOpen />} />
+      <PageHeader title="Document Center" description="Invoices, e-invoices, challans, LR copies, certificates and more — click to view, or download any as PDF." icon={<FolderOpen />} />
 
       <DataTable
         columns={columns}
         data={filtered}
         getRowId={(d) => d.id}
+        onRowClick={(d) => view(d)}
         searchPlaceholder="Search documents…"
         searchKeys={['title', 'ref']}
         exportName="documents"
@@ -230,19 +256,22 @@ export default function DocumentCenter() {
       />
 
       <Dialog open={!!preview} onOpenChange={(o) => !o && setPreview(null)}>
-        <DialogContent size="md">
-          <DialogTitle>{preview?.title}</DialogTitle>
+        <DialogContent size="lg">
+          <DialogTitle>{preview?.doc.title}</DialogTitle>
           <DialogBody>
-            <div className="flex h-72 flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-line bg-muted/40 text-center">
-              <FileText className="size-10 text-content-muted" />
-              <div className="text-sm text-content-secondary">PDF document</div>
-              <div className="text-xs text-content-muted">
-                {preview?.type} · {preview?.ref} · {preview?.sizeKb} KB
+            {preview && (
+              <div className="space-y-3">
+                <iframe title={preview.doc.title} src={preview.url} className="h-[70vh] w-full rounded-lg border border-line bg-white" />
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="outline" onClick={() => window.open(preview.url, '_blank', 'noopener')}>
+                    <ExternalLink className="size-4" /> Open in new tab
+                  </Button>
+                  <Button loading={busyId === preview.doc.id} onClick={() => download(preview.doc)}>
+                    {busyId !== preview.doc.id && <Download className="size-4" />} Download PDF
+                  </Button>
+                </div>
               </div>
-              <Button size="sm" loading={!!preview && busyId === preview.id} onClick={() => preview && download(preview)}>
-                {(!preview || busyId !== preview.id) && <Download className="size-4" />} Download PDF
-              </Button>
-            </div>
+            )}
           </DialogBody>
         </DialogContent>
       </Dialog>

@@ -81,6 +81,16 @@ ${d.terms ? `<div class="muted" style="margin-top:16px">${esc(d.terms)}</div>` :
 </body></html>`;
 }
 
+/** Render a business document to a Blob for previewing (PDF, HTML fallback). */
+export async function makeDocBlob(data: BusinessDocData): Promise<Blob> {
+  try {
+    const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
+    return await renderBusinessDoc(data);
+  } catch {
+    return new Blob([docHtml(data)], { type: 'text/html;charset=utf-8' });
+  }
+}
+
 /** Download a business document. Resolves once a file has been triggered. */
 export async function downloadBusinessDoc(data: BusinessDocData, filenameBase: string): Promise<void> {
   const base = filenameBase.replace(/[\\/]+/g, '-').replace(/\s+/g, '').slice(0, 80) || 'document';
