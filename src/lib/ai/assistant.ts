@@ -535,6 +535,61 @@ function yesNo(s: string, ctx: AiContext): AiReply | null {
   return null;
 }
 
+// "What's the current order status of ABC Petroleum?" — for staff, resolve a
+// named customer and report their live order + shipment statuses from the data.
+function customerOrders(s: string, ctx: AiContext): AiReply | null {
+  if (ctx.role === 'CUSTOMER') return null; // customers use their own scoped views
+  if (!/\border|orders|dispatch|shipment|tracking|\btrack\b|deliver|status|out for delivery|in transit|where\b/.test(s)) return null;
+  const cust = matchCustomer(s, ctx);
+  if (!cust) return null;
+
+  const custOrders = ctx.orders.filter((o) => o.customerId === cust.id);
+  const custDispatches = ctx.dispatches
+    .filter((d) => d.customerId === cust.id)
+    .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
+  if (!custOrders.length && !custDispatches.length) {
+    return { blocks: [text(`I couldn't find any orders or shipments for **${cust.companyName}**.`)] };
+  }
+
+  const human = (st: string) => st.replace(/_/g, ' ').toLowerCase();
+  const itemName = new Map(ctx.items.map((i) => [i.id, i.name]));
+  const to = route(ctx.role, 'tracking');
+  const act = (blocks: AiBlock[]): AiReply => (to ? { blocks, action: { label: 'Open Product Tracking', to } } : { blocks });
+
+  const byOrderStatus = new Map<string, number>();
+  custOrders.forEach((o) => byOrderStatus.set(o.status, (byOrderStatus.get(o.status) ?? 0) + 1));
+  const orderSummary = [...byOrderStatus.entries()].map(([st, n]) => `${n} ${human(st)}`).join(', ');
+
+  const inTransit = custDispatches.filter((d) => d.status === 'IN_TRANSIT').length;
+  const delivered = custDispatches.filter((d) => d.status === 'DELIVERED').length;
+  const preparing = custDispatches.filter((d) => d.status === 'SCHEDULED' || d.status === 'LOADING').length;
+
+  // Detailed / analytics → a shipment table with statuses and current location.
+  if (wantsDetail(s) || DETAIL_SEEK_RE.test(s)) {
+    const blocks: AiBlock[] = [
+      text(`**${cust.companyName}** — ${custOrders.length} order${custOrders.length === 1 ? '' : 's'}${orderSummary ? ` (${orderSummary})` : ''}, ${custDispatches.length} shipment${custDispatches.length === 1 ? '' : 's'}:`),
+    ];
+    if (custDispatches.length) {
+      const rows = custDispatches.slice(0, 12).map((d) => [d.number, itemName.get(d.itemId) ?? '—', cap(human(d.status)), d.currentLocation ?? '—', formatDate(d.scheduledAt)]);
+      blocks.push({ kind: 'table', columns: ['Dispatch', 'Product', 'Status', 'Location', 'Scheduled'], rows });
+    }
+    return act(blocks);
+  }
+
+  // Concise → order summary + the latest shipment's live status.
+  const parts: string[] = [];
+  if (custOrders.length) parts.push(`**${custOrders.length}** order${custOrders.length === 1 ? '' : 's'}${orderSummary ? ` (${orderSummary})` : ''}`);
+  if (custDispatches.length) {
+    const dsum = [inTransit ? `${inTransit} in transit` : '', preparing ? `${preparing} being prepared` : '', delivered ? `${delivered} delivered` : ''].filter(Boolean).join(', ');
+    parts.push(`**${custDispatches.length}** shipment${custDispatches.length === 1 ? '' : 's'}${dsum ? ` — ${dsum}` : ''}`);
+  }
+  const latest = custDispatches[0];
+  const latestLine = latest
+    ? ` Latest shipment **${latest.number}** (${itemName.get(latest.itemId) ?? 'product'}) is **${human(latest.status)}**${latest.currentLocation ? ` near ${latest.currentLocation}` : ''}.`
+    : '';
+  return act([text(`**${cust.companyName}**: ${parts.join('; ')}.${latestLine}`)]);
+}
+
 function customers(s: string, ctx: AiContext, detail: boolean): AiReply {
   if (ctx.role === 'CUSTOMER') {
     return { blocks: [text(`You're signed in for **${ctx.me?.companyName ?? 'your account'}**. For privacy, I only show your own orders, invoices, payments and documents.`)] };
@@ -1142,6 +1197,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   const yn = yesNo(s, ctx);
   if (yn) return yn;
 
+  // "Order status of <customer>" — staff live-tracking of a named customer.
+  const cs = customerOrders(s, ctx);
+  if (cs) return cs;
+
   // Trained FAQ knowledge base — high-confidence feature/how-to answers, but
   // never for a live-data request (those must reach the data handlers below).
   if (!looksLikeData(s)) {
@@ -1198,7 +1257,7 @@ export function suggestedPrompts(role: Role): string[] {
     case 'ACCOUNTS':
       return ['Who has pending payments?', 'How much is outstanding?', 'Analytics for pending payments', 'Payments received this month'];
     case 'SALES_MANAGER':
-      return ['How much diesel did we sell last year?', 'Compare Brent and diesel', 'Which customers bought the most fuel this month?', 'Analytics for sales this year'];
+      return ['How much diesel did we sell last year?', 'Order status of a customer', 'Which customers bought the most fuel this month?', 'Analytics for sales this year'];
     case 'SALES_EXECUTIVE':
       return ['How much petrol did we sell last month?', 'Shipments in transit', 'Show my customers', "Today's Brent price"];
     default:
