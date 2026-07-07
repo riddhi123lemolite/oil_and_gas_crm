@@ -9,6 +9,7 @@ import { useLiveMarket } from '@/hooks/useLiveMarket';
 import { useAiStore, type AiMessage } from '@/stores/aiStore';
 import { expandQuery, suggestedPrompts, type AiBlock, type AiContext, type AiReply } from '@/lib/ai/assistant';
 import { selectEngine } from '@/lib/ai/llm';
+import { correctSpelling } from '@/lib/ai/faq';
 import { recallRelevant, rememberQuery, capturePreference } from '@/lib/ai/memory';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { generateId } from '@/lib/utils';
@@ -65,9 +66,12 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
     if (!q) return;
     let convId = activeId;
     if (!convId) convId = newConversation();
-    const userId = currentUser?.id;
-    // Full-thread history (oldest→newest) + one-hop previousQuery + recalled
-    // cross-session memory, so the engine can reference previous chats.
+    // Memory + conversations are scoped per user AND role, so roles don't share
+    // assistant history.
+    const scope = `${currentUser?.id || 'demo'}:${currentUser?.role || 'ADMIN'}`;
+    // Fix typos toward the CRM vocabulary before routing (the user still sees
+    // exactly what they typed).
+    const cq = correctSpelling(q);
     const previousQuery = active ? [...active.messages].reverse().find((m) => m.role === 'user')?.text : undefined;
     const history = active
       ? active.messages.slice(-12).map((m) => ({
@@ -75,11 +79,10 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
           text: m.role === 'user' ? (m.text ?? '') : m.reply ? replyToText(m.reply) : '',
         }))
       : [];
-    const memory = recallRelevant(userId, q);
-    // Expand the raw message against this thread's structured context so
-    // follow-ups ("and the year before that?", "which one is unpaid?") carry
-    // topic / product / period / customer forward.
-    const { query: expanded, context: nextContext } = expandQuery(q, active?.context, ctx);
+    const memory = recallRelevant(scope, cq);
+    // Expand the (spell-corrected) message against this thread's structured
+    // context so genuine follow-ups carry topic/product/period/customer forward.
+    const { query: expanded, context: nextContext } = expandQuery(cq, active?.context, ctx);
     addMessage(convId, { id: generateId('m'), role: 'user', text: q, createdAt: new Date().toISOString() });
     setInput('');
     const reply = await selectEngine().ask(expanded, { ...ctx, previousQuery, history, memory });
@@ -87,8 +90,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
     addMessage(convId, msg);
     setContext(convId, nextContext);
     setStreamingId(msg.id);
-    rememberQuery(userId, q);
-    capturePreference(userId, q);
+    rememberQuery(scope, cq);
+    capturePreference(scope, q);
   }
 
   function regenerate() {

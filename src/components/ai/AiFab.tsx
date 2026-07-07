@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Sparkles, X, Maximize2 } from 'lucide-react';
 import { useDataStore } from '@/stores/dataStore';
 import { useAiStore } from '@/stores/aiStore';
+import { useAuthStore } from '@/stores/authStore';
 import { ChatPanel } from './ChatPanel';
 import { cn } from '@/lib/utils';
 
@@ -14,10 +15,15 @@ export function AiFab() {
   const [open, setOpen] = useState(false);
   const init = useAiStore((s) => s.init);
   const notifications = useDataStore((s) => s.notifications);
+  const user = useAuthStore((s) => s.currentUser);
 
+  // Re-load the chat store whenever the user or role changes, so switching role
+  // refreshes the assistant to that role's own (isolated, preserved) history.
   useEffect(() => {
     init();
-  }, [init]);
+    if (open) setOpen(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [init, user?.id, user?.role]);
 
   const badge = notifications.filter((n) => !n.read).length;
 

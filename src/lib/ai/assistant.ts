@@ -542,27 +542,67 @@ function erp(s: string, ctx: AiContext): AiReply {
 }
 
 function navigation(s: string, ctx: AiContext): AiReply | null {
-  if (!/\b(open|go to|take me to|navigate|show me the|show the)\b/.test(s)) return null;
-  const targets: [RegExp, string, string][] = [
-    [/invoice|bill/, 'invoices', 'Invoices'],
-    [/payment/, 'payments', 'Payments'],
-    [/track|dispatch|shipment|deliver/, 'tracking', 'Product Tracking'],
-    [/order/, 'orders', 'Orders'],
-    [/notification|alert/, 'notifications', 'Notifications'],
-    [/document|paperwork/, 'documents', 'Documents'],
-    [/market|live price/, 'market', 'Live Market'],
-    [/calculat|erp/, 'calculator', 'ERP Calculator'],
-    [/support|help|ticket/, 'support', 'Support'],
-    [/dashboard|home/, 'dashboard', 'Dashboard'],
-    [/history|report/, 'history', 'History'],
-    [/customer|client/, 'customers', 'Customers'],
+  if (!/\b(open|go to|take me to|navigate|show me the|show the|launch|jump to|bring up|take me|visit)\b/.test(s)) return null;
+  // Ordered specific → generic. Every page the role can reach is addressable.
+  const staff: [RegExp, string, string][] = [
+    [/my dashboard/, '/my-dashboard', 'My Dashboard'],
+    [/ai assistant|assistant/, '/assistant', 'AI Assistant'],
+    [/pipeline/, '/leads/pipeline', 'Pipeline'],
+    [/lead funnel|funnel/, '/reports/funnel', 'Lead Funnel'],
+    [/lead/, '/leads', 'Leads'],
+    [/report builder|builder/, '/reports/builder', 'Report Builder'],
+    [/geographic|geo report|sales by region/, '/reports/geo', 'Geographic Report'],
+    [/sales analytic|analytic/, '/analytics', 'Sales Analytics'],
+    [/sales report|report/, '/reports/sales', 'Sales Reports'],
+    [/erp|calculator|costing/, '/erp-calculator', 'ERP Calculator'],
+    [/item|product/, '/items', 'Items & Products'],
+    [/quotation/, '/quotations', 'Quotations'],
+    [/proposal/, '/proposals', 'Proposals'],
+    [/sales order|order/, '/orders', 'Sales Orders'],
+    [/invoice|bill/, '/invoices', 'Invoices'],
+    [/payment/, '/payments', 'Payments'],
+    [/transport route|route/, '/routes', 'Transport Routes'],
+    [/dispatch/, '/dispatch', 'Dispatch Schedule'],
+    [/trip|tracking/, '/trips', 'Trip Tracking'],
+    [/vehicle/, '/vehicles', 'Vehicles'],
+    [/driver/, '/drivers', 'Drivers'],
+    [/inventory|stock/, '/inventory', 'Inventory'],
+    [/customer|client/, '/customers', 'Customers'],
+    [/my day/, '/my-day', 'My Day'],
+    [/calendar/, '/calendar', 'Calendar'],
+    [/task/, '/tasks', 'Tasks'],
+    [/chat\b/, '/chat', 'Chat'],
+    [/email/, '/email', 'Email'],
+    [/call log/, '/call-logs', 'Call Logs'],
+    [/notification|alert/, '/notifications', 'Notifications'],
+    [/staff|team member|employee/, '/staff', 'Staff'],
+    [/attendance/, '/attendance', 'Attendance'],
+    [/role|permission/, '/settings/roles', 'Roles & Permissions'],
+    [/definition/, '/settings/definitions', 'Definitions'],
+    [/company/, '/settings/company', 'Company'],
+    [/integration/, '/settings/integrations', 'Integrations'],
+    [/audit/, '/settings/audit', 'Audit Log'],
+    [/system|setting/, '/settings/system', 'System Settings'],
+    [/dashboard|home/, '/', 'Dashboard'],
   ];
-  for (const [re, key, label] of targets) {
-    if (re.test(s)) {
-      const to = route(ctx.role, key);
-      if (!to) continue;
-      return { blocks: [text(`Opening **${label}** for you.`)], action: { label: `Go to ${label}`, to } };
-    }
+  const customer: [RegExp, string, string][] = [
+    [/ai assistant|assistant/, '/assistant', 'AI Assistant'],
+    [/track|product tracking|shipment|where.*order/, '/portal/products', 'Product Tracking'],
+    [/active order|order/, '/portal/orders?status=active', 'Orders'],
+    [/history/, '/portal/history', 'Order History'],
+    [/e-invoice|challan|document|receipt|paperwork/, '/portal/documents', 'Documents'],
+    [/invoice|bill/, '/portal/invoices', 'Invoices'],
+    [/outstanding|payment/, '/portal/payments', 'Payments'],
+    [/market|price|brent/, '/portal/market', 'Market Prices'],
+    [/notification|announcement/, '/portal/notifications', 'Notifications'],
+    [/support|ticket|help|account manager/, '/portal/support', 'Support'],
+    [/company/, '/portal/company', 'Company Information'],
+    [/setting/, '/portal/settings', 'Settings'],
+    [/profile/, '/portal/profile', 'My Profile'],
+    [/dashboard|home/, '/portal', 'Dashboard'],
+  ];
+  for (const [re, to, label] of ctx.role === 'CUSTOMER' ? customer : staff) {
+    if (re.test(s)) return { blocks: [text(`Opening **${label}** for you.`)], action: { label: `Go to ${label}`, to } };
   }
   return null;
 }
@@ -709,10 +749,13 @@ export function expandQuery(raw: string, prev: ConvContext | undefined, ctx: AiC
   if (guide(s) || explainConcept(s) || (!looksLikeData(s) && faqStrong(s))) return { query: s, context: prev ?? {} };
   const ownIntent = classifyIntent(s);
   const followMarker = FOLLOW_RE.test(s) || REL_BEFORE.test(s) || REL_AFTER.test(s) || REL_SAME.test(s);
-  const standalone = !!ownIntent && !followMarker
-    && (!!resolveSubject(s, ctx) || PERIOD_RE.test(s) || ownIntent !== 'volume');
-
-  if (!prev || standalone) return { query: s, context: deriveContext(s, ctx, ownIntent) };
+  // Only merge with the previous turn when the message genuinely leans on it —
+  // an explicit follow-up marker, or a bare 1–3 word product/period ellipsis
+  // ("petrol?", "and 2024"). Every other message is a FRESH question and gets
+  // its own answer, so the assistant never echoes the previous reply.
+  const words = s.replace(/[?.!,]/g, '').split(/\s+/).filter(Boolean);
+  const bareEllipsis = words.length <= 3 && !ownIntent && (!!resolveSubject(s, ctx) || PERIOD_RE.test(s));
+  if (!prev || !(followMarker || bareEllipsis)) return { query: s, context: deriveContext(s, ctx, ownIntent) };
 
   // ---- follow-up: layer new slots over the prior context ----
   const c: ConvContext = { ...prev };

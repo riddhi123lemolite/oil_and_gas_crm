@@ -22,9 +22,11 @@ export interface Conversation {
 }
 
 const BASE_KEY = 'oilgas-crm:ai-conversations';
-// Conversations (and, alongside, memory) are namespaced per signed-in user so
-// history stays correct across logins.
-const keyFor = (userId?: string | null) => (userId ? `${BASE_KEY}:${userId}` : BASE_KEY);
+// Conversations are namespaced per user AND role, so each role has its own
+// isolated chat history: switching role shows that role's chats (others are
+// hidden but preserved), and switching back restores them.
+const keyFor = (u?: { id?: string | null; role?: string | null } | null) =>
+  `${BASE_KEY}:${u?.id || 'demo'}:${u?.role || 'ADMIN'}`;
 
 interface AiState {
   conversations: Conversation[];
@@ -45,7 +47,7 @@ export const useAiStore = create<AiState>((set, get) => ({
   userKey: BASE_KEY,
 
   init: () => {
-    const userKey = keyFor(useAuthStore.getState().currentUser?.id);
+    const userKey = keyFor(useAuthStore.getState().currentUser);
     const conversations = readStorage<Conversation[]>(userKey, []);
     set({ userKey, conversations, activeId: conversations[0]?.id ?? null });
   },

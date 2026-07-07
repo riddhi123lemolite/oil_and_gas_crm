@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Plus, MessageSquare, Pencil, Trash2 } from 'lucide-react';
 import { useAiStore } from '@/stores/aiStore';
+import { useAuthStore } from '@/stores/authStore';
 import { ChatPanel } from '@/components/ai/ChatPanel';
 import { cn } from '@/lib/utils';
 
 export default function Assistant() {
   const { conversations, activeId, init, newConversation, setActive, rename, remove } = useAiStore();
+  const user = useAuthStore((s) => s.currentUser);
 
+  // Reload this role's conversations on mount and whenever the role changes.
   useEffect(() => {
     init();
-  }, [init]);
+  }, [init, user?.id, user?.role]);
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] -m-4 sm:-m-5 lg:-m-6">

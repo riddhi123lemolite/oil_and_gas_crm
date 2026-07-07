@@ -92,3 +92,52 @@ export function faqDebug(query: string): { question: string; kwHits: number; sco
   const m = bestMatch(query);
   return m ? { question: m.rec.question, kwHits: m.kwHits, score: m.score } : null;
 }
+
+// ---------------------------------------------------------------------------
+// Spelling correction toward the CRM vocabulary. Fixes typos on the words that
+// matter (product, module and finance terms) so misspelled questions still
+// route correctly — e.g. "how much diesle did we sel last yr" -> "…diesel…sell…".
+// Common English words are left untouched to avoid mangling normal language.
+// ---------------------------------------------------------------------------
+const CURATED = ['invoice', 'invoices', 'payment', 'payments', 'customer', 'customers', 'order', 'orders', 'dispatch', 'delivery', 'quotation', 'quotations', 'proposal', 'proposals', 'currency', 'currencies', 'language', 'languages', 'dashboard', 'report', 'reports', 'analytics', 'outstanding', 'overdue', 'pending', 'sales', 'purchase', 'credit', 'debit', 'receipt', 'receipts', 'vehicle', 'vehicles', 'driver', 'drivers', 'inventory', 'stock', 'notification', 'notifications', 'calendar', 'tasks', 'attendance', 'staff', 'admin', 'permission', 'permissions', 'portal', 'market', 'brent', 'crude', 'diesel', 'petrol', 'kerosene', 'lubricant', 'lubricants', 'solvent', 'solvents', 'glycol', 'glycols', 'price', 'prices', 'density', 'calculator', 'tank', 'litre', 'litres', 'kilolitre', 'dispatched', 'delivered', 'transport', 'routes', 'route', 'logistics', 'shipment', 'shipments', 'tracking', 'pipeline', 'leads', 'segment', 'segments', 'contact', 'contacts', 'company', 'integration', 'integrations', 'audit', 'settings', 'discount', 'margin', 'margins', 'profit', 'revenue', 'turnover', 'balance', 'limit', 'terms', 'gstin', 'challan', 'einvoice', 'summary', 'export', 'download', 'upload', 'filter', 'search', 'assistant', 'conversation', 'manager', 'executive', 'accounts', 'create', 'convert', 'approve', 'approval', 'schedule', 'assign', 'weighted', 'kilolitres', 'supported', 'switch', 'delete', 'update', 'record'];
+const VOCAB = new Set([...CURATED, ...PREPARED.flatMap((p) => p.kw.flat())]);
+const COMMON = new Set(['what', 'when', 'where', 'which', 'while', 'would', 'could', 'should', 'about', 'there', 'their', 'these', 'those', 'other', 'older', 'under', 'after', 'before', 'again', 'please', 'thanks', 'thank', 'hello', 'great', 'sorry', 'right', 'wrong', 'maybe', 'money', 'value', 'total', 'number', 'people', 'using', 'being', 'doing', 'going', 'still', 'never', 'always', 'every', 'something', 'anything', 'nothing', 'because', 'between', 'through', 'around', 'different', 'available', 'information', 'account', 'system', 'change', 'check', 'click', 'have', 'this', 'that', 'with', 'from', 'your', 'need', 'want', 'help', 'able', 'does', 'done', 'know', 'here', 'them', 'they', 'much', 'many', 'some', 'more', 'most', 'work', 'find', 'make', 'give', 'show', 'tell',
+  // frequent words that must NOT be "corrected" into a lookalike CRM term
+  'sell', 'sold', 'sale', 'buy', 'buying', 'bought', 'self', 'service', 'services', 'option', 'options', 'detail', 'details', 'month', 'year', 'week', 'today', 'open', 'list', 'view', 'page', 'item', 'items', 'data', 'name', 'part', 'type', 'kind', 'used', 'uses', 'back', 'into', 'over', 'only', 'also', 'just', 'like', 'very', 'well', 'good', 'best', 'next', 'last', 'each', 'both', 'same', 'such', 'said', 'look', 'come', 'take', 'real', 'live', 'time', 'date', 'send', 'read', 'seen', 'told', 'made', 'used', 'text', 'line', 'note', 'form', 'field', 'button', 'screen', 'error', 'reset', 'login', 'enter', 'save', 'edit', 'add', 'new', 'all', 'any', 'how', 'why', 'who']);
+
+function editDist1(a: string, b: string): boolean {
+  if (a === b) return true;
+  const la = a.length, lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0, j = 0, edits = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) { i += 1; j += 1; continue; }
+    edits += 1;
+    if (edits > 1) return false;
+    if (la > lb) i += 1;
+    else if (lb > la) j += 1;
+    else { i += 1; j += 1; }
+  }
+  if (i < la || j < lb) edits += 1;
+  return edits <= 1;
+}
+
+/** True if b is a with one adjacent-character swap (transposition), e.g. diesle→diesel. */
+function isTranspose(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  const diff: number[] = [];
+  for (let i = 0; i < a.length; i += 1) if (a[i] !== b[i]) diff.push(i);
+  if (diff.length !== 2) return false;
+  const [x, y] = diff as [number, number];
+  return y === x + 1 && a[x] === b[y] && a[y] === b[x];
+}
+
+/** Correct a query's words toward the CRM vocabulary (typos only, conservative). */
+export function correctSpelling(query: string): string {
+  return query.replace(/[A-Za-z]+/g, (word) => {
+    const w = word.toLowerCase();
+    if (w.length < 4 || VOCAB.has(w) || COMMON.has(w)) return word;
+    for (const v of VOCAB) if (Math.abs(v.length - w.length) <= 1 && (editDist1(w, v) || isTranspose(w, v))) return v;
+    return word;
+  });
+}
