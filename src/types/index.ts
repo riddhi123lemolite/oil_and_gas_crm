@@ -341,6 +341,8 @@ export interface Vehicle {
   type: string;
   capacityKL: number;
   ownerType: 'OWNED' | 'CONTRACT';
+  /** Contract length in months (3, 6 or 12) when ownerType is CONTRACT. */
+  contractMonths?: number;
   rcExpiry: string;
   fitnessExpiry: string;
   insuranceExpiry: string;

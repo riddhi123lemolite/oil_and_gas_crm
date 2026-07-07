@@ -130,6 +130,34 @@ export const routeFormSchema = z.object({
 });
 export type RouteFormValues = z.infer<typeof routeFormSchema>;
 
+export const vehicleFormSchema = z
+  .object({
+    registrationNo: z.string().min(1, 'Registration number is required'),
+    type: z.string().min(1, 'Vehicle type is required'),
+    capacityKL: z.coerce.number().positive('Capacity must be greater than zero'),
+    ownerType: z.enum(['OWNED', 'CONTRACT']),
+    contractMonths: z.coerce.number().optional(),
+    rcExpiry: z.string().optional(),
+    fitnessExpiry: z.string().optional(),
+    insuranceExpiry: z.string().optional(),
+    currentDriverId: z.string().optional(),
+  })
+  .refine((v) => v.ownerType !== 'CONTRACT' || [3, 6, 12].includes(Number(v.contractMonths)), {
+    message: 'Choose the contract length (3, 6 or 12 months)',
+    path: ['contractMonths'],
+  });
+export type VehicleFormValues = z.infer<typeof vehicleFormSchema>;
+
+export const driverFormSchema = z.object({
+  name: z.string().min(2, 'Driver name is required'),
+  phone: phoneSchema,
+  licenseNo: z.string().min(1, 'License number is required'),
+  licenseExpiry: z.string().min(1, 'License expiry date is required'),
+  experienceYears: z.coerce.number().min(0, 'Experience cannot be negative'),
+  currentVehicleId: z.string().optional(),
+});
+export type DriverFormValues = z.infer<typeof driverFormSchema>;
+
 export const staffFormSchema = z.object({
   name: z.string().min(2, 'Name is required'),
   email: z.string().email('Enter a valid email'),

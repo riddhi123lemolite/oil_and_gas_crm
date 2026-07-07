@@ -1,9 +1,11 @@
 import { useMemo } from 'react';
-import { Bus, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bus, AlertTriangle, Plus } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tooltip } from '@/components/ui/tooltip';
 import { useDataStore } from '@/stores/dataStore';
 import { formatDate, daysBetween } from '@/lib/format';
@@ -30,6 +32,7 @@ function ExpiryCell({ date, label }: { date: string; label: string }) {
 }
 
 export default function Vehicles() {
+  const navigate = useNavigate();
   const vehicles = useDataStore((s) => s.vehicles);
   const drivers = useDataStore((s) => s.drivers);
 
@@ -58,7 +61,9 @@ export default function Vehicles() {
         header: 'Ownership',
         cell: ({ row }) => (
           <Badge tone={row.original.ownerType === 'OWNED' ? 'brand' : 'outline'}>
-            {row.original.ownerType}
+            {row.original.ownerType === 'CONTRACT' && row.original.contractMonths
+              ? `CONTRACT · ${row.original.contractMonths}m`
+              : row.original.ownerType}
           </Badge>
         ),
       },
@@ -105,6 +110,11 @@ export default function Vehicles() {
         title="Vehicles / Tankers"
         description={`${vehicles.length} tankers · ${warnings} with expiring documents`}
         icon={<Bus />}
+        actions={
+          <Button onClick={() => navigate('/vehicles/new')}>
+            <Plus className="size-4" /> Add Vehicle
+          </Button>
+        }
       />
       <DataTable
         columns={columns}

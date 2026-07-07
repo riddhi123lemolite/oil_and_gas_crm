@@ -57,7 +57,9 @@ const DispatchSchedule = lazy(
 );
 const TripTracking = lazy(() => import('@/pages/operations/TripTracking'));
 const Vehicles = lazy(() => import('@/pages/operations/Vehicles'));
+const VehicleForm = lazy(() => import('@/pages/operations/VehicleForm'));
 const Drivers = lazy(() => import('@/pages/operations/Drivers'));
+const DriverForm = lazy(() => import('@/pages/operations/DriverForm'));
 const Inventory = lazy(() => import('@/pages/operations/Inventory'));
 
 const TasksList = lazy(() => import('@/pages/tasks/TasksList'));
@@ -175,7 +177,9 @@ export const router = createBrowserRouter([
       { path: 'trips', element: <TripTracking /> },
       { path: 'trips/:id', element: <TripTracking /> },
       { path: 'vehicles', element: <Vehicles /> },
+      { path: 'vehicles/new', element: <VehicleForm /> },
       { path: 'drivers', element: <Drivers /> },
+      { path: 'drivers/new', element: <DriverForm /> },
       { path: 'inventory', element: <Inventory /> },
 
       { path: 'tasks', element: <TasksList /> },

@@ -1,15 +1,18 @@
 import { useMemo } from 'react';
-import { IdCard } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { IdCard, Plus } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { useDataStore } from '@/stores/dataStore';
 import { formatDate, formatPhone } from '@/lib/format';
 import type { Driver } from '@/types';
 
 export default function Drivers() {
+  const navigate = useNavigate();
   const drivers = useDataStore((s) => s.drivers);
   const vehicles = useDataStore((s) => s.vehicles);
 
@@ -84,6 +87,11 @@ export default function Drivers() {
         title="Drivers"
         description={`${drivers.length} drivers in your fleet`}
         icon={<IdCard />}
+        actions={
+          <Button onClick={() => navigate('/drivers/new')}>
+            <Plus className="size-4" /> Add Driver
+          </Button>
+        }
       />
       <DataTable
         columns={columns}
