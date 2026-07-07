@@ -24,6 +24,7 @@ import { useThemeStore } from '@/stores/themeStore';
 import { useUiStore } from '@/stores/uiStore';
 import { useDataStore } from '@/stores/dataStore';
 import { ALL_NAV_ITEMS } from '@/lib/nav';
+import { CUSTOMER_NAV } from '@/lib/customerNav';
 import { ROLE_LABELS } from '@/lib/constants';
 import { DEMO_ACCOUNTS } from '@/lib/mockAuth';
 import { DEMO_MODE } from '@/lib/config';
@@ -48,6 +49,20 @@ import {
 import { formatRelative } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
+// Every path a breadcrumb segment can safely link to (staff nav + portal nav).
+const ROUTABLE_PATHS = new Set<string>([
+  '/',
+  ...ALL_NAV_ITEMS.map((i) => i.path),
+  ...CUSTOMER_NAV.flatMap((s) => s.items).map((it) => it.path.split(/[?#]/)[0] ?? it.path),
+]);
+// Friendly labels for segments that aren't staff nav items (e.g. portal roots).
+const SEGMENT_LABELS: Record<string, string> = {
+  portal: 'Portal',
+  settings: 'Settings',
+  reports: 'Reports',
+  leads: 'Leads',
+};
+
 function Breadcrumbs() {
   const { pathname } = useLocation();
   const segments = pathname.split('/').filter(Boolean);
@@ -63,10 +78,14 @@ function Breadcrumbs() {
     segments.forEach((seg) => {
       acc += `/${seg}`;
       const navMatch = ALL_NAV_ITEMS.find((i) => i.path === acc);
+      // Link an intermediate crumb to its own path when that path is routable
+      // (so "Portal" in Home › Portal › Documents redirects to /portal, etc.).
       crumbs.push({
         label:
           navMatch?.label ??
+          SEGMENT_LABELS[seg] ??
           seg.replace(/-/g, ' ').replace(/^\w/, (c) => c.toUpperCase()),
+        to: navMatch?.path ?? (ROUTABLE_PATHS.has(acc) ? acc : undefined),
       });
     });
   }
