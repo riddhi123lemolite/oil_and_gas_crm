@@ -113,7 +113,7 @@ const COMPANY_STATE = 'Gujarat';
 export function generateSeed(): SeedData {
   faker.seed(20260521);
 
-  const now = new Date('2026-05-21T10:00:00+05:30');
+  const now = new Date('2026-06-30T10:00:00+05:30');
   const monthsAgo = (m: number): Date =>
     faker.date.between({
       from: new Date(now.getTime() - m * 30 * 86_400_000),

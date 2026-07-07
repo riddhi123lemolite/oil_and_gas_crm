@@ -29,7 +29,7 @@ export default function Calendar() {
   const navigate = useNavigate();
   const tasks = useDataStore((s) => s.tasks);
   const dispatches = useDataStore((s) => s.dispatches);
-  const [month, setMonth] = useState(new Date('2026-05-01'));
+  const [month, setMonth] = useState(new Date('2026-06-01'));
 
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month));
@@ -111,7 +111,7 @@ export default function Calendar() {
             {days.map((day) => {
               const events = eventsForDay(day);
               const inMonth = isSameMonth(day, month);
-              const isToday = isSameDay(day, new Date('2026-05-21'));
+              const isToday = isSameDay(day, new Date('2026-06-30'));
               return (
                 <div
                   key={day.toISOString()}

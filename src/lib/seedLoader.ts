@@ -10,7 +10,7 @@ import { DEFAULT_PERMISSIONS } from './permissions';
 import type { SeedData } from './seed/generate';
 
 // Bump to force a one-time re-seed of the shared database on next sign-in.
-const SEED_VERSION = '2026.05.21-1';
+const SEED_VERSION = '2026.06.30-1';
 
 async function persistSeed(data: SeedData): Promise<void> {
   const collections: Array<[EntityTable, Identifiable[]]> = [
@@ -54,7 +54,9 @@ export async function ensureSeeded(force = false): Promise<void> {
   const current = await getSetting<string | null>('seed_version', null);
   if (!force && current === SEED_VERSION) return;
 
-  if (force) await clearAllTables();
+  // A new seed version (or an explicit reset) — wipe first so the fresh dataset
+  // replaces the old one instead of appending duplicates.
+  await clearAllTables();
 
   const { generateSeed } = await import('./seed/generate');
   const data = generateSeed();

@@ -7,7 +7,7 @@ export function monthlySales(
   invoices: Invoice[],
   months = 12,
 ): { month: string; sales: number; orders: number }[] {
-  const now = new Date('2026-05-21');
+  const now = new Date('2026-06-30');
   const buckets = new Map<string, { sales: number; orders: number }>();
   for (let i = months - 1; i >= 0; i -= 1) {
     const key = format(subMonths(now, i), 'MMM yy');
@@ -73,6 +73,6 @@ export function pctChange(current: number, previous: number): number {
 }
 
 export function isWithinMonths(dateStr: string, months: number): boolean {
-  const now = new Date('2026-05-21');
+  const now = new Date('2026-06-30');
   return isAfter(parseISO(dateStr), subMonths(now, months));
 }
