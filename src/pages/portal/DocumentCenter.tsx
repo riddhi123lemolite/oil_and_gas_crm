@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { ColumnDef } from '@tanstack/react-table';
 import { FolderOpen, Download, Eye, FileText } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
@@ -12,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatDate } from '@/lib/format';
-import { downloadBlob } from '@/lib/utils';
+import { downloadBusinessDoc } from '@/lib/downloadDoc';
 import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 import type { BadgeTone } from '@/lib/constants';
 import type { ProposalItem } from '@/types';
@@ -166,12 +165,7 @@ export default function DocumentCenter() {
       if (!me) return;
       setBusyId(doc.id);
       try {
-        const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
-        const blob = await renderBusinessDoc(buildDocData(doc));
-        downloadBlob(blob, `${doc.ref.replace(/[\\/]/g, '-')}-${doc.type.replace(/\s+/g, '')}.pdf`);
-        toast.success('Document downloaded');
-      } catch {
-        toast.error('Could not generate the document.');
+        await downloadBusinessDoc(buildDocData(doc), `${doc.ref}-${doc.type}`);
       } finally {
         setBusyId(null);
       }

@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Wallet, CreditCard, Landmark, Banknote, Smartphone, FileCheck, Download } from 'lucide-react';
-import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
-import { downloadBlob } from '@/lib/utils';
+import { downloadBusinessDoc } from '@/lib/downloadDoc';
 import type { Payment } from '@/types';
 import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
@@ -52,12 +51,7 @@ export default function PortalPayments() {
         total: p.amount,
         terms: company.terms,
       };
-      const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
-      const blob = await renderBusinessDoc(data);
-      downloadBlob(blob, `${p.number.replace(/[\\/]/g, '-')}-Receipt.pdf`);
-      toast.success('Receipt downloaded');
-    } catch {
-      toast.error('Could not generate the receipt.');
+      await downloadBusinessDoc(data, `${p.number}-Receipt`);
     } finally {
       setBusy(null);
     }

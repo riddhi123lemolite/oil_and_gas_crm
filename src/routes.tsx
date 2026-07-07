@@ -100,6 +100,7 @@ const PortalDashboard = lazy(() => import('@/pages/portal/PortalDashboard'));
 const ProductTracking = lazy(() => import('@/pages/portal/ProductTracking'));
 const PortalPayments = lazy(() => import('@/pages/portal/PortalPayments'));
 const PortalInvoices = lazy(() => import('@/pages/portal/PortalInvoices'));
+const PortalInvoiceDetail = lazy(() => import('@/pages/portal/PortalInvoiceDetail'));
 const DocumentCenter = lazy(() => import('@/pages/portal/DocumentCenter'));
 const PortalHistory = lazy(() => import('@/pages/portal/PortalHistory'));
 const PortalNotifications = lazy(() => import('@/pages/portal/PortalNotifications'));
@@ -219,6 +220,7 @@ export const router = createBrowserRouter([
       { path: 'portal/products', element: <ProductTracking /> },
       { path: 'portal/payments', element: <PortalPayments /> },
       { path: 'portal/invoices', element: <PortalInvoices /> },
+      { path: 'portal/invoices/:id', element: <PortalInvoiceDetail /> },
       { path: 'portal/documents', element: <DocumentCenter /> },
       { path: 'portal/history', element: <PortalHistory /> },
       { path: 'portal/notifications', element: <PortalNotifications /> },

@@ -1,15 +1,14 @@
 import { useState } from 'react';
-import { ReceiptIndianRupee, Download, FileText } from 'lucide-react';
-import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { ReceiptIndianRupee, Download, FileText, Eye } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
-import { downloadBlob } from '@/lib/utils';
+import { downloadBusinessDoc, invoiceDocData } from '@/lib/downloadDoc';
 import { INVOICE_STATUS } from '@/lib/constants';
 import type { InvoiceStatus, Invoice } from '@/types';
-import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
 const FILTERS: { key: InvoiceStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -20,6 +19,7 @@ const FILTERS: { key: InvoiceStatus | 'ALL'; label: string }[] = [
 ];
 
 export default function PortalInvoices() {
+  const navigate = useNavigate();
   const invoices = useDataStore((s) => s.invoices);
   const company = useDataStore((s) => s.company);
   const me = usePortalCustomer();
@@ -34,32 +34,7 @@ export default function PortalInvoices() {
     if (!me) return;
     setBusy(inv.id);
     try {
-      const addr = me.billingAddress;
-      const data: BusinessDocData = {
-        docLabel: 'TAX INVOICE',
-        number: inv.number,
-        date: formatDate(inv.invoiceDate),
-        validLabel: 'Due Date',
-        validValue: formatDate(inv.dueDate),
-        company,
-        partyName: me.companyName,
-        partyAddress: `${addr.line1}${addr.line2 ? ', ' + addr.line2 : ''}, ${addr.city}, ${addr.state} ${addr.pincode}`,
-        partyGstin: me.gstin,
-        items: inv.items,
-        subtotal: inv.subtotal,
-        cgst: inv.cgst,
-        sgst: inv.sgst,
-        igst: inv.igst,
-        transportCharge: inv.transportCharge,
-        total: inv.total,
-        terms: company.terms,
-      };
-      const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
-      const blob = await renderBusinessDoc(data);
-      downloadBlob(blob, `${inv.number.replace(/[\\/]/g, '-')}.pdf`);
-      toast.success('Invoice downloaded');
-    } catch {
-      toast.error('Could not generate the invoice.');
+      await downloadBusinessDoc(invoiceDocData(inv, me, company), inv.number);
     } finally {
       setBusy(null);
     }
@@ -69,7 +44,7 @@ export default function PortalInvoices() {
     <div className="space-y-5">
       <PageHeader
         title="Bills & Invoices"
-        description="Every invoice, e-bill and paperwork for your account — in one place."
+        description="Every invoice and e-bill for your account — click to view, or download the PDF."
         icon={<ReceiptIndianRupee />}
       />
 
@@ -103,14 +78,18 @@ export default function PortalInvoices() {
                   <th className="px-4 py-2.5 text-right">Amount</th>
                   <th className="px-4 py-2.5 text-right">Balance</th>
                   <th className="px-4 py-2.5">Status</th>
-                  <th className="px-4 py-2.5 text-right">e-Bill</th>
+                  <th className="px-4 py-2.5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
                 {mine.map((inv) => {
                   const balance = inv.total - inv.amountPaid;
                   return (
-                    <tr key={inv.id}>
+                    <tr
+                      key={inv.id}
+                      onClick={() => navigate(`/portal/invoices/${inv.id}`)}
+                      className="cursor-pointer transition-colors hover:bg-muted/50"
+                    >
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-2">
                           <FileText className="size-3.5 text-content-muted" />
@@ -127,13 +106,21 @@ export default function PortalInvoices() {
                         <StatusBadge def={INVOICE_STATUS[inv.status]} />
                       </td>
                       <td className="px-4 py-2.5 text-right">
-                        <button
-                          disabled={busy === inv.id}
-                          onClick={() => download(inv)}
-                          className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted disabled:opacity-50"
-                        >
-                          <Download className="size-3.5" /> {busy === inv.id ? '…' : 'PDF'}
-                        </button>
+                        <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          <button
+                            onClick={() => navigate(`/portal/invoices/${inv.id}`)}
+                            className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted"
+                          >
+                            <Eye className="size-3.5" /> View
+                          </button>
+                          <button
+                            disabled={busy === inv.id}
+                            onClick={() => download(inv)}
+                            className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted disabled:opacity-50"
+                          >
+                            <Download className="size-3.5" /> {busy === inv.id ? '…' : 'PDF'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

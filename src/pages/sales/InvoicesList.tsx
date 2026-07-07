@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, ReceiptIndianRupee } from 'lucide-react';
+import { Plus, ReceiptIndianRupee, Eye, Download } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { DataTable } from '@/components/shared/DataTable';
@@ -12,6 +12,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLookups } from '@/hooks/useLookups';
 import { INVOICE_STATUS } from '@/lib/constants';
 import { formatINR, formatDate, daysBetween } from '@/lib/format';
+import { downloadBusinessDoc, invoiceDocData } from '@/lib/downloadDoc';
 import type { Invoice } from '@/types';
 
 export default function InvoicesList() {
@@ -19,7 +20,23 @@ export default function InvoicesList() {
   const { can } = useAuth();
   const { customerName } = useLookups();
   const invoices = useDataStore((s) => s.invoices);
+  const customers = useDataStore((s) => s.customers);
+  const company = useDataStore((s) => s.company);
   const [status, setStatus] = useState('all');
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const download = useCallback(
+    async (inv: Invoice) => {
+      setBusy(inv.id);
+      try {
+        const party = customers.find((c) => c.id === inv.customerId);
+        await downloadBusinessDoc(invoiceDocData(inv, party, company), inv.number);
+      } finally {
+        setBusy(null);
+      }
+    },
+    [customers, company],
+  );
 
   const filtered = useMemo(
     () => invoices.filter((i) => status === 'all' || i.status === status),
@@ -97,8 +114,24 @@ export default function InvoicesList() {
           <StatusBadge def={INVOICE_STATUS[row.original.status]} />
         ),
       },
+      {
+        id: 'actions',
+        header: '',
+        enableSorting: false,
+        // Stop these clicks from also triggering the row's navigate.
+        cell: ({ row }) => (
+          <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+            <Button variant="outline" size="icon-sm" aria-label="View invoice" onClick={() => navigate(`/invoices/${row.original.id}`)}>
+              <Eye className="size-4" />
+            </Button>
+            <Button variant="outline" size="icon-sm" aria-label="Download PDF" loading={busy === row.original.id} onClick={() => download(row.original)}>
+              {busy !== row.original.id && <Download className="size-4" />}
+            </Button>
+          </div>
+        ),
+      },
     ],
-    [customerName],
+    [customerName, navigate, download, busy],
   );
 
   return (
