@@ -41,7 +41,6 @@ const ItemDetail = lazy(() => import('@/pages/items/ItemDetail'));
 const ProposalsList = lazy(() => import('@/pages/sales/ProposalsList'));
 const ProposalForm = lazy(() => import('@/pages/sales/ProposalForm'));
 const ProposalDetail = lazy(() => import('@/pages/sales/ProposalDetail'));
-const Quotations = lazy(() => import('@/pages/sales/Quotations'));
 const SalesOrders = lazy(() => import('@/pages/sales/SalesOrders'));
 const SalesOrderDetail = lazy(() => import('@/pages/sales/SalesOrderDetail'));
 const InvoicesList = lazy(() => import('@/pages/sales/InvoicesList'));
@@ -161,7 +160,8 @@ export const router = createBrowserRouter([
       { path: 'proposals/new', element: <ProposalForm /> },
       { path: 'proposals/:id', element: <ProposalDetail /> },
       { path: 'proposals/:id/edit', element: <ProposalForm /> },
-      { path: 'quotations', element: <Quotations /> },
+      // Quotations merged into Proposals — keep the old URL working.
+      { path: 'quotations', element: <Navigate to="/proposals?status=quotations" replace /> },
       { path: 'orders', element: <SalesOrders /> },
       { path: 'orders/:id', element: <SalesOrderDetail /> },
       { path: 'invoices', element: <InvoicesList /> },

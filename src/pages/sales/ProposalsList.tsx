@@ -14,6 +14,9 @@ import { PROPOSAL_STATUS } from '@/lib/constants';
 import { formatINR, formatDate } from '@/lib/format';
 import type { Proposal } from '@/types';
 
+// "Quotations" are simply proposals that have been shared with a customer.
+const SHARED_STATUSES = ['SENT', 'UNDER_REVIEW', 'NEGOTIATION'];
+
 export default function ProposalsList() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -24,7 +27,14 @@ export default function ProposalsList() {
   const [status, setStatus] = useState(searchParams.get('status') ?? 'all');
 
   const filtered = useMemo(
-    () => proposals.filter((p) => status === 'all' || p.status === status),
+    () =>
+      proposals.filter((p) =>
+        status === 'all'
+          ? true
+          : status === 'quotations'
+            ? SHARED_STATUSES.includes(p.status)
+            : p.status === status,
+      ),
     [proposals, status],
   );
 
@@ -95,7 +105,7 @@ export default function ProposalsList() {
   return (
     <div className="space-y-5">
       <PageHeader
-        title="Proposals"
+        title="Proposals & Quotations"
         description={`${proposals.length} proposals · ${pendingApproval} pending approval`}
         icon={<FileText />}
         actions={
@@ -131,6 +141,7 @@ export default function ProposalsList() {
               onChange={setStatus}
               options={[
                 { value: 'all', label: 'All Statuses' },
+                { value: 'quotations', label: 'Quotations (shared)' },
                 ...Object.entries(PROPOSAL_STATUS).map(([v, d]) => ({
                   value: v,
                   label: d.label,

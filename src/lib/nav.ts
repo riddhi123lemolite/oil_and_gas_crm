@@ -9,7 +9,6 @@ import {
   CalendarDays,
   Package,
   FileText,
-  FileCheck2,
   ShoppingCart,
   ReceiptIndianRupee,
   Wallet,
@@ -74,8 +73,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Sales',
     items: [
       { label: 'Items & Products', path: '/items', icon: Package, module: 'items' },
-      { label: 'Proposals', path: '/proposals', icon: FileText, module: 'proposals' },
-      { label: 'Quotations', path: '/quotations', icon: FileCheck2, module: 'proposals' },
+      { label: 'Proposals & Quotations', path: '/proposals', icon: FileText, module: 'proposals' },
       { label: 'Sales Orders', path: '/orders', icon: ShoppingCart, module: 'orders' },
       { label: 'Invoices', path: '/invoices', icon: ReceiptIndianRupee, module: 'invoices' },
       { label: 'Payments', path: '/payments', icon: Wallet, module: 'invoices' },
