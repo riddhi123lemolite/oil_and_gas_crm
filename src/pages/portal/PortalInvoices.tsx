@@ -6,8 +6,10 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
+import { downloadBlob } from '@/lib/utils';
 import { INVOICE_STATUS } from '@/lib/constants';
-import type { InvoiceStatus } from '@/types';
+import type { InvoiceStatus, Invoice } from '@/types';
+import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
 const FILTERS: { key: InvoiceStatus | 'ALL'; label: string }[] = [
   { key: 'ALL', label: 'All' },
@@ -19,12 +21,49 @@ const FILTERS: { key: InvoiceStatus | 'ALL'; label: string }[] = [
 
 export default function PortalInvoices() {
   const invoices = useDataStore((s) => s.invoices);
+  const company = useDataStore((s) => s.company);
   const me = usePortalCustomer();
   const [filter, setFilter] = useState<InvoiceStatus | 'ALL'>('ALL');
+  const [busy, setBusy] = useState<string | null>(null);
 
   const mine = (me ? invoices.filter((i) => i.customerId === me.id) : [])
     .filter((i) => filter === 'ALL' || i.status === filter)
     .sort((a, b) => b.invoiceDate.localeCompare(a.invoiceDate));
+
+  const download = async (inv: Invoice) => {
+    if (!me) return;
+    setBusy(inv.id);
+    try {
+      const addr = me.billingAddress;
+      const data: BusinessDocData = {
+        docLabel: 'TAX INVOICE',
+        number: inv.number,
+        date: formatDate(inv.invoiceDate),
+        validLabel: 'Due Date',
+        validValue: formatDate(inv.dueDate),
+        company,
+        partyName: me.companyName,
+        partyAddress: `${addr.line1}${addr.line2 ? ', ' + addr.line2 : ''}, ${addr.city}, ${addr.state} ${addr.pincode}`,
+        partyGstin: me.gstin,
+        items: inv.items,
+        subtotal: inv.subtotal,
+        cgst: inv.cgst,
+        sgst: inv.sgst,
+        igst: inv.igst,
+        transportCharge: inv.transportCharge,
+        total: inv.total,
+        terms: company.terms,
+      };
+      const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
+      const blob = await renderBusinessDoc(data);
+      downloadBlob(blob, `${inv.number.replace(/[\\/]/g, '-')}.pdf`);
+      toast.success('Invoice downloaded');
+    } catch {
+      toast.error('Could not generate the invoice.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -89,10 +128,11 @@ export default function PortalInvoices() {
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <button
-                          onClick={() => toast.success(`Downloading ${inv.number}.pdf`)}
-                          className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted"
+                          disabled={busy === inv.id}
+                          onClick={() => download(inv)}
+                          className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted disabled:opacity-50"
                         >
-                          <Download className="size-3.5" /> PDF
+                          <Download className="size-3.5" /> {busy === inv.id ? '…' : 'PDF'}
                         </button>
                       </td>
                     </tr>

@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Wallet, CreditCard, Landmark, Banknote, Smartphone, FileCheck, Download } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { useDataStore } from '@/stores/dataStore';
 import { usePortalCustomer } from '@/hooks/usePortalCustomer';
 import { formatINR, formatDate } from '@/lib/format';
+import { downloadBlob } from '@/lib/utils';
+import type { Payment } from '@/types';
+import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
 const METHODS = [
   { code: 'NEFT', icon: Landmark, label: 'NEFT', desc: 'Bank transfer · settles same/next working day' },
@@ -17,12 +20,48 @@ const METHODS = [
 export default function PortalPayments() {
   const payments = useDataStore((s) => s.payments);
   const invoices = useDataStore((s) => s.invoices);
+  const company = useDataStore((s) => s.company);
   const me = usePortalCustomer();
+  const [busy, setBusy] = useState<string | null>(null);
 
   const invNo = useMemo(() => {
     const map = new Map(invoices.map((i) => [i.id, i.number]));
     return (id: string) => map.get(id) ?? '—';
   }, [invoices]);
+
+  const download = async (p: Payment) => {
+    if (!me) return;
+    setBusy(p.id);
+    try {
+      const addr = me.billingAddress;
+      const data: BusinessDocData = {
+        docLabel: 'PAYMENT RECEIPT',
+        number: p.number,
+        date: formatDate(p.paidAt),
+        company,
+        partyName: me.companyName,
+        partyAddress: `${addr.line1}${addr.line2 ? ', ' + addr.line2 : ''}, ${addr.city}, ${addr.state} ${addr.pincode}`,
+        partyGstin: me.gstin,
+        subject: `Payment received via ${p.mode} · Ref ${p.reference} · against invoice ${invNo(p.invoiceId)}`,
+        items: [],
+        subtotal: 0,
+        cgst: 0,
+        sgst: 0,
+        igst: 0,
+        transportCharge: 0,
+        total: p.amount,
+        terms: company.terms,
+      };
+      const { renderBusinessDoc } = await import('@/components/pdf/renderPdf');
+      const blob = await renderBusinessDoc(data);
+      downloadBlob(blob, `${p.number.replace(/[\\/]/g, '-')}-Receipt.pdf`);
+      toast.success('Receipt downloaded');
+    } catch {
+      toast.error('Could not generate the receipt.');
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const myPayments = me
     ? payments.filter((p) => p.customerId === me.id).sort((a, b) => b.paidAt.localeCompare(a.paidAt))
@@ -96,10 +135,11 @@ export default function PortalPayments() {
                     <td className="px-4 py-2.5 text-right num font-medium text-success">{formatINR(p.amount)}</td>
                     <td className="px-4 py-2.5 text-right">
                       <button
-                        onClick={() => toast.success(`Downloading receipt ${p.number}.pdf`)}
-                        className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted"
+                        disabled={busy === p.id}
+                        onClick={() => download(p)}
+                        className="inline-flex items-center gap-1 rounded-md border border-line px-2 py-1 text-xs font-medium text-content-secondary hover:bg-muted disabled:opacity-50"
                       >
-                        <Download className="size-3.5" /> PDF
+                        <Download className="size-3.5" /> {busy === p.id ? '…' : 'PDF'}
                       </button>
                     </td>
                   </tr>
