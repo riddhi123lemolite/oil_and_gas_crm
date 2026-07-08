@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 import type {
   Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item, User, AuditLogEntry,
-  Proposal, InventoryRecord, Task,
+  Proposal, InventoryRecord, Task, Vehicle, Driver,
 } from '@/types';
 import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
@@ -59,6 +59,9 @@ export interface AiContext {
   inventory?: InventoryRecord[];
   /** Task list — used to answer "what are X's tasks?" (staff only). */
   tasks?: Task[];
+  /** Fleet — used to answer "what vehicle is assigned to <driver>?" (staff only). */
+  vehicles?: Vehicle[];
+  drivers?: Driver[];
   oil: LiveTicker[];
   fuel: LiveTicker[];
   canErp: boolean;
@@ -662,6 +665,84 @@ function staffTasks(s: string, ctx: AiContext): AiReply | null {
   const items = list.slice(0, 8).map((t) => `${t.title} — ${human(t.status)}${t.dueDate ? `, due ${formatDate(t.dueDate)}` : ''}${t.priority === 'URGENT' || t.priority === 'HIGH' ? ` · ${t.priority.toLowerCase()}` : ''}`);
   const lead = `${dateNote}**${user.name}** (${roleLabel}) has **${list.length}** ${scope}task${list.length === 1 ? '' : 's'}${dateLabel}:`;
   return { blocks: [text(lead), { kind: 'list', items }], action: to };
+}
+
+/** Match a driver by a distinctive word of their name. */
+function matchDriver(s: string, ctx: AiContext): Driver | undefined {
+  let best: Driver | undefined; let bestScore = 0;
+  for (const d of ctx.drivers ?? []) {
+    const tokens = d.name.toLowerCase().split(/\s+/).filter((w) => w.length >= 3);
+    const hits = tokens.filter((t) => s.includes(t)).length;
+    if (hits > bestScore) { best = d; bestScore = hits; }
+  }
+  return best;
+}
+
+/** Match a vehicle by its registration number (with or without spaces). */
+function matchVehicle(s: string, ctx: AiContext): Vehicle | undefined {
+  const q = s.toLowerCase().replace(/\s+/g, '');
+  for (const v of ctx.vehicles ?? []) {
+    const reg = v.registrationNo.toLowerCase().replace(/\s+/g, '');
+    if (reg.length >= 4 && q.includes(reg)) return v;
+  }
+  // Fall back to the 4-digit tail if the user typed only that.
+  for (const v of ctx.vehicles ?? []) {
+    const tail = v.registrationNo.replace(/\D/g, '').slice(-4);
+    if (tail.length === 4 && new RegExp(`\\b${tail}\\b`).test(s)) return v;
+  }
+  return undefined;
+}
+
+// "What vehicle is assigned to <driver>?", "who drives GJ05 AB 1234?", "<driver>'s
+// truck", "which vehicles need renewal?", "how many vehicles do we have?" — fleet
+// lookups resolved from real vehicle/driver data (staff only).
+function fleet(s: string, ctx: AiContext): AiReply | null {
+  if (ctx.role === 'CUSTOMER') return null;
+  if (!/\b(vehicle|vehicles|truck|trucks|tanker|tankers|lorry|lorries|fleet|registration|reg\.? ?no|\brc\b|fitness|insurance|driver|drivers|driving|drives|assigned|licen[cs]e|capacity)\b/.test(s)) return null;
+
+  const drivers = ctx.drivers ?? [];
+  const vehicles = ctx.vehicles ?? [];
+  if (!drivers.length && !vehicles.length) return null;
+  const to: AiAction = { label: 'Open Vehicles', to: '/vehicles' };
+  const driverName = new Map(drivers.map((d) => [d.id, d.name]));
+  const vehForDriver = (id: string) => vehicles.find((v) => v.currentDriverId === id);
+  const daysToGo = (d: string) => Math.round((new Date(d).getTime() - Date.now()) / 86_400_000);
+
+  const driver = matchDriver(s, ctx);
+  const vehicle = matchVehicle(s, ctx);
+
+  // --- Fleet-wide (no specific person / vehicle) ---
+  if (!driver && !vehicle) {
+    if (/expir|expiring|renewal|renew|lapsed|due|overdue|valid/.test(s) && /\b(rc|fitness|insurance|document|documents|papers?|vehicle|vehicles|tanker|truck)\b/.test(s)) {
+      const flagged = vehicles.filter((v) => daysToGo(v.fitnessExpiry) < 45 || daysToGo(v.insuranceExpiry) < 45 || daysToGo(v.rcExpiry) < 45);
+      if (!flagged.length) return { blocks: [text('No vehicles have RC, fitness or insurance expiring in the next 45 days. 👍')], action: to };
+      const rows = flagged.slice(0, 12).map((v) => [v.registrationNo, formatDate(v.fitnessExpiry), formatDate(v.insuranceExpiry), formatDate(v.rcExpiry)]);
+      return { blocks: [text(`**${flagged.length}** vehicle${flagged.length === 1 ? '' : 's'} need document renewal soon:`), { kind: 'table', columns: ['Vehicle', 'Fitness', 'Insurance', 'RC'], rows }], action: to };
+    }
+    if (/how many|count|number of|total|\blist\b|show all/.test(s)) {
+      const owned = vehicles.filter((v) => v.ownerType === 'OWNED').length;
+      return { blocks: [text(`The fleet has **${vehicles.length}** vehicles (${owned} owned, ${vehicles.length - owned} on contract) and **${drivers.length}** drivers.`)], action: to };
+    }
+    return null;
+  }
+
+  const vehLine = (v: Vehicle) =>
+    `**${v.registrationNo}** — a **${v.type}** (${v.capacityKL} KL capacity), **${v.ownerType === 'OWNED' ? 'company-owned' : 'contract'}**. RC valid to ${formatDate(v.rcExpiry)}, fitness ${formatDate(v.fitnessExpiry)}, insurance ${formatDate(v.insuranceExpiry)}.`;
+
+  // --- Driver named → their assigned vehicle + licence ---
+  if (driver) {
+    const v = vehForDriver(driver.id);
+    const lic = `Licence ${driver.licenseNo} (valid to ${formatDate(driver.licenseExpiry)}), ${driver.experienceYears} yr${driver.experienceYears === 1 ? '' : 's'} experience.`;
+    if (v) return { blocks: [text(`**${driver.name}** is assigned to ${vehLine(v)} ${lic}`)], action: to };
+    return { blocks: [text(`**${driver.name}** has no vehicle currently assigned. ${lic}`)], action: to };
+  }
+
+  // --- Vehicle named → who drives it ---
+  if (vehicle) {
+    const drvName = vehicle.currentDriverId ? driverName.get(vehicle.currentDriverId) : undefined;
+    return { blocks: [text(`${vehLine(vehicle)} It is ${drvName ? `driven by **${drvName}**` : 'not assigned to a driver right now'}.`)], action: to };
+  }
+  return null;
 }
 
 // "What's the audit log of Ashok Desai?" — admin-only audit trail, per person.
@@ -1606,6 +1687,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   // "What are the tasks of <person> today?" — a teammate's task list (staff).
   const stk = staffTasks(s, ctx);
   if (stk) return stk;
+
+  // "What vehicle is assigned to <driver>?", "who drives <reg>?" — fleet lookup.
+  const fl = fleet(s, ctx);
+  if (fl) return fl;
 
   // "Highest-value invoice?", "top-selling product?", "lowest stock?", "best
   // sales month?", "sales by region?", "invoices above ₹1L?", "how many

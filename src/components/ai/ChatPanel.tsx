@@ -27,6 +27,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const proposals = useDataStore((s) => s.proposals);
   const inventory = useDataStore((s) => s.inventory);
   const tasks = useDataStore((s) => s.tasks);
+  const vehicles = useDataStore((s) => s.vehicles);
+  const drivers = useDataStore((s) => s.drivers);
   const notifications = useDataStore((s) => s.notifications);
   const items = useDataStore((s) => s.items);
   const users = useDataStore((s) => s.users);
@@ -59,6 +61,9 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       inventory: isC ? undefined : inventory,
       // Staff task list — the "what are X's tasks?" handler enforces the gate.
       tasks: isC ? undefined : tasks,
+      // Fleet — the "vehicle assigned to <driver>?" handler enforces the gate.
+      vehicles: isC ? undefined : vehicles,
+      drivers: isC ? undefined : drivers,
       notifications,
       items,
       oil,
@@ -68,7 +73,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       users: role === 'CUSTOMER' ? undefined : users,
       auditLog: role === 'ADMIN' ? auditLog : undefined,
     };
-  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, tasks, notifications, items, users, auditLog, oil, fuel, can]);
+  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, tasks, vehicles, drivers, notifications, items, users, auditLog, oil, fuel, can]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });
