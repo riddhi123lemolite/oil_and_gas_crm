@@ -126,8 +126,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const prompts = suggestedPrompts(role).slice(0, variant === 'compact' ? 4 : 5);
 
   return (
-    <div className="flex min-w-0 flex-1 flex-col bg-base">
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-base">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
         <div className={cn('mx-auto px-4 py-6', variant === 'full' ? 'max-w-3xl' : 'max-w-full px-3 py-4')}>
           {!active || active.messages.length === 0 ? (
             <div className="flex flex-col items-center py-6 text-center">
