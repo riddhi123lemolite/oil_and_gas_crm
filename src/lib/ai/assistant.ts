@@ -19,6 +19,12 @@ import { computeErp } from '@/lib/erp';
 import { formatINR, formatDate, formatQty, formatNumber } from '@/lib/format';
 import { formatMarket } from '@/lib/market';
 import { faqStrong, faqFallback } from './faq';
+import {
+  isBuyerRankingQuery,
+  parseBuyerQuery,
+  BUYER_NOUN,
+  PURCHASE_WORD,
+} from './buyerIntent';
 
 export type AiBlock =
   | { kind: 'text'; text: string }
@@ -670,6 +676,94 @@ function customers(s: string, ctx: AiContext, detail: boolean): AiReply {
   return { blocks: [text(`Showing **${list.length}** of **${ctx.customers.length}** customers:`), { kind: 'table', columns: ['Company', 'Segment', 'Outstanding'], rows }], action: { label: 'Open Customers', to: '/customers' } };
 }
 
+// "Who is the highest buyer?", "which party had the highest purchase?", "top 5
+// customers by spend", "who bought the most diesel last month?", "smallest buyer
+// this year", "how much did ABC Petroleum purchase?" — a grounded leaderboard
+// (or single-customer total) computed from real invoice line items. Handles the
+// full buyer / party / client / purchaser / account vocabulary.
+function buyerRanking(s: string, ctx: AiContext, detail: boolean): AiReply | null {
+  const ranking = isBuyerRankingQuery(s);
+  const named = matchCustomer(s, ctx);
+  const purchaseAbout = PURCHASE_WORD.test(s) || /\b(purchase|spend|business|volume|revenue)\b/.test(s);
+  // Only engage for a genuine buyer / customer purchase question.
+  if (!ranking && !(named && purchaseAbout)) return null;
+
+  // Customers only ever see their own account.
+  if (ctx.role === 'CUSTOMER') {
+    if (ranking) {
+      return { blocks: [text('For privacy I can only show **your own** account — I can’t rank other buyers. Try “how much did I buy?” or “what are my pending payments?”.')] };
+    }
+    return null; // "how much did I buy" flows to the volume handler
+  }
+
+  const period = parsePeriod(s);
+  const subject = resolveSubject(s, ctx);
+  const subjIds = subject ? new Set(subject.ids) : null;
+  const prodLabel = subject ? ` of ${subject.label}` : '';
+  const inRange = (d: string) => d >= period.start && d <= period.end;
+  const periodPhrase = period.label === 'all time' ? 'all time' : period.label;
+  const cName = new Map(ctx.customers.map((c) => [c.id, c.companyName]));
+
+  // Aggregate purchases per customer from invoice line items (KL + ₹ + count).
+  const agg = new Map<string, { kl: number; rev: number; n: number }>();
+  for (const inv of ctx.invoices) {
+    if (!inRange(inv.invoiceDate)) continue;
+    for (const li of inv.items) {
+      if (subjIds && !subjIds.has(li.itemId)) continue;
+      const kl = li.unit === 'L' ? li.quantity / 1000 : li.quantity;
+      const a = agg.get(inv.customerId) ?? { kl: 0, rev: 0, n: 0 };
+      a.kl += kl; a.rev += li.amount; a.n += 1; agg.set(inv.customerId, a);
+    }
+  }
+
+  // --- Single named customer → their own purchase total ---
+  if (named && !ranking) {
+    const a = agg.get(named.id);
+    if (!a || (!a.kl && !a.rev)) {
+      return { blocks: [text(`I couldn’t find any recorded purchases for **${named.companyName}**${prodLabel}${periodPhrase === 'all time' ? '' : ' in ' + periodPhrase}.`)] };
+    }
+    return {
+      blocks: [text(`**${named.companyName}** purchased **${formatQty(a.kl, 'KL')}**${prodLabel} worth **${formatINR(a.rev)}** across **${a.n}** invoice line${a.n === 1 ? '' : 's'}${periodPhrase === 'all time' ? '' : ` (${periodPhrase})`}.`)],
+      action: { label: 'Open Customers', to: route(ctx.role, 'customers') ?? '/customers' },
+    };
+  }
+
+  if (agg.size === 0) {
+    return { blocks: [text(`No customer purchases${prodLabel} found for ${periodPhrase}.`)] };
+  }
+
+  const { direction, metric, limit } = parseBuyerQuery(s, detail);
+  const key = (v: { kl: number; rev: number }) => (metric === 'volume' ? v.kl : v.rev);
+  let ranked = [...agg.entries()].sort((x, y) => key(y[1]) - key(x[1]));
+  if (direction === 'bottom') ranked = ranked.filter(([, v]) => v.kl > 0 || v.rev > 0).reverse();
+
+  const metricPhrase = metric === 'volume' ? 'volume' : metric === 'revenue' ? 'value' : 'purchases';
+  const dirWord = direction === 'bottom' ? 'smallest' : 'largest';
+  const custRoute = route(ctx.role, 'customers') ?? '/customers';
+
+  // Detailed / list / top-N → a ranked table.
+  if (detail || limit > 3 || /\b(rank|ranking|list|table|leaderboard|standings|top \d+|bottom \d+)\b/.test(s)) {
+    const rows = ranked.slice(0, limit).map(([id, v], i) => [String(i + 1), cName.get(id) ?? '—', formatQty(v.kl, 'KL'), formatINR(v.rev), String(v.n)]);
+    return {
+      blocks: [
+        text(`${direction === 'bottom' ? 'Smallest' : 'Top'} **${rows.length}** buyer${rows.length === 1 ? '' : 's'}${prodLabel} by ${metricPhrase} — ${periodPhrase}:`),
+        { kind: 'table', columns: ['#', 'Customer', 'Volume', 'Value', 'Invoices'], rows },
+      ],
+      action: { label: 'Open Customers', to: custRoute },
+    };
+  }
+
+  // Concise → name the leader with both value & volume, plus runners-up.
+  const top = ranked[0]!;
+  const tv = top[1];
+  const next = ranked.slice(1, 3).map(([id, v]) => `${cName.get(id) ?? '—'} (${formatINR(v.rev)})`);
+  const lead = `**${cName.get(top[0]) ?? '—'}** was the ${dirWord} buyer${prodLabel}${periodPhrase === 'all time' ? '' : ` ${periodPhrase}`} — **${formatINR(tv.rev)}** across **${formatQty(tv.kl, 'KL')}**.`;
+  return {
+    blocks: [text(`${lead}${next.length ? ` Next: ${next.join(', ')}.` : ''}`)],
+    action: { label: 'Open Customers', to: custRoute },
+  };
+}
+
 function notifications(ctx: AiContext): AiReply {
   const unread = ctx.notifications.filter((n) => !n.read);
   if (unread.length === 0) return { blocks: [text('You have no unread notifications. 🎉')] };
@@ -858,7 +952,7 @@ function classifyIntent(s: string): ConvContext['intent'] | undefined {
   if (/invoice|bill/.test(s)) return 'invoices';
   if (/payment|outstanding|owe|receivable|\bpaid\b|pending pay/.test(s)) return 'payments';
   if (/order|dispatch|transit|shipment|arriv|\btrack\b/.test(s)) return 'orders';
-  if (/customer|client/.test(s)) return 'customers';
+  if (isBuyerRankingQuery(s) || BUYER_NOUN.test(s)) return 'customers';
   if (/notification|alert/.test(s)) return 'notifications';
   return undefined;
 }
@@ -988,7 +1082,7 @@ function comparePeriods(s: string, ctx: AiContext, years: number[]): AiReply {
 // ===========================================================================
 
 function isVolumeQuery(s: string): boolean {
-  if (/top\s+\w*\s*customer|customer.{0,15}(revenue|spend|bought|buy|purchas)/.test(s)) return true;
+  if (/top\s+\w*\s*(customer|client|buyer|party|account)|(customer|client|buyer|party|account)s?.{0,15}(revenue|spend|bought|buy|purchas)/.test(s)) return true;
   if (/(revenue|turnover|\bsales\b(?!\s+(executive|manager|managers|rep|reps|representative|representatives|team|teams|staff|person|people|role|roles|order|orders|target|targets|force|cycle|process|pipeline|department|head))|top (product|selling)|best.?sell|most sold|highest selling)/.test(s)) return true;
   const metric = /(quantity|volume|litre|liter|kilolit|\bkl\b|how much|how many)/.test(s);
   const verbz = /(transport|dispatch|deliver|moved|move|shipped|ship|hauled|carried|sold|sell|bought|buy|purchas|supplied|supply)/.test(s);
@@ -1003,8 +1097,8 @@ const isPriceQuery = (s: string) =>
 /** A live-data request (numbers from the CRM) rather than a feature/FAQ question.
  *  Used to stop the FAQ index from shadowing the data handlers. */
 function looksLikeData(s: string): boolean {
-  if (isVolumeQuery(s) || isPriceQuery(s)) return true;
-  if (/\b(who has|who owes|top customers?|pending payments?|overdue invoices?|received this month|in transit|outstanding balance|most fuel|by revenue)\b/.test(s)) return true;
+  if (isVolumeQuery(s) || isPriceQuery(s) || isBuyerRankingQuery(s)) return true;
+  if (/\b(who has|who owes|top customers?|pending payments?|overdue invoices?|received this month|in transit|outstanding balance|most fuel|by revenue|highest buyer|biggest buyer|top buyer|top spender|which party|who bought)\b/.test(s)) return true;
   if (/\b(show|list|display|how many|how much|number of|total|count of)\b/.test(s)
     && /(invoices?|bills?|payments?|orders?|shipments?|dispatch|customers?|leads?|outstanding|overdue|revenue|sales|stock|proposals?|quotations?)/.test(s)) return true;
   return false;
@@ -1262,6 +1356,11 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   const al = auditLogQuery(s, ctx);
   if (al) return al;
 
+  // "Who is the highest buyer?", "which party purchased the most?", "top 5
+  // customers by spend", "how much did ABC buy?" — grounded buyer leaderboard.
+  const br = buyerRanking(s, ctx, wantsDetail(s) || DETAIL_SEEK_RE.test(s));
+  if (br) return br;
+
   // Trained FAQ knowledge base — high-confidence feature/how-to answers, but
   // never for a live-data request (those must reach the data handlers below).
   if (!looksLikeData(s)) {
@@ -1318,10 +1417,10 @@ export function suggestedPrompts(role: Role): string[] {
     case 'ACCOUNTS':
       return ['Who has pending payments?', 'How much is outstanding?', 'Analytics for pending payments', 'Payments received this month'];
     case 'SALES_MANAGER':
-      return ['How much diesel did we sell last year?', 'Order status of a customer', 'Which customers bought the most fuel this month?', 'Analytics for sales this year'];
+      return ['Who is the highest buyer?', 'Which party bought the most diesel this month?', 'Top 5 customers by purchase value', 'Analytics for sales this year'];
     case 'SALES_EXECUTIVE':
-      return ['How much petrol did we sell last month?', 'Shipments in transit', 'Show my customers', "Today's Brent price"];
+      return ['Who was the biggest buyer last month?', 'Shipments in transit', 'Rank my customers by purchase', "Today's Brent price"];
     default:
-      return ['How much oil did we sell last year?', 'Analytics for top customers', 'Who has pending payments?', 'Compare Brent and diesel', "Today's Brent price"];
+      return ['Who is the highest buyer?', 'Rank customers by purchase value', 'Who has pending payments?', 'Which party bought the most diesel?', "Today's Brent price"];
   }
 }

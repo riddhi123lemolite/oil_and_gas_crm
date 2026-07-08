@@ -70,8 +70,8 @@ function variants(q, gi) {
   return [...set];
 }
 
-const CAP_PER_INTENT = 60;
-const CAP_TOTAL = 6000;
+const CAP_PER_INTENT = 80;
+const CAP_TOTAL = 100000; // effectively uncapped — every intent expands fully
 const seen = new Set();
 const records = [];
 let gi = 0;

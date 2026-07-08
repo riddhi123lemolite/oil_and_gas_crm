@@ -246,5 +246,110 @@ export const NEW_INTENTS = [
 
   { id: 'noerpaccess', cat: 'Roles & Permissions', src: 'src/lib/permissions.ts', feat: ['ERP Calculator'],
     a: "The ERP Calculator is Admin-only, so it won't appear for Sales, Accounts or customer roles. If you need costing figures, an Admin can run it for you.",
-    ask: ["Why can't I see the ERP Calculator?", 'The ERP Calculator is missing'], act: [], noun: ['why the erp calculator is hidden'], kw: ['cant see erp', 'erp missing', 'no erp access'] }
+    ask: ["Why can't I see the ERP Calculator?", 'The ERP Calculator is missing'], act: [], noun: ['why the erp calculator is hidden'], kw: ['cant see erp', 'erp missing', 'no erp access'] },
+
+  // =========================================================================
+  // Buyer / customer analytics — grounded, computed live from invoices.
+  // The assistant ranks customers ("parties/buyers/clients") by purchase
+  // volume (KL) and value (₹). These are DATA answers: at runtime the query is
+  // routed to the live leaderboard handler, so the text below is a safe
+  // fallback that describes what will be computed.
+  // =========================================================================
+  { id: 'highest-buyer', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports', 'AI Assistant'],
+    a: "I work that out from your live invoices — I total each customer's purchases and name the leader by value (₹) and volume (KL). Ask e.g. \"who is the highest buyer?\" or \"which party had the highest purchase this year?\" and I'll give you the top buyer plus the runners-up.",
+    ask: ['Who is the highest buyer?', 'Which party had the highest purchase?', 'Who was the biggest buyer?', 'Who bought the most?', 'Which customer purchased the most?', 'Who is our top buyer?', 'Name the largest customer by purchase', 'Which client spent the most?', 'Who is the number one buyer?', 'Whose purchases are the highest?'],
+    act: ['find the highest buyer', 'identify the biggest buyer', 'find the top purchasing customer', 'find who bought the most', 'find the largest party'],
+    noun: ['the highest buyer', 'the biggest buyer', 'the top buyer', 'the largest customer', 'the leading purchaser', 'the top spender', 'the number one buyer', 'the biggest client', 'the highest purchasing party'],
+    kw: ['highest buyer', 'biggest buyer', 'top buyer', 'largest customer', 'which party', 'highest purchase', 'who bought most', 'top spender', 'leading customer', 'biggest client', 'major buyer', 'top purchaser', 'best customer', 'number one buyer', 'who purchased most'] },
+
+  { id: 'lowest-buyer', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "I can rank the other way too — the smallest buyers by value or volume, computed from live invoices. Useful for spotting low-activity or at-risk accounts. Try \"who is the smallest buyer?\" or \"which customers purchased the least this year?\".",
+    ask: ['Who is the smallest buyer?', 'Which party had the lowest purchase?', 'Who bought the least?', 'Which customer purchased the least?', 'Who is our lowest buyer?', 'Which client spent the least?', 'Name the smallest customer by purchase', 'Who are the least active buyers?'],
+    act: ['find the smallest buyer', 'identify the lowest buyer', 'find who bought the least', 'find the least active customers'],
+    noun: ['the smallest buyer', 'the lowest buyer', 'the least active customer', 'the smallest party', 'the lowest spender'],
+    kw: ['smallest buyer', 'lowest buyer', 'least purchase', 'who bought least', 'lowest spender', 'least active customer', 'smallest client', 'bottom buyer'] },
+
+  { id: 'rank-buyers', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "I can produce a full buyer leaderboard — every customer ranked by purchase value (₹) and volume (KL), from live invoice data. Ask \"rank customers by purchase\", \"top 5 buyers by value\", or \"list the top 10 parties by volume\".",
+    ask: ['Rank customers by purchase', 'Top 5 buyers by value', 'Top 10 customers by volume', 'List the biggest buyers', 'Show a buyer leaderboard', 'Rank parties by spend', 'Sort customers by purchase value', 'Give me the top buyers', 'Customer purchase ranking', 'Who are the top 3 buyers?'],
+    act: ['rank customers by purchase', 'rank buyers by value', 'rank parties by volume', 'list the top buyers', 'sort customers by spend', 'show a buyer leaderboard', 'build a customer purchase ranking'],
+    noun: ['a buyer leaderboard', 'the top buyers', 'the customer ranking', 'the purchase ranking', 'top customers by value', 'top customers by volume', 'the biggest buyers'],
+    kw: ['rank customers', 'buyer leaderboard', 'top buyers', 'top customers', 'purchase ranking', 'rank buyers', 'sort by purchase', 'top 5 buyers', 'top 10 customers', 'league table', 'customer standings'] },
+
+  { id: 'buyer-by-product', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Items & Products'],
+    a: "I can rank buyers for a specific product — say diesel, petrol, LDO, furnace oil, a solvent or a granule. Ask \"who bought the most diesel?\" or \"which party purchased the most petrol last month?\" and I'll rank customers by that product's volume and value.",
+    ask: ['Who bought the most diesel?', 'Which party purchased the most petrol?', 'Who is the biggest diesel buyer?', 'Which customer bought the most furnace oil?', 'Top buyers of lubricants', 'Who purchased the most LDO this year?', 'Biggest buyer of solvents'],
+    act: ['find the biggest diesel buyer', 'find who bought the most petrol', 'rank buyers of a product', 'find the top buyer of a product'],
+    noun: ['the biggest diesel buyer', 'the top petrol buyer', 'buyers of a product', 'the largest buyer of diesel'],
+    kw: ['most diesel', 'most petrol', 'biggest diesel buyer', 'top buyer of', 'who bought diesel', 'product buyer', 'buyer of lubricants', 'most furnace oil'] },
+
+  { id: 'buyer-by-period', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "Any buyer ranking can be scoped to a period — this month, last month, this year, last year, a quarter or a named year. Ask \"who was the biggest buyer last month?\" or \"top customers by purchase in 2025\".",
+    ask: ['Who was the biggest buyer last month?', 'Highest buyer this year', 'Top customers by purchase this month', 'Which party bought the most last quarter?', 'Biggest buyer in 2025', 'Who purchased the most this year?', 'Top buyer last year'],
+    act: ['find the biggest buyer this month', 'find the top buyer last year', 'rank buyers for a period'],
+    noun: ['the biggest buyer this month', 'the top buyer this year', 'the highest buyer last month'],
+    kw: ['biggest buyer this month', 'top buyer this year', 'highest buyer last month', 'buyer this quarter', 'purchases this year', 'buyer last year'] },
+
+  { id: 'buyer-value-volume', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "I rank buyers by either measure: purchase value (₹ / revenue / spend) or purchase volume (KL / quantity / litres). Say \"top customers by value\" or \"biggest buyers by volume\" to pick — otherwise I show both.",
+    ask: ['Top customers by purchase value', 'Biggest buyers by volume', 'Who spent the most money?', 'Which customer has the highest purchase value?', 'Rank buyers by quantity', 'Highest buyer by revenue', 'Who bought the most in KL?'],
+    act: ['rank buyers by value', 'rank buyers by volume', 'rank customers by spend', 'rank customers by quantity'],
+    noun: ['top buyers by value', 'top buyers by volume', 'the highest spender', 'the biggest buyer by quantity'],
+    kw: ['by value', 'by volume', 'by spend', 'by quantity', 'highest spender', 'purchase value', 'buyer by revenue', 'most in kl'] },
+
+  { id: 'buyer-single', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers'],
+    a: "Name a customer and I'll total their purchases from live invoices — volume (KL), value (₹) and the number of invoice lines, for all time or a period you specify. Ask \"how much did ABC Petroleum buy?\" or \"what did Gujarat Traders purchase last year?\".",
+    ask: ['How much did this customer buy?', 'What did a customer purchase?', "What is a customer's total purchase?", 'How much has a party bought from us?', 'Total purchases for a customer'],
+    act: ['see how much a customer bought', 'check a customer purchase total', 'total a party purchases'],
+    noun: ["a customer's total purchase", 'a customer purchase total', 'how much a party bought'],
+    kw: ['how much did buy', 'customer total purchase', 'party bought from us', 'purchases for a customer', 'customer purchase total'] },
+
+  { id: 'top-customers-revenue', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "I rank your customers by revenue (total billed) from live invoices, highest first. Ask \"top customers by revenue\", \"most valuable customers\" or \"who generates the most revenue?\".",
+    ask: ['Top customers by revenue', 'Who are our most valuable customers?', 'Which customer generates the most revenue?', 'Best customers by turnover', 'Highest revenue customers', 'Who brings in the most money?'],
+    act: ['rank customers by revenue', 'find the most valuable customers', 'find top revenue customers'],
+    noun: ['the most valuable customers', 'top revenue customers', 'the best customers by turnover'],
+    kw: ['top customers by revenue', 'most valuable customer', 'revenue customers', 'best customers', 'turnover customers', 'who generates revenue'] },
+
+  { id: 'customer-count', cat: 'Customers & Analytics', src: 'src/pages/customers/CustomersList.tsx', feat: ['Customers'],
+    a: "I can tell you how many customers you have and how many are active, straight from the Customers module. Ask \"how many customers do we have?\" or \"number of active accounts\".",
+    ask: ['How many customers do we have?', 'How many active customers are there?', 'What is the total number of customers?', 'How many buyers do we have?', 'Count of customers'],
+    act: ['count the customers', 'count active customers'],
+    noun: ['the number of customers', 'the customer count', 'the total customers', 'active customers'],
+    kw: ['how many customers', 'number of customers', 'customer count', 'active customers', 'total customers', 'how many buyers'] },
+
+  { id: 'new-customers', cat: 'Customers & Analytics', src: 'src/pages/customers/CustomersList.tsx', feat: ['Customers'],
+    a: "New accounts carry the NEW segment, and each customer has a 'customer since' date on their profile and in the Customers list, so you can spot recently onboarded buyers. Filter the Customers table by the NEW segment to see them.",
+    ask: ['Who are our newest customers?', 'Which customers are new?', 'Show recently added customers', 'How many new customers this month?', 'List new buyers'],
+    act: ['find new customers', 'list newly added customers', 'see recent customers'],
+    noun: ['new customers', 'the newest buyers', 'recently added customers'],
+    kw: ['new customers', 'newest customers', 'recently added', 'new buyers', 'new accounts', 'recent customers'] },
+
+  { id: 'dormant-customers', cat: 'Customers & Analytics', src: 'src/pages/customers/CustomersList.tsx', feat: ['Customers'],
+    a: "Inactive buyers show up as the DORMANT segment, and each customer's 'last order' date tells you who hasn't bought in a while. Filter the Customers list by DORMANT, or ask me for the smallest / least-active buyers.",
+    ask: ['Which customers are dormant?', 'Who are our inactive buyers?', 'Which customers stopped buying?', "Who hasn't ordered recently?", 'List dormant accounts'],
+    act: ['find dormant customers', 'find inactive buyers', 'see who stopped buying'],
+    noun: ['dormant customers', 'inactive buyers', 'customers who stopped buying'],
+    kw: ['dormant customers', 'inactive customers', 'stopped buying', 'lapsed customers', 'no recent orders', 'inactive buyers'] },
+
+  { id: 'customer-segments', cat: 'Customers & Analytics', src: 'src/lib/constants.ts', feat: ['Customers', 'Customer Segments'],
+    a: "Customers are grouped into segments — VIP, Standard, New, Dormant, Industrial, Retail and Reseller — so you can view buyers by type. You'll find the segment on each customer and as a filter on the Customers list.",
+    ask: ['What customer segments are there?', 'How are customers categorised?', 'Show VIP customers', 'Which buyers are industrial?', 'List reseller customers'],
+    act: ['see customer segments', 'filter customers by segment', 'view VIP customers'],
+    noun: ['customer segments', 'the VIP customers', 'industrial buyers', 'reseller customers'],
+    kw: ['customer segment', 'vip customers', 'industrial customers', 'reseller', 'retail customers', 'customer type', 'segments'] },
+
+  { id: 'customer-outstanding-rank', cat: 'Customers & Analytics', src: 'src/pages/sales/Payments.tsx', feat: ['Payments', 'Customers'],
+    a: "I can rank customers by what they owe — the biggest outstanding balances from unpaid and overdue invoices. Ask \"who owes the most?\", \"which customer has the highest outstanding?\" or \"who has pending payments?\".",
+    ask: ['Who owes the most?', 'Which customer has the highest outstanding?', 'Biggest debtors', 'Who has the largest pending payment?', 'Rank customers by outstanding'],
+    act: ['find who owes the most', 'rank customers by outstanding', 'find the biggest debtors'],
+    noun: ['the biggest debtors', 'the highest outstanding customer', 'who owes the most'],
+    kw: ['who owes most', 'highest outstanding', 'biggest debtor', 'largest pending payment', 'rank by outstanding', 'top debtors'] },
+
+  { id: 'repeat-customers', cat: 'Customers & Analytics', src: 'src/lib/ai/assistant.ts', feat: ['Customers', 'Sales Reports'],
+    a: "Repeat buyers are the customers with the most invoices / orders over time — your most loyal accounts. Ask \"who are our most frequent buyers?\" or \"which customers order the most often?\" and I'll rank by purchase activity.",
+    ask: ['Who are our most frequent buyers?', 'Which customers order the most often?', 'Who are our repeat customers?', 'Most loyal customers', 'Which party orders most frequently?'],
+    act: ['find frequent buyers', 'find repeat customers', 'find the most loyal customers'],
+    noun: ['frequent buyers', 'repeat customers', 'the most loyal customers', 'regular buyers'],
+    kw: ['frequent buyers', 'repeat customers', 'loyal customers', 'orders most often', 'regular customers', 'most orders'] }
 ];

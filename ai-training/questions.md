@@ -1,33 +1,36 @@
 # CRM AI Assistant — Question Bank
 
-**6000 questions** across 22 categories, mapped to 113 grounded answers (see `training-data.json`). Generated from `intents.base.json` + `intents.mjs` via `generate.mjs`.
+**14088 questions** across 25 categories, mapped to 127 grounded answers (see `training-data.json`). Generated from `intents.base.json` + `intents.mjs` via `generate.mjs`.
 
 | Category | Questions |
 |---|---|
-| General | 914 |
-| Roles & Permissions | 538 |
-| Customer Portal | 479 |
-| Navigation | 458 |
-| Invoices | 425 |
-| Login & Access | 390 |
-| Customers | 334 |
-| AI Assistant | 269 |
-| Leads | 246 |
-| ERP Calculator | 242 |
-| Payments | 229 |
-| Operations | 206 |
-| Troubleshooting | 179 |
-| Currency | 162 |
-| Reports & Analytics | 162 |
-| Quotations | 161 |
-| Language | 140 |
-| Products & Units | 130 |
-| Tasks & Calendar | 114 |
-| Communication | 91 |
-| Sales Orders | 66 |
-| Market Prices | 65 |
+| Customers & Analytics | 2290 |
+| General | 1268 |
+| Operations | 1002 |
+| Customer Portal | 776 |
+| Staff & Admin | 706 |
+| Leads | 672 |
+| Roles & Permissions | 660 |
+| Invoices | 658 |
+| Customers | 607 |
+| AI Assistant | 583 |
+| Availability | 580 |
+| Navigation | 559 |
+| Reports & Analytics | 514 |
+| Quotations | 497 |
+| Login & Access | 432 |
+| ERP Calculator | 406 |
+| Payments | 366 |
+| Currency | 345 |
+| Troubleshooting | 268 |
+| Communication | 211 |
+| Language | 181 |
+| Products & Units | 175 |
+| Tasks & Calendar | 155 |
+| Sales Orders | 111 |
+| Market Prices | 66 |
 
-## General (914)
+## General (1268)
 
 - What is this application?
 - hey, what is this application?
@@ -54,9 +57,9 @@
 - What is what is this application?
 - hey, what is what is this application?
 - what is what is this aplication
-- …and 889 more (see questions.json)
+- …and 1243 more (see questions.json)
 
-## Login & Access (390)
+## Login & Access (432)
 
 - How do I log in?
 - hey, how do I log in?
@@ -83,125 +86,125 @@
 - Can you help me log in?
 - Can you help me log in please?
 - can u help me log in
-- …and 365 more (see questions.json)
+- …and 407 more (see questions.json)
 
-## Roles & Permissions (538)
+## Roles & Permissions (660)
 
 - What user roles are there?
-- hey, what user roles are there?
 - How do i access levels?
-- How do i access levels please?
+- hey, how do i access levels?
 - How can i access levels?
+- How can i access levels please?
 - how can i acess levels
 - How to access levels?
-- hey, how to access levels?
 - Can i access levels?
-- Can i access levels please?
+- hey, can i access levels?
 - Is it possible to access levels?
+- Is it possible to access levels please?
 - I want to access levels?
-- hey, i want to access levels?
 - i want to acess levels
 - I need to access levels?
-- I need to access levels please?
+- hey, i need to access levels?
 - Help me access levels?
+- Help me access levels please?
 - Show me how to access levels?
-- hey, show me how to access levels?
 - Where do i access levels?
-- Where do i access levels please?
+- hey, where do i access levels?
 - where do i acess levels
 - Steps to access levels?
+- Steps to access levels please?
 - Is there a way to access levels?
-- hey, is there a way to access levels?
-- …and 513 more (see questions.json)
+- Can you help me access levels?
+- …and 635 more (see questions.json)
 
-## Customer Portal (479)
+## Customer Portal (776)
 
 - As a customer, can I see other customers' data?
+- hey, as a customer, can I see other customers' data?
 - as a cust, can i see other customers' data
 - as a customer, can i see oter customers' data
 - What is customer see other?
-- hey, what is customer see other?
+- What is customer see other please?
 - what is cust see other
 - What are customer see other?
-- What are customer see other please?
 - what are cust see other
 - Tell me about customer see other?
+- hey, tell me about customer see other?
 - tell me about cust see other
 - Explain customer see other?
-- hey, explain customer see other?
+- Explain customer see other please?
 - explain cust see other
 - explain cutomer see other
 - Which customer see other?
-- Which customer see other please?
 - which cust see other
 - Where is customer see other?
+- hey, where is customer see other?
 - where is cust see other
 - I am confused about customer see other?
-- hey, i am confused about customer see other?
+- I am confused about customer see other please?
 - i am confused about cust see other
 - What does customer see other?
-- What does customer see other please?
-- …and 454 more (see questions.json)
+- …and 751 more (see questions.json)
 
-## Navigation (458)
+## Navigation (559)
 
 - What are the main sections of the CRM?
-- hey, what are the main sections of the CRM?
+- What are the main sections of the CRM please?
 - What is main sections of the crm?
-- What is main sections of the crm please?
 - What are main sections of the crm?
+- hey, what are main sections of the crm?
 - what are main setions of the crm
 - Tell me about main sections of the crm?
-- hey, tell me about main sections of the crm?
+- Tell me about main sections of the crm please?
 - Explain main sections of the crm?
-- Explain main sections of the crm please?
 - Which main sections of the crm?
+- hey, which main sections of the crm?
 - Where is main sections of the crm?
-- hey, where is main sections of the crm?
+- Where is main sections of the crm please?
 - where is main setions of the crm
 - I am confused about main sections of the crm?
-- I am confused about main sections of the crm please?
 - What does main sections of the crm?
+- hey, what does main sections of the crm?
 - Is there main sections of the crm?
-- hey, is there main sections of the crm?
+- Is there main sections of the crm please?
 - List the main sections of the crm?
-- List the main sections of the crm please?
 - list the main setions of the crm
 - Show me main sections of the crm?
+- hey, show me main sections of the crm?
 - What is what modules?
-- hey, what is what modules?
-- …and 433 more (see questions.json)
+- What is what modules please?
+- …and 534 more (see questions.json)
 
-## Leads (246)
+## Leads (672)
 
 - How do leads and the pipeline work?
-- How do leads and the pipeline work please?
 - how do leads and the pieline work
 - What is lead stages?
+- hey, what is lead stages?
 - What are lead stages?
-- hey, what are lead stages?
+- What are lead stages please?
 - Tell me about lead stages?
-- Tell me about lead stages please?
 - Explain lead stages?
+- hey, explain lead stages?
 - exlain lead stages
 - Which lead stages?
-- hey, which lead stages?
+- Which lead stages please?
 - Where is lead stages?
-- Where is lead stages please?
 - I am confused about lead stages?
+- hey, i am confused about lead stages?
 - What does lead stages?
-- hey, what does lead stages?
+- What does lead stages please?
 - what does lead stges
 - Is there lead stages?
-- Is there lead stages please?
 - List the lead stages?
+- hey, list the lead stages?
 - Show me lead stages?
-- hey, show me lead stages?
+- Show me lead stages please?
 - What is lead status?
-- What is lead status please?
-- …and 221 more (see questions.json)
+- what is lead sttus
+- …and 647 more (see questions.json)
 
-## Customers (334)
+## Customers (607)
 
 - How do I add a new customer?
 - how do i add a new cust
@@ -228,96 +231,96 @@
 - Help me add a new customer please?
 - help me add a new cust
 - Show me how to add a new customer?
-- …and 309 more (see questions.json)
+- …and 582 more (see questions.json)
 
-## Products & Units (130)
+## Products & Units (175)
 
 - What products does the CRM handle?
-- What products does the CRM handle please?
+- hey, what products does the CRM handle?
 - What is what products does the crm handle?
+- What is what products does the crm handle please?
 - What are what products does the crm handle?
-- hey, what are what products does the crm handle?
 - what are what prducts does the crm handle
 - Tell me about what products does the crm handle?
-- Tell me about what products does the crm handle please?
+- hey, tell me about what products does the crm handle?
 - Explain what products does the crm handle?
+- Explain what products does the crm handle please?
 - Which what products does the crm handle?
-- hey, which what products does the crm handle?
 - Where is what products does the crm handle?
-- Where is what products does the crm handle please?
+- hey, where is what products does the crm handle?
 - where is what prducts does the crm handle
 - I am confused about what products does the crm handle?
+- I am confused about what products does the crm handle please?
 - What does what products does the crm handle?
-- hey, what does what products does the crm handle?
 - Is there what products does the crm handle?
-- Is there what products does the crm handle please?
+- hey, is there what products does the crm handle?
 - List the what products does the crm handle?
+- List the what products does the crm handle please?
 - list the what prducts does the crm handle
 - Show me what products does the crm handle?
-- hey, show me what products does the crm handle?
 - What is what products?
-- What is what products please?
-- …and 105 more (see questions.json)
+- hey, what is what products?
+- …and 150 more (see questions.json)
 
-## Currency (162)
+## Currency (345)
 
 - Which currencies are supported?
-- hey, which currencies are supported?
 - What is currencies are supported?
-- What is currencies are supported please?
+- hey, what is currencies are supported?
 - What are currencies are supported?
+- What are currencies are supported please?
 - what are curencies are supported
 - Tell me about currencies are supported?
-- hey, tell me about currencies are supported?
 - Explain currencies are supported?
-- Explain currencies are supported please?
+- hey, explain currencies are supported?
+- Which currencies are supported please?
 - Where is currencies are supported?
-- hey, where is currencies are supported?
 - where is curencies are supported
 - I am confused about currencies are supported?
-- I am confused about currencies are supported please?
+- hey, i am confused about currencies are supported?
 - What does currencies are supported?
+- What does currencies are supported please?
 - Is there currencies are supported?
-- hey, is there currencies are supported?
 - List the currencies are supported?
-- List the currencies are supported please?
+- hey, list the currencies are supported?
 - list the curencies are supported
 - Show me currencies are supported?
+- Show me currencies are supported please?
 - What is foreign currency?
-- hey, what is foreign currency?
 - What are foreign currency?
-- …and 137 more (see questions.json)
+- hey, what are foreign currency?
+- …and 320 more (see questions.json)
 
-## Language (140)
+## Language (181)
 
 - Which languages does the CRM support?
+- hey, which languages does the CRM support?
 - What is languages does the crm support?
-- hey, what is languages does the crm support?
+- What is languages does the crm support please?
 - What are languages does the crm support?
-- What are languages does the crm support please?
 - Tell me about languages does the crm support?
+- hey, tell me about languages does the crm support?
 - tell me about laguages does the crm support
 - Explain languages does the crm support?
-- hey, explain languages does the crm support?
-- Which languages does the crm support please?
+- Explain languages does the crm support please?
 - Where is languages does the crm support?
+- hey, where is languages does the crm support?
 - I am confused about languages does the crm support?
-- hey, i am confused about languages does the crm support?
+- I am confused about languages does the crm support please?
 - i am confused about laguages does the crm support
 - What does languages does the crm support?
-- What does languages does the crm support please?
 - Is there languages does the crm support?
+- hey, is there languages does the crm support?
 - List the languages does the crm support?
-- hey, list the languages does the crm support?
+- List the languages does the crm support please?
 - Show me languages does the crm support?
-- Show me languages does the crm support please?
 - show me laguages does the crm support
 - How do I change the language?
-- hey, how do i change the language?
-- How can i change the language?
-- …and 115 more (see questions.json)
+- hey, how do I change the language?
+- How do i change the language please?
+- …and 156 more (see questions.json)
 
-## Quotations (161)
+## Quotations (497)
 
 - What is the difference between proposals and quotations?
 - What is difference between proposals and quotations?
@@ -344,96 +347,96 @@
 - show me diference between proposals and quotations
 - What is difference proposal quotation?
 - What are difference proposal quotation?
-- …and 136 more (see questions.json)
+- …and 472 more (see questions.json)
 
-## Sales Orders (66)
+## Sales Orders (111)
 
 - How do sales orders work?
-- How do sales orders work please?
+- hey, how do sales orders work?
 - how do sales orers work
 - What is how do sales orders work?
+- What is how do sales orders work please?
 - What are how do sales orders work?
-- hey, what are how do sales orders work?
 - Tell me about how do sales orders work?
-- Tell me about how do sales orders work please?
+- hey, tell me about how do sales orders work?
 - Explain how do sales orders work?
+- Explain how do sales orders work please?
 - exlain how do sales orders work
 - Which how do sales orders work?
-- hey, which how do sales orders work?
 - Where is how do sales orders work?
-- Where is how do sales orders work please?
+- hey, where is how do sales orders work?
 - I am confused about how do sales orders work?
+- I am confused about how do sales orders work please?
 - What does how do sales orders work?
-- hey, what does how do sales orders work?
 - what does how do sales orers work
 - Is there how do sales orders work?
-- Is there how do sales orders work please?
+- hey, is there how do sales orders work?
 - List the how do sales orders work?
+- List the how do sales orders work please?
 - Show me how do sales orders work?
-- hey, show me how do sales orders work?
 - What is sales order?
-- What is sales order please?
-- …and 41 more (see questions.json)
+- hey, what is sales order?
+- …and 86 more (see questions.json)
 
-## Invoices (425)
+## Invoices (658)
 
 - How do I create an invoice?
+- How do I create an invoice please?
 - how do i create an inv
-- hey, how do i create an invoice?
 - How can i create an invoice?
-- How can i create an invoice please?
+- hey, how can i create an invoice?
 - how can i create an inv
 - how can i create an inoice
 - How to create an invoice?
+- How to create an invoice please?
 - how to create an inv
 - Can i create an invoice?
-- hey, can i create an invoice?
 - can i create an inv
 - Is it possible to create an invoice?
-- Is it possible to create an invoice please?
+- hey, is it possible to create an invoice?
 - is it possible to create an inv
 - I want to create an invoice?
+- I want to create an invoice please?
 - i want to create an inv
 - i want to create an inoice
 - I need to create an invoice?
-- hey, i need to create an invoice?
 - i need to create an inv
 - Help me create an invoice?
-- Help me create an invoice please?
+- hey, help me create an invoice?
 - help me create an inv
 - Show me how to create an invoice?
-- …and 400 more (see questions.json)
+- …and 633 more (see questions.json)
 
-## Payments (229)
+## Payments (366)
 
 - How do I record a payment?
+- hey, how do I record a payment?
 - how do i record a pament
-- hey, how do i record a payment?
+- How do i record a payment please?
 - How can i record a payment?
-- How can i record a payment please?
 - How to record a payment?
+- hey, how to record a payment?
 - Can i record a payment?
-- hey, can i record a payment?
+- Can i record a payment please?
 - can i record a pament
 - Is it possible to record a payment?
-- Is it possible to record a payment please?
 - I want to record a payment?
+- hey, i want to record a payment?
 - I need to record a payment?
-- hey, i need to record a payment?
+- I need to record a payment please?
 - Help me record a payment?
-- Help me record a payment please?
 - help me record a pament
 - Show me how to record a payment?
+- hey, show me how to record a payment?
 - Where do i record a payment?
-- hey, where do i record a payment?
+- Where do i record a payment please?
 - Steps to record a payment?
-- Steps to record a payment please?
 - Is there a way to record a payment?
+- hey, is there a way to record a payment?
 - is there a way to record a pament
-- Can you help me record a payment?
-- …and 204 more (see questions.json)
+- …and 341 more (see questions.json)
 
-## Operations (206)
+## Operations (1002)
 
 - How does dispatch and logistics work?
 - hey, how does dispatch and logistics work?
@@ -460,208 +463,295 @@
 - Show me how does dispatch and logistics work?
 - What are Transport Routes and which countries are covered?
 - hey, what are Transport Routes and which countries are covered?
-- …and 181 more (see questions.json)
+- …and 977 more (see questions.json)
 
-## ERP Calculator (242)
+## ERP Calculator (406)
 
 - What is the ERP Calculator?
-- What is the ERP Calculator please?
+- hey, what is the ERP Calculator?
 - what is the erp caculator
 - What is erp calculator?
+- What is erp calculator please?
 - What are erp calculator?
-- hey, what are erp calculator?
 - Tell me about erp calculator?
-- Tell me about erp calculator please?
+- hey, tell me about erp calculator?
 - Explain erp calculator?
+- Explain erp calculator please?
 - explain erp caculator
 - Which erp calculator?
-- hey, which erp calculator?
 - Where is erp calculator?
-- Where is erp calculator please?
+- hey, where is erp calculator?
 - I am confused about erp calculator?
+- I am confused about erp calculator please?
 - What does erp calculator?
-- hey, what does erp calculator?
 - what does erp caculator
 - Is there erp calculator?
-- Is there erp calculator please?
+- hey, is there erp calculator?
 - List the erp calculator?
+- List the erp calculator please?
 - Show me erp calculator?
-- hey, show me erp calculator?
 - What is blended cost?
-- What is blended cost please?
-- …and 217 more (see questions.json)
+- hey, what is blended cost?
+- …and 381 more (see questions.json)
 
-## Reports & Analytics (162)
+## Reports & Analytics (514)
 
 - What reports and analytics are available?
-- What reports and analytics are available please?
+- hey, what reports and analytics are available?
 - What is what reports and analytics are available?
+- What is what reports and analytics are available please?
 - What are what reports and analytics are available?
-- hey, what are what reports and analytics are available?
 - what are what reports and anlytics are available
 - Tell me about what reports and analytics are available?
-- Tell me about what reports and analytics are available please?
+- hey, tell me about what reports and analytics are available?
 - Explain what reports and analytics are available?
+- Explain what reports and analytics are available please?
 - Which what reports and analytics are available?
-- hey, which what reports and analytics are available?
 - Where is what reports and analytics are available?
-- Where is what reports and analytics are available please?
+- hey, where is what reports and analytics are available?
 - where is what reports and anlytics are available
 - I am confused about what reports and analytics are available?
+- I am confused about what reports and analytics are available please?
 - What does what reports and analytics are available?
-- hey, what does what reports and analytics are available?
 - Is there what reports and analytics are available?
-- Is there what reports and analytics are available please?
+- hey, is there what reports and analytics are available?
 - List the what reports and analytics are available?
+- List the what reports and analytics are available please?
 - list the what reports and anlytics are available
 - Show me what reports and analytics are available?
-- hey, show me what reports and analytics are available?
 - What is sales report?
-- What is sales report please?
-- …and 137 more (see questions.json)
+- hey, what is sales report?
+- …and 489 more (see questions.json)
 
-## Communication (91)
+## Communication (211)
 
 - What communication tools are built in?
 - hey, what communication tools are built in?
 - How do i contact tools?
 - How do i contact tools please?
 - How can i contact tools?
+- how can i cotact tools
 - How to contact tools?
 - hey, how to contact tools?
-- how to cotact tools
 - Can i contact tools?
 - Can i contact tools please?
 - Is it possible to contact tools?
 - I want to contact tools?
 - hey, i want to contact tools?
+- i want to cotact tools
 - I need to contact tools?
 - I need to contact tools please?
-- i need to cotact tools
 - Help me contact tools?
 - Show me how to contact tools?
 - hey, show me how to contact tools?
 - Where do i contact tools?
 - Where do i contact tools please?
+- where do i cotact tools
 - Steps to contact tools?
-- steps to cotact tools
 - Is there a way to contact tools?
 - hey, is there a way to contact tools?
-- …and 66 more (see questions.json)
+- …and 186 more (see questions.json)
 
-## Market Prices (65)
+## Market Prices (66)
 
 - Where can I see live oil and fuel prices?
-- hey, where can I see live oil and fuel prices?
+- Where can I see live oil and fuel prices please?
 - What is live prices?
-- What is live prices please?
+- what is live prces
 - What are live prices?
-- what are live prces
+- hey, what are live prices?
 - Tell me about live prices?
-- hey, tell me about live prices?
+- Tell me about live prices please?
 - Explain live prices?
-- Explain live prices please?
 - Which live prices?
+- hey, which live prices?
+- which live prces
 - Where is live prices?
-- hey, where is live prices?
-- where is live prces
+- Where is live prices please?
 - I am confused about live prices?
-- I am confused about live prices please?
 - What does live prices?
+- hey, what does live prices?
 - Is there live prices?
-- hey, is there live prices?
+- Is there live prices please?
+- is there live prces
 - List the live prices?
-- List the live prices please?
-- list the live prces
 - Show me live prices?
+- hey, show me live prices?
 - What is market prices?
-- hey, what is market prices?
-- …and 40 more (see questions.json)
+- What is market prices please?
+- …and 41 more (see questions.json)
 
-## AI Assistant (269)
+## AI Assistant (583)
 
 - What can the AI assistant do?
-- What can the AI assistant do please?
-- what can the ai asistant do
 - What is what can the ai assistant do?
+- hey, what is what can the ai assistant do?
 - What are what can the ai assistant do?
-- hey, what are what can the ai assistant do?
+- What are what can the ai assistant do please?
 - Tell me about what can the ai assistant do?
-- Tell me about what can the ai assistant do please?
+- tell me about what can the ai asistant do
 - Explain what can the ai assistant do?
-- explain what can the ai asistant do
+- hey, explain what can the ai assistant do?
 - Which what can the ai assistant do?
-- hey, which what can the ai assistant do?
+- Which what can the ai assistant do please?
 - Where is what can the ai assistant do?
-- Where is what can the ai assistant do please?
 - I am confused about what can the ai assistant do?
+- hey, i am confused about what can the ai assistant do?
+- i am confused about what can the ai asistant do
 - What does what can the ai assistant do?
-- hey, what does what can the ai assistant do?
-- what does what can the ai asistant do
+- What does what can the ai assistant do please?
 - Is there what can the ai assistant do?
-- Is there what can the ai assistant do please?
 - List the what can the ai assistant do?
+- hey, list the what can the ai assistant do?
 - Show me what can the ai assistant do?
-- hey, show me what can the ai assistant do?
+- Show me what can the ai assistant do please?
+- show me what can the ai asistant do
 - What is ai assistant?
-- What is ai assistant please?
-- …and 244 more (see questions.json)
+- What are ai assistant?
+- …and 558 more (see questions.json)
 
-## Troubleshooting (179)
+## Troubleshooting (268)
 
 - Why do recent months show no sales data?
-- why do reent months show no sales data
+- hey, why do recent months show no sales data?
 - What is recent months show no sales data?
-- hey, what is recent months show no sales data?
+- What is recent months show no sales data please?
 - What are recent months show no sales data?
-- What are recent months show no sales data please?
 - Tell me about recent months show no sales data?
+- hey, tell me about recent months show no sales data?
+- tell me about reent months show no sales data
 - Explain recent months show no sales data?
-- hey, explain recent months show no sales data?
-- exlain recent months show no sales data
+- Explain recent months show no sales data please?
 - Which recent months show no sales data?
-- Which recent months show no sales data please?
 - Where is recent months show no sales data?
+- hey, where is recent months show no sales data?
 - I am confused about recent months show no sales data?
-- hey, i am confused about recent months show no sales data?
+- I am confused about recent months show no sales data please?
+- i am cofused about recent months show no sales data
 - What does recent months show no sales data?
-- What does recent months show no sales data please?
-- what does reent months show no sales data
 - Is there recent months show no sales data?
+- hey, is there recent months show no sales data?
 - List the recent months show no sales data?
-- hey, list the recent months show no sales data?
+- List the recent months show no sales data please?
 - Show me recent months show no sales data?
-- Show me recent months show no sales data please?
+- show me reent months show no sales data
 - What is no data?
-- What are no data?
-- …and 154 more (see questions.json)
+- hey, what is no data?
+- …and 243 more (see questions.json)
 
-## Tasks & Calendar (114)
+## Tasks & Calendar (155)
 
 - How do I create a task?
-- How do I create a task please?
-- how do i crate a task
 - What is My Day?
+- hey, what is My Day?
 - Where is the calendar?
-- hey, where is the calendar?
+- Where is the calendar please?
+- where is the caendar
 - How can i create a task?
-- how can i crate a task
+- hey, how can i create a task?
 - How to create a task?
-- hey, how to create a task?
+- How to create a task please?
 - Can i create a task?
-- Can i create a task please?
+- can i crate a task
 - Is it possible to create a task?
+- hey, is it possible to create a task?
 - I want to create a task?
-- hey, i want to create a task?
-- i want to crate a task
+- I want to create a task please?
 - I need to create a task?
-- I need to create a task please?
 - Help me create a task?
+- hey, help me create a task?
+- help me crate a task
 - Show me how to create a task?
-- hey, show me how to create a task?
+- Show me how to create a task please?
 - Where do i create a task?
-- Where do i create a task please?
-- where do i crate a task
 - Steps to create a task?
-- …and 89 more (see questions.json)
+- hey, steps to create a task?
+- …and 130 more (see questions.json)
+
+## Staff & Admin (706)
+
+- Is there attendance tracking?
+- Is there attendance tracking please?
+- is there atendance tracking
+- Where is attendance?
+- Does the system have attendance?
+- hey, does the system have attendance?
+- How do i track attendance?
+- How do i track attendance please?
+- How can i track attendance?
+- how can i track atendance
+- How to track attendance?
+- hey, how to track attendance?
+- Can i track attendance?
+- Can i track attendance please?
+- Is it possible to track attendance?
+- I want to track attendance?
+- hey, i want to track attendance?
+- i want to track atendance
+- I need to track attendance?
+- I need to track attendance please?
+- Help me track attendance?
+- Show me how to track attendance?
+- hey, show me how to track attendance?
+- Where do i track attendance?
+- Where do i track attendance please?
+- …and 681 more (see questions.json)
+
+## Availability (580)
+
+- Is there payroll?
+- Is there payroll please?
+- Does the system handle salaries?
+- Can I run payroll?
+- hey, can I run payroll?
+- How do i run payroll?
+- How do i run payroll please?
+- how do i run paroll
+- How can i run payroll?
+- How to run payroll?
+- hey, how to run payroll?
+- Can i run payroll please?
+- Is it possible to run payroll?
+- is it posible to run payroll
+- I want to run payroll?
+- hey, i want to run payroll?
+- I need to run payroll?
+- I need to run payroll please?
+- Help me run payroll?
+- Show me how to run payroll?
+- hey, show me how to run payroll?
+- show me how to run paroll
+- Where do i run payroll?
+- Where do i run payroll please?
+- Steps to run payroll?
+- …and 555 more (see questions.json)
+
+## Customers & Analytics (2290)
+
+- Who is the highest buyer?
+- hey, who is the highest buyer?
+- Which party had the highest purchase?
+- Which party had the highest purchase please?
+- which party had the highest puchase
+- Who was the biggest buyer?
+- Who bought the most?
+- hey, who bought the most?
+- Which customer purchased the most?
+- Which customer purchased the most please?
+- which cust purchased the most
+- Who is our top buyer?
+- who is our top buer
+- Name the largest customer by purchase?
+- hey, name the largest customer by purchase?
+- name the largest cust by purchase
+- Which client spent the most?
+- Which client spent the most please?
+- Who is the number one buyer?
+- Whose purchases are the highest?
+- hey, whose purchases are the highest?
+- whose puchases are the highest
+- How do i find the highest buyer?
+- How do i find the highest buyer please?
+- How can i find the highest buyer?
+- …and 2265 more (see questions.json)
 
