@@ -29,6 +29,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const tasks = useDataStore((s) => s.tasks);
   const vehicles = useDataStore((s) => s.vehicles);
   const drivers = useDataStore((s) => s.drivers);
+  const leads = useDataStore((s) => s.leads);
+  const callLogs = useDataStore((s) => s.callLogs);
   const notifications = useDataStore((s) => s.notifications);
   const items = useDataStore((s) => s.items);
   const users = useDataStore((s) => s.users);
@@ -64,6 +66,9 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       // Fleet — the "vehicle assigned to <driver>?" handler enforces the gate.
       vehicles: isC ? undefined : vehicles,
       drivers: isC ? undefined : drivers,
+      // Leads + call logs — staff-only module totals.
+      leads: isC ? undefined : leads,
+      callLogs: isC ? undefined : callLogs,
       notifications,
       items,
       oil,
@@ -73,7 +78,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       users: role === 'CUSTOMER' ? undefined : users,
       auditLog: role === 'ADMIN' ? auditLog : undefined,
     };
-  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, tasks, vehicles, drivers, notifications, items, users, auditLog, oil, fuel, can]);
+  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, tasks, vehicles, drivers, leads, callLogs, notifications, items, users, auditLog, oil, fuel, can]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

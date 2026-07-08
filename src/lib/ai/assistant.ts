@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 import type {
   Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item, User, AuditLogEntry,
-  Proposal, InventoryRecord, Task, Vehicle, Driver,
+  Proposal, InventoryRecord, Task, Vehicle, Driver, Lead, CallLog,
 } from '@/types';
 import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
@@ -62,6 +62,9 @@ export interface AiContext {
   /** Fleet — used to answer "what vehicle is assigned to <driver>?" (staff only). */
   vehicles?: Vehicle[];
   drivers?: Driver[];
+  /** Leads pipeline + call logs — used by the module-total counts (staff only). */
+  leads?: Lead[];
+  callLogs?: CallLog[];
   oil: LiveTicker[];
   fuel: LiveTicker[];
   canErp: boolean;
@@ -909,6 +912,94 @@ function buyerRanking(s: string, ctx: AiContext, detail: boolean): AiReply | nul
   };
 }
 
+// Module totals — "total leads / customers / items / vehicles / drivers / call
+// logs", "how many in the pipeline?", "how many customers converted today?".
+// Plain counts only; status/threshold/superlative variants fall through to the
+// specialised handlers. Staff only.
+function counts(s: string, ctx: AiContext): AiReply | null {
+  if (ctx.role === 'CUSTOMER') return null;
+  if (!/\b(total|totals|how many|number of|count of|count|no\.? of|# of|tally|do we have|are there)\b/.test(s)) return null;
+  // Leave analytics/buyer/payment territory to their own handlers.
+  if (/\b(above|below|over|under|more than|less than|highest|lowest|top|biggest|largest|smallest|most|least|average|avg|revenue|turnover|worth|\bvalue\b|outstanding|owe|sold|sell|bought|purchas)\b/.test(s)) return null;
+
+  const period = parsePeriod(s);
+  const dated = period.label !== 'all time';
+  const inR = (d?: string) => !!d && d.slice(0, 10) >= period.start && d.slice(0, 10) <= period.end;
+  const tail = dated ? ` ${period.label}` : '';
+  const A = (label: string, to: string): AiAction => ({ label, to });
+  const leads = ctx.leads ?? [];
+
+  // --- Conversions: "how many customers converted today?" ---
+  if (/\b(convert|converted|conversion|conversions)\b/.test(s)) {
+    const won = leads.filter((l) => l.status === 'WON');
+    if (dated) {
+      const n = won.filter((l) => inR(l.updatedAt)).length;
+      return { blocks: [text(`**${n}** lead${n === 1 ? ' was' : 's were'} converted to customers${tail}.${n === 0 ? ` In total, **${won.length}** leads have converted.` : ''}`)], action: A('Open Leads', '/leads') };
+    }
+    return { blocks: [text(`**${won.length}** leads have been converted to customers in total.`)], action: A('Open Leads', '/leads') };
+  }
+
+  // --- Pipeline (open leads) ---
+  if (/pipeline|open leads|active leads|leads in progress/.test(s)) {
+    const open = leads.filter((l) => l.status !== 'WON' && l.status !== 'LOST');
+    const byStage = new Map<string, number>();
+    open.forEach((l) => byStage.set(l.status, (byStage.get(l.status) ?? 0) + 1));
+    const value = open.reduce((n, l) => n + (l.estimatedValue ?? 0), 0);
+    return { blocks: [text(`There are **${open.length}** leads in the pipeline (open — not won or lost)${value ? `, an estimated **${formatINR(value)}**` : ''}.`)], action: A('Open Pipeline', '/leads/pipeline') };
+  }
+
+  // --- Leads (optionally by stage) ---
+  if (/\blead\b|\bleads\b/.test(s)) {
+    const stages: [RegExp, string, string][] = [
+      [/\bnew\b/, 'NEW', 'new '], [/contacted/, 'CONTACTED', 'contacted '], [/qualified/, 'QUALIFIED', 'qualified '],
+      [/proposal/, 'PROPOSAL_SENT', 'proposal-sent '], [/negotiat/, 'NEGOTIATION', 'in-negotiation '],
+      [/\bwon\b/, 'WON', 'won '], [/\blost\b/, 'LOST', 'lost '],
+    ];
+    let list = leads; let lbl = '';
+    for (const [re, st, label] of stages) if (re.test(s)) { list = leads.filter((l) => l.status === st); lbl = label; break; }
+    const scope = dated ? list.filter((l) => inR(l.createdAt)) : list;
+    return { blocks: [text(`There ${scope.length === 1 ? 'is' : 'are'} **${scope.length}** ${lbl}lead${scope.length === 1 ? '' : 's'}${tail}.`)], action: A('Open Leads', '/leads') };
+  }
+
+  // --- Fleet ---
+  if (/\bvehicles?\b|\btrucks?\b|\btankers?\b|\blorr(y|ies)\b|\bfleet\b/.test(s)) {
+    const v = ctx.vehicles ?? []; const owned = v.filter((x) => x.ownerType === 'OWNED').length;
+    return { blocks: [text(`There are **${v.length}** vehicles (${owned} owned, ${v.length - owned} on contract).`)], action: A('Open Vehicles', '/vehicles') };
+  }
+  if (/\bdrivers?\b/.test(s)) {
+    const d = ctx.drivers ?? [];
+    return { blocks: [text(`There are **${d.length}** drivers (**${d.filter((x) => x.active).length}** active).`)], action: A('Open Drivers', '/drivers') };
+  }
+
+  // --- Call logs (done) + scheduled calls (pending CALL tasks) ---
+  if (/call ?logs?|\bcalls?\b/.test(s)) {
+    const done = (ctx.callLogs ?? []).length;
+    const scheduled = (ctx.tasks ?? []).filter((t) => t.type === 'CALL' && t.status !== 'COMPLETED' && t.status !== 'CANCELLED').length;
+    return { blocks: [text(`There are **${done}** calls logged (completed) and **${scheduled}** calls scheduled (pending call tasks).`)], action: A('Open Call Logs', '/call-logs') };
+  }
+
+  // --- Products / items ---
+  if (/\bitems?\b|\bproducts?\b|\bsku\b|catalogue?|catalog/.test(s)) {
+    const it = ctx.items; const active = it.filter((x) => x.active).length;
+    return { blocks: [text(`There are **${it.length}** products in the catalogue (**${active}** active).`)], action: A('Open Products', '/items') };
+  }
+
+  // --- Sales orders / dispatches / tasks (gap-fillers) ---
+  if (/sales orders?|\borders?\b/.test(s) && !/dispatch|shipment|transit|deliver/.test(s)) {
+    const o = ctx.orders; const scope = dated ? o.filter((x) => inR(x.orderDate)) : o;
+    return { blocks: [text(`There are **${scope.length}** sales orders${tail}.`)], action: A('Open Orders', '/orders') };
+  }
+  if (/\bdispatch(es)?\b|\bshipments?\b/.test(s)) {
+    return { blocks: [text(`There are **${ctx.dispatches.length}** dispatches on record.`)], action: A('Open Dispatch', '/dispatch') };
+  }
+  if (/\btasks?\b/.test(s)) {
+    const t = ctx.tasks ?? []; const open = t.filter((x) => x.status !== 'COMPLETED' && x.status !== 'CANCELLED').length;
+    return { blocks: [text(`There are **${t.length}** tasks (**${open}** open).`)], action: A('Open Tasks', '/tasks') };
+  }
+
+  return null;
+}
+
 // Parse a money threshold like "above ₹1,00,000", "under 50000", "over 5 lakh".
 function parseThreshold(s: string): { op: 'above' | 'below'; value: number } | null {
   const re = /\b(above|over|more than|greater than|exceeding|exceeds|exceed|higher than|bigger than|at least)\b|\b(below|under|less than|lower than|smaller than|cheaper than|at most)\b/;
@@ -1691,6 +1782,11 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   // "What vehicle is assigned to <driver>?", "who drives <reg>?" — fleet lookup.
   const fl = fleet(s, ctx);
   if (fl) return fl;
+
+  // "Total leads / items / vehicles / drivers / call logs", "how many in the
+  // pipeline?", "how many customers converted today?" — module totals.
+  const ct = counts(s, ctx);
+  if (ct) return ct;
 
   // "Highest-value invoice?", "top-selling product?", "lowest stock?", "best
   // sales month?", "sales by region?", "invoices above ₹1L?", "how many
