@@ -26,6 +26,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
   const payments = useDataStore((s) => s.payments);
   const proposals = useDataStore((s) => s.proposals);
   const inventory = useDataStore((s) => s.inventory);
+  const tasks = useDataStore((s) => s.tasks);
   const notifications = useDataStore((s) => s.notifications);
   const items = useDataStore((s) => s.items);
   const users = useDataStore((s) => s.users);
@@ -56,6 +57,8 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       // Quotations are scoped to the customer's own when signed in as one.
       proposals: isC && me ? proposals.filter((p) => p.customerId === me.id) : proposals,
       inventory: isC ? undefined : inventory,
+      // Staff task list — the "what are X's tasks?" handler enforces the gate.
+      tasks: isC ? undefined : tasks,
       notifications,
       items,
       oil,
@@ -65,7 +68,7 @@ export function ChatPanel({ variant = 'full', onNavigateAway }: { variant?: 'ful
       users: role === 'CUSTOMER' ? undefined : users,
       auditLog: role === 'ADMIN' ? auditLog : undefined,
     };
-  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, notifications, items, users, auditLog, oil, fuel, can]);
+  }, [role, currentUser, customers, selectedCustomer, invoices, dispatches, orders, payments, proposals, inventory, tasks, notifications, items, users, auditLog, oil, fuel, can]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' });

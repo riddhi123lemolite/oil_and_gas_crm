@@ -13,10 +13,11 @@
 // ---------------------------------------------------------------------------
 import type {
   Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item, User, AuditLogEntry,
-  Proposal, InventoryRecord,
+  Proposal, InventoryRecord, Task,
 } from '@/types';
 import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
+import { ROLE_LABELS } from '@/lib/constants';
 import { formatINR, formatDate, formatQty, formatNumber } from '@/lib/format';
 import { formatMarket } from '@/lib/market';
 import { faqStrong, faqFallback } from './faq';
@@ -56,6 +57,8 @@ export interface AiContext {
   /** Quotations (proposals) and stock — used by the analytics handlers. */
   proposals?: Proposal[];
   inventory?: InventoryRecord[];
+  /** Task list — used to answer "what are X's tasks?" (staff only). */
+  tasks?: Task[];
   oil: LiveTicker[];
   fuel: LiveTicker[];
   canErp: boolean;
@@ -613,6 +616,52 @@ function matchUser(s: string, ctx: AiContext): User | undefined {
     if (hits > bestScore) { best = u; bestScore = hits; }
   }
   return best;
+}
+
+// "What are the tasks of Priya today?", "show me Anil's pending tasks", "what
+// is Kavita working on?" — an admin/staff view of any teammate's tasks, resolved
+// by name from real data and optionally scoped by status and date.
+function staffTasks(s: string, ctx: AiContext): AiReply | null {
+  if (ctx.role === 'CUSTOMER') return null;
+  if (!/\b(task|tasks|to-?do|to-?dos|assignment|assignments|workload|working on|work on|doing|schedule|agenda|action items?|follow-?ups?)\b/.test(s)) return null;
+  const user = matchUser(s, ctx);
+  if (!user) return null;
+
+  const all = (ctx.tasks ?? []).filter((t) => t.assignedToId === user.id);
+  const roleLabel = ROLE_LABELS[user.role];
+  const to: AiAction = { label: 'Open Tasks', to: '/tasks' };
+  if (!all.length) return { blocks: [text(`**${user.name}** (${roleLabel}) has no tasks assigned.`)], action: to };
+
+  const done = (t: Task) => t.status === 'COMPLETED' || t.status === 'CANCELLED';
+  const today = new Date().toISOString().slice(0, 10);
+
+  // Status scope.
+  let list = [...all];
+  let scope = '';
+  if (/overdue/.test(s)) { list = all.filter((t) => !done(t) && !!t.dueDate && t.dueDate.slice(0, 10) < today); scope = 'overdue '; }
+  else if (/completed|finished|\bdone\b/.test(s)) { list = all.filter((t) => t.status === 'COMPLETED'); scope = 'completed '; }
+  else if (/in progress|ongoing/.test(s)) { list = all.filter((t) => t.status === 'IN_PROGRESS'); scope = 'in-progress '; }
+  else if (/pending|open|incomplete|remaining|outstanding|unfinished|not (done|completed|finished)|to ?do|left|due|working on|work on|doing/.test(s)) { list = all.filter((t) => !done(t)); scope = 'open '; }
+
+  // Date scope (today / this week / a period). Fall back to open tasks if the
+  // window is empty, so "tasks today" is still useful when nothing is due.
+  const period = parsePeriod(s);
+  let dateNote = '';
+  let dateLabel = '';
+  if (period.label !== 'all time') {
+    const inRange = (d?: string) => !!d && d.slice(0, 10) >= period.start && d.slice(0, 10) <= period.end;
+    const dated = list.filter((t) => inRange(t.dueDate));
+    if (dated.length) { list = dated; dateLabel = ` due ${period.label}`; }
+    else { dateNote = `${user.name} has nothing due ${period.label}. `; list = all.filter((t) => !done(t)); scope = scope || 'open '; }
+  }
+
+  if (!list.length) return { blocks: [text(`${dateNote}**${user.name}** (${roleLabel}) has no ${scope}tasks${dateLabel}.`)], action: to };
+
+  list.sort((a, b) => (a.dueDate ?? '').localeCompare(b.dueDate ?? ''));
+  const human = (st: string) => cap(st.replace(/_/g, ' ').toLowerCase());
+  const items = list.slice(0, 8).map((t) => `${t.title} — ${human(t.status)}${t.dueDate ? `, due ${formatDate(t.dueDate)}` : ''}${t.priority === 'URGENT' || t.priority === 'HIGH' ? ` · ${t.priority.toLowerCase()}` : ''}`);
+  const lead = `${dateNote}**${user.name}** (${roleLabel}) has **${list.length}** ${scope}task${list.length === 1 ? '' : 's'}${dateLabel}:`;
+  return { blocks: [text(lead), { kind: 'list', items }], action: to };
 }
 
 // "What's the audit log of Ashok Desai?" — admin-only audit trail, per person.
@@ -1553,6 +1602,10 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   // "Audit log of <person>" — admin-only audit trail.
   const al = auditLogQuery(s, ctx);
   if (al) return al;
+
+  // "What are the tasks of <person> today?" — a teammate's task list (staff).
+  const stk = staffTasks(s, ctx);
+  if (stk) return stk;
 
   // "Highest-value invoice?", "top-selling product?", "lowest stock?", "best
   // sales month?", "sales by region?", "invoices above ₹1L?", "how many
