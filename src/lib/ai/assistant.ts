@@ -682,6 +682,10 @@ function customers(s: string, ctx: AiContext, detail: boolean): AiReply {
 // (or single-customer total) computed from real invoice line items. Handles the
 // full buyer / party / client / purchaser / account vocabulary.
 function buyerRanking(s: string, ctx: AiContext, detail: boolean): AiReply | null {
+  // "who owes the most / highest outstanding / biggest debtor" is a receivables
+  // question — let the payments handler rank by outstanding, not by purchases.
+  if (/\b(owe|owes|owed|owing|outstanding|debt|debtor|debtors|receivable|receivables|dues?|pending payment)\b/.test(s)) return null;
+
   const ranking = isBuyerRankingQuery(s);
   const named = matchCustomer(s, ctx);
   const purchaseAbout = PURCHASE_WORD.test(s) || /\b(purchase|spend|business|volume|revenue)\b/.test(s);
