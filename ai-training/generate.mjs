@@ -31,8 +31,8 @@ const newIntents = NEW_INTENTS.map((n) => ({
 const intents = [...baseIntents, ...newIntents];
 
 // --- expansion --------------------------------------------------------------
-const PRE_ACT = ['how do i', 'how can i', 'how to', 'can i', 'is it possible to', 'i want to', 'i need to', 'help me', 'show me how to', 'where do i', 'steps to', 'is there a way to', 'can you help me', 'how would i', 'what is the way to', 'i would like to'];
-const PRE_NOUN = ['what is', 'what are', 'tell me about', 'explain', 'which', 'where is', 'i am confused about', 'what does', 'is there', 'list the', 'show me'];
+const PRE_ACT = ['how do i', 'how can i', 'how to', 'can i', 'is it possible to', 'i want to', 'i need to', 'help me', 'show me how to', 'where do i', 'steps to', 'is there a way to', 'can you help me', 'how would i', 'what is the way to', 'i would like to', 'what is the process to', 'guide me to', 'walk me through how to', 'i am trying to', 'how would i go about', 'any way to', 'i wish to', 'tell me how to', 'how do you', 'what are the steps to'];
+const PRE_NOUN = ['what is', 'what are', 'tell me about', 'explain', 'which', 'where is', 'i am confused about', 'what does', 'is there', 'list the', 'show me', 'give me an overview of', 'help me understand', 'brief me on', 'i want to understand', 'what exactly is', 'can you explain', 'meaning of', 'details of'];
 const PRE_PROB = ["why can't i", "i can't", "i'm unable to", 'i cannot', "it won't let me"];
 const PRE_YESNO = ['does the system let me', 'can multiple users', 'am i able to'];
 
@@ -57,20 +57,40 @@ function typo(q) {
   return words.join(' ').toLowerCase();
 }
 
+// A second typo maker: drop the last vowel of the longest word (e.g. invoice->invoce).
+function typo2(q) {
+  const words = q.replace(/[?.]/g, '').split(' ');
+  let bi = -1, bl = 0;
+  for (let i = 0; i < words.length; i += 1) if (words[i].length > bl && /^[a-z]+$/i.test(words[i])) { bl = words[i].length; bi = i; }
+  if (bi < 0 || bl < 5) return null;
+  const w = words[bi];
+  const vi = w.slice(1).search(/[aeiou]/i);
+  if (vi < 0) return null;
+  words[bi] = w.slice(0, vi + 1) + w.slice(vi + 2);
+  return words.join(' ').toLowerCase();
+}
+
 function variants(q, gi) {
   const clean = q.replace(/\s+/g, ' ').trim();
+  const lc = clean.toLowerCase().replace(/[?.]/g, '');
   const set = new Set();
-  set.add(/[?.]$/.test(clean) ? clean : clean + '?');
-  set.add(clean.toLowerCase().replace(/[?.]/g, ''));
-  if (gi % 3 === 0) set.add('hey, ' + clean.charAt(0).toLowerCase() + clean.slice(1).replace(/[?.]/g, '') + '?');
-  if (gi % 3 === 1) set.add(clean.replace(/[?.]/g, '') + ' please?');
-  const ab = clean.toLowerCase().replace(/\byou\b/g, 'u').replace(/\bplease\b/g, 'pls').replace(/\bcannot\b/g, 'cant').replace(/\baccount\b/g, 'acct').replace(/\binvoice\b/g, 'inv').replace(/\bcustomer\b/g, 'cust');
-  if (ab !== clean.toLowerCase()) set.add(ab.replace(/[?.]/g, ''));
+  set.add(/[?.]$/.test(clean) ? clean : clean + '?');       // canonical, punctuated
+  set.add(lc);                                              // lowercase, no punctuation
+  // Casual / polite framings — deterministic by index so re-runs stay stable.
+  if (gi % 3 === 0) set.add('hey, ' + lc + '?');
+  if (gi % 4 === 1) set.add(lc + ' please?');
+  if (gi % 5 === 0) set.add(lc + ' pls');
+  if (gi % 2 === 0) set.add(clean.charAt(0).toUpperCase() + lc.slice(1)); // Capitalised, no punct
+  // Abbreviations / SMS-speak.
+  const ab = lc.replace(/\byou\b/g, 'u').replace(/\bplease\b/g, 'pls').replace(/\bcannot\b/g, 'cant').replace(/\baccount\b/g, 'acct').replace(/\binvoice\b/g, 'inv').replace(/\bcustomer\b/g, 'cust').replace(/\bquotation\b/g, 'quote').replace(/\bnumber\b/g, 'no').replace(/\bpayment\b/g, 'pmt');
+  if (ab !== lc) set.add(ab);
+  // Typos.
   if (gi % 4 === 0) { const t = typo(clean); if (t) set.add(t); }
+  if (gi % 4 === 3) { const t = typo2(clean); if (t) set.add(t); }
   return [...set];
 }
 
-const CAP_PER_INTENT = 80;
+const CAP_PER_INTENT = 150;
 const CAP_TOTAL = 100000; // effectively uncapped — every intent expands fully
 const seen = new Set();
 const records = [];

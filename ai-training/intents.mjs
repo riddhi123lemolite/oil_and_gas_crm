@@ -351,5 +351,141 @@ export const NEW_INTENTS = [
     ask: ['Who are our most frequent buyers?', 'Which customers order the most often?', 'Who are our repeat customers?', 'Most loyal customers', 'Which party orders most frequently?'],
     act: ['find frequent buyers', 'find repeat customers', 'find the most loyal customers'],
     noun: ['frequent buyers', 'repeat customers', 'the most loyal customers', 'regular buyers'],
-    kw: ['frequent buyers', 'repeat customers', 'loyal customers', 'orders most often', 'regular customers', 'most orders'] }
+    kw: ['frequent buyers', 'repeat customers', 'loyal customers', 'orders most often', 'regular customers', 'most orders'] },
+
+  // =========================================================================
+  // Scope — modules this trading CRM does NOT have. Answered honestly so the
+  // assistant never pretends a feature exists (grounded to the real codebase).
+  // =========================================================================
+  { id: 'no-vendors', cat: 'Scope & Availability', src: 'src/types/index.ts', feat: ['Customers'],
+    a: "This is a **sell-side** trading CRM — it doesn't have a vendors / suppliers / procurement module. It manages the customer side: leads, customers, quotations, sales orders, invoices, payments and dispatch. There's no vendor master or supplier ledger.",
+    ask: ['How do I add a vendor?', 'Where are suppliers?', 'Is there a vendor module?', 'How do I manage procurement?', 'Where is the supplier list?'],
+    act: ['add a vendor', 'create a supplier', 'manage vendors', 'record a supplier'], noun: ['the vendor module', 'suppliers', 'the procurement section'],
+    kw: ['vendor', 'vendors', 'supplier', 'suppliers', 'procurement', 'supplier ledger', 'vendor master'] },
+
+  { id: 'no-purchase-orders', cat: 'Scope & Availability', src: 'src/types/index.ts', feat: ['Sales Orders'],
+    a: "There's no purchase-order (buy-side) module. The CRM handles **sales** orders — customer orders that flow to dispatch and invoicing. If you meant a customer's order, use Sales Orders.",
+    ask: ['How do I create a purchase order?', 'Where are purchase orders?', 'Is there a PO module?', 'How do I raise a PO?'],
+    act: ['create a purchase order', 'raise a po', 'add a purchase order'], noun: ['purchase orders', 'the po module'],
+    kw: ['purchase order', 'purchase orders', 'raise po', 'po module', 'buy side order'] },
+
+  { id: 'no-projects', cat: 'Scope & Availability', src: 'src/lib/nav.ts', feat: [],
+    a: "The CRM doesn't include a projects module — it's built around trading operations (customers, products, quotations, orders, invoices, logistics), not project delivery or EPC.",
+    ask: ['How do I create a project?', 'Where is the projects module?', 'Is there project management?'],
+    act: ['create a project', 'add a project', 'manage projects'], noun: ['the projects module', 'project management'],
+    kw: ['project', 'projects', 'project management', 'epc project'] },
+
+  { id: 'no-assets', cat: 'Scope & Availability', src: 'src/types/index.ts', feat: ['Operations'],
+    a: "There isn't an assets / equipment module. The closest thing the CRM tracks is the transport fleet — **vehicles and drivers** under Operations, including RC, fitness and insurance expiry.",
+    ask: ['How do I add an asset?', 'Where is equipment?', 'Is there asset management?', 'How do I track equipment maintenance?'],
+    act: ['add an asset', 'register equipment', 'track an asset'], noun: ['the assets module', 'equipment', 'asset management'],
+    kw: ['asset', 'assets', 'equipment', 'asset management', 'plant equipment'] },
+
+  { id: 'no-maintenance', cat: 'Scope & Availability', src: 'src/types/index.ts', feat: ['Operations'],
+    a: "There's no plant maintenance module (preventive / shutdown). For the transport fleet, the Vehicles screen does track RC, fitness and insurance expiry dates so you can plan renewals.",
+    ask: ['How do I schedule maintenance?', 'Where is preventive maintenance?', 'Is there shutdown maintenance?'],
+    act: ['schedule maintenance', 'plan preventive maintenance', 'log shutdown maintenance'], noun: ['maintenance scheduling', 'preventive maintenance'],
+    kw: ['maintenance', 'preventive maintenance', 'shutdown maintenance', 'servicing', 'amc'] },
+
+  { id: 'no-tickets', cat: 'Scope & Availability', src: 'src/pages/portal/PortalSupport.tsx', feat: ['Customer Portal'],
+    a: "There's no internal field-service / engineer ticketing module. Customers can raise a **support ticket** in the portal (Support), which reaches their assigned account manager — but there's no dispatch-of-engineers workflow.",
+    ask: ['How do I assign a ticket to an engineer?', 'Where is field service?', 'Is there a helpdesk?', 'How do engineers get tickets?'],
+    act: ['assign a ticket to an engineer', 'dispatch a field engineer', 'manage service tickets'], noun: ['field service', 'the engineer module', 'service tickets'],
+    kw: ['engineer', 'engineers', 'field service', 'service ticket', 'helpdesk', 'dispatch engineer'] },
+
+  { id: 'no-opportunities', cat: 'Scope & Availability', src: 'src/lib/nav.ts', feat: ['Leads', 'Quotations'],
+    a: "There isn't a separate Opportunities module. The sales pipeline runs on **Leads** (with stages New → Contacted → Qualified → Proposal → Negotiation → Won/Lost) and **Proposals** (quotations). Convert a won lead to a customer.",
+    ask: ['Where are opportunities?', 'How do I create an opportunity?', 'Is there a deals module?'],
+    act: ['create an opportunity', 'add a deal', 'manage opportunities'], noun: ['opportunities', 'the deals module'],
+    kw: ['opportunity', 'opportunities', 'deals', 'deal stage'] },
+
+  { id: 'no-warehouse-module', cat: 'Scope & Availability', src: 'src/pages/operations/Inventory.tsx', feat: ['Operations'],
+    a: "There's no full warehouse-management system, but stock is held against named **locations** (depots / terminals) on the Inventory and Items screens, with quantities in KL/units and reorder levels.",
+    ask: ['Where is warehouse management?', 'How do I manage warehouses?', 'Is there a WMS?'],
+    act: ['manage warehouses', 'add a warehouse', 'do warehouse transfers'], noun: ['warehouse management', 'the wms'],
+    kw: ['warehouse', 'warehouses', 'wms', 'stock location', 'depot'] },
+
+  { id: 'no-upstream', cat: 'Oil & Gas Domain', src: 'src/lib/seed/pools.ts', feat: ['Items & Products'],
+    a: "This is a **downstream trading** CRM, not an upstream / EPC system. It doesn't model drilling, exploration, refineries, pipelines or tank farms — it trades refined and petrochemical products: diesel (HSD), petrol (MS), LDO, furnace oil, lubricants, glycols, solvents and plastic granules.",
+    ask: ['Does it handle refinery operations?', 'Is there drilling or exploration?', 'Can I manage a pipeline project?', 'Does it cover EPC?'],
+    act: ['manage a refinery', 'plan drilling', 'run an epc project', 'monitor a pipeline'], noun: ['refinery operations', 'drilling', 'the pipeline module', 'epc'],
+    kw: ['refinery', 'drilling', 'exploration', 'pipeline', 'tank farm', 'epc', 'upstream', 'compressor', 'wellhead'] },
+
+  { id: 'compliance-scope', cat: 'Oil & Gas Domain', src: 'src/lib/gst.ts', feat: ['Invoices'],
+    a: "For compliance the CRM covers the **commercial** side: GSTIN/PAN capture, HSN codes, 18% GST split into CGST/SGST or IGST, and invoice/e-invoice/challan documents. It is not an HSE / safety-compliance or statutory EHS system.",
+    ask: ['How does it handle compliance?', 'Is there safety compliance?', 'Does it track HSE?', 'What about statutory compliance?'],
+    act: ['track safety compliance', 'manage hse', 'log a safety incident'], noun: ['compliance', 'safety compliance', 'hse tracking'],
+    kw: ['compliance', 'safety', 'hse', 'ehs', 'statutory', 'gst compliance'] },
+
+  // =========================================================================
+  // Edge cases & troubleshooting — grounded to how the app actually behaves.
+  // =========================================================================
+  { id: 'validation-error', cat: 'Troubleshooting', src: 'src/lib/validation.ts', feat: [],
+    a: "Forms validate before saving — required fields are marked and show an inline error message, and the Save button won't complete until every required field has a valid value. Fix the highlighted fields and try again.",
+    ask: ['Why won\'t my form save?', 'What does this validation error mean?', 'Why is Save disabled?', 'Why can\'t I submit the form?'],
+    act: ['fix a validation error', 'submit the form', 'clear a form error'], noun: ['validation errors', 'required fields', 'the error message'],
+    kw: ['validation', 'required field', 'form error', 'cant save', 'save disabled', 'mandatory field'] },
+
+  { id: 'permission-denied', cat: 'Roles & Permissions', src: 'src/lib/permissions.ts', feat: ['Roles & Permissions'],
+    a: "If a page is missing from your menu or an action is greyed out, your role doesn't include that permission. Admin has full access; other roles are scoped (Sales, Accounts, Customer). Ask an Admin to adjust your role under Settings → Roles & Permissions.",
+    ask: ['Why is this greyed out?', 'Why can\'t I access this page?', 'Why is this action disabled?', 'I get a permission error, why?'],
+    act: ['get access to a page', 'enable a disabled action', 'change my permissions'], noun: ['a permission error', 'why something is disabled', 'access rights'],
+    kw: ['permission', 'access denied', 'greyed out', 'disabled', 'no access', 'not allowed'] },
+
+  { id: 'duplicate-record', cat: 'Troubleshooting', src: 'src/components/shared/DataTable.tsx', feat: [],
+    a: "The app doesn't hard-block duplicates, so search before you create — use the list search or command palette, and check the GSTIN / code, to confirm a customer or item doesn't already exist.",
+    ask: ['How do I avoid duplicate customers?', 'What if a record already exists?', 'How do I find duplicates?'],
+    act: ['avoid duplicates', 'find a duplicate record', 'merge duplicates'], noun: ['duplicate records', 'duplicate detection'],
+    kw: ['duplicate', 'duplicates', 'already exists', 'merge records', 'same customer twice'] },
+
+  { id: 'session-expiry', cat: 'Login & Access', src: 'src/stores/authStore.ts', feat: ['Account'],
+    a: "In demo mode your session is stored locally in the browser. If you get signed out, just sign back in with any email and password. Clearing site data or using a private window starts a fresh demo.",
+    ask: ['Why was I logged out?', 'My session expired, what do I do?', 'Why do I keep getting signed out?'],
+    act: ['log back in', 'restore my session', 'stay signed in'], noun: ['session expiry', 'being logged out'],
+    kw: ['session expired', 'logged out', 'signed out', 'session timeout', 'kicked out'] },
+
+  { id: 'export-excel-pdf', cat: 'General', src: 'src/lib/excel.ts', feat: ['Export'],
+    a: "Most list screens have an **Export** button that downloads the table to Excel, and business documents (invoices, quotations, receipts) export to **PDF** via their PDF button. Bulk import isn't available in the demo.",
+    ask: ['How do I export to Excel?', 'How do I download a PDF?', 'Can I export this table?', 'How do I get a report out?'],
+    act: ['export to excel', 'download a pdf', 'export a table', 'save a report'], noun: ['the export button', 'excel export', 'pdf download'],
+    kw: ['export', 'excel', 'download', 'pdf', 'csv', 'save table', 'export report'] },
+
+  { id: 'concurrent-edits', cat: 'Troubleshooting', src: 'src/lib/db.ts', feat: [],
+    a: "In demo mode data lives only in your browser, so there's no cross-user conflict. With a live Supabase backend, changes sync to other open tabs in real time and the most recent save wins.",
+    ask: ['What happens if two people edit the same record?', 'Is there a conflict when editing together?', 'Does it sync across tabs?'],
+    act: ['handle concurrent edits', 'sync across tabs', 'resolve an edit conflict'], noun: ['concurrent edits', 'edit conflicts', 'real-time sync'],
+    kw: ['concurrent', 'conflict', 'two users', 'same time edit', 'realtime sync', 'multiple tabs'] },
+
+  // =========================================================================
+  // A few real features not yet in the bank.
+  // =========================================================================
+  { id: 'customer-ledger', cat: 'Customers', src: 'src/pages/customers/CustomerLedger.tsx', feat: ['Customers', 'Payments'],
+    a: "Each customer has a **Ledger** on their detail page showing invoices raised and payments received, so you can see their running balance and outstanding amount at a glance.",
+    ask: ['Where is the customer ledger?', 'How do I see a customer\'s account statement?', 'How do I check a customer\'s balance?'],
+    act: ['view the customer ledger', 'open an account statement', 'check a customer balance'], noun: ['the customer ledger', 'account statement', 'running balance'],
+    kw: ['ledger', 'account statement', 'customer balance', 'statement of account', 'running balance'] },
+
+  { id: 'einvoice-challan', cat: 'Invoices', src: 'src/pages/portal/DocumentCenter.tsx', feat: ['Invoices', 'Customer Portal'],
+    a: "Alongside the tax invoice, the Documents area holds supporting paperwork like the **e-invoice** and delivery **challan**. Customers can view and download them from the portal's Document Center.",
+    ask: ['Where is the e-invoice?', 'How do I get the delivery challan?', 'What documents come with an invoice?'],
+    act: ['download the e-invoice', 'get the challan', 'view invoice documents'], noun: ['the e-invoice', 'the delivery challan', 'invoice documents'],
+    kw: ['e-invoice', 'einvoice', 'challan', 'delivery note', 'gst invoice document'] },
+
+  { id: 'proposal-approval', cat: 'Quotations', src: 'src/pages/sales/ProposalDetail.tsx', feat: ['Quotations', 'Roles & Permissions'],
+    a: "High-value quotations can require **manager approval** before they're sent. A proposal above the threshold is flagged as needing approval, and a Sales Manager / Admin approves it from the proposal.",
+    ask: ['How do I approve a quotation?', 'Why does this proposal need approval?', 'Who approves high-value quotes?'],
+    act: ['approve a quotation', 'send a proposal for approval', 'approve a high-value quote'], noun: ['proposal approval', 'quotation approval'],
+    kw: ['approve quotation', 'proposal approval', 'needs approval', 'high value quote', 'manager approval'] },
+
+  { id: 'dashboard-kpis', cat: 'Reports & Analytics', src: 'src/pages/dashboard/Dashboard.tsx', feat: ['Dashboard'],
+    a: "The Dashboard summarises the business with KPI cards (sales, revenue, outstanding, orders, leads) and charts (monthly sales trend, pipeline, top segments). Each card reflects live data; use the reports for deeper breakdowns.",
+    ask: ['What do the dashboard numbers mean?', 'Explain the dashboard KPIs', 'What does the sales chart show?', 'How do I read the dashboard?'],
+    act: ['read the dashboard', 'interpret the kpis', 'understand the sales chart'], noun: ['the dashboard KPIs', 'the sales chart', 'the dashboard cards'],
+    kw: ['dashboard', 'kpi', 'kpis', 'metric', 'dashboard chart', 'sales trend', 'dashboard cards'] },
+
+  { id: 'staff-tasks-ai', cat: 'AI Assistant', src: 'src/lib/ai/assistant.ts', feat: ['AI Assistant', 'Tasks'],
+    a: "As a staff member you can ask the assistant about a teammate's tasks — e.g. \"what are the tasks of Priya today?\", \"show Anil's pending tasks\", \"what is Kavita working on?\". It resolves the person by name and can scope by status (open/overdue/completed) and date.",
+    ask: ['Can you show a teammate\'s tasks?', 'How do I see someone\'s tasks?', 'What are the tasks of a salesperson?'],
+    act: ['see a colleague\'s tasks', 'check a teammate\'s workload', 'view someone\'s pending tasks'], noun: ['a teammate\'s tasks', 'a colleague\'s workload'],
+    kw: ['tasks of', 'teammate tasks', 'someone tasks', 'staff tasks', 'pending tasks of', 'workload'] }
 ];
