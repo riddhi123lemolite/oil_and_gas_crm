@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------------
 import type {
   Role, Customer, Invoice, Dispatch, SalesOrder, Payment, AppNotification, Item, User, AuditLogEntry,
+  Proposal, InventoryRecord,
 } from '@/types';
 import type { LiveTicker } from '@/hooks/useLiveMarket';
 import { computeErp } from '@/lib/erp';
@@ -52,6 +53,9 @@ export interface AiContext {
   payments: Payment[];
   notifications: AppNotification[];
   items: Item[];
+  /** Quotations (proposals) and stock — used by the analytics handlers. */
+  proposals?: Proposal[];
+  inventory?: InventoryRecord[];
   oil: LiveTicker[];
   fuel: LiveTicker[];
   canErp: boolean;
@@ -701,7 +705,14 @@ function buyerRanking(s: string, ctx: AiContext, detail: boolean): AiReply | nul
   }
 
   const period = parsePeriod(s);
-  const subject = resolveSubject(s, ctx);
+  // Don't let a product word that is actually part of the matched customer's own
+  // name (e.g. "Capital Solvents", "Reliance Petroleum") be read as a product
+  // filter — strip the customer's name words before resolving the subject.
+  const nameWords = named ? named.companyName.toLowerCase().match(/[a-z0-9]+/g)?.filter((w) => w.length >= 4) ?? [] : [];
+  const subjectSource = nameWords.length
+    ? s.toLowerCase().split(/\s+/).filter((w) => !nameWords.includes(w.replace(/[^a-z0-9]/g, ''))).join(' ')
+    : s;
+  const subject = resolveSubject(subjectSource, ctx);
   const subjIds = subject ? new Set(subject.ids) : null;
   const prodLabel = subject ? ` of ${subject.label}` : '';
   const inRange = (d: string) => d >= period.start && d <= period.end;
@@ -766,6 +777,184 @@ function buyerRanking(s: string, ctx: AiContext, detail: boolean): AiReply | nul
     blocks: [text(`${lead}${next.length ? ` Next: ${next.join(', ')}.` : ''}`)],
     action: { label: 'Open Customers', to: custRoute },
   };
+}
+
+// Parse a money threshold like "above ₹1,00,000", "under 50000", "over 5 lakh".
+function parseThreshold(s: string): { op: 'above' | 'below'; value: number } | null {
+  const re = /\b(above|over|more than|greater than|exceeding|exceeds|exceed|higher than|bigger than|at least)\b|\b(below|under|less than|lower than|smaller than|cheaper than|at most)\b/;
+  const m = re.exec(s);
+  if (!m) return null;
+  const op: 'above' | 'below' = m[1] ? 'above' : 'below';
+  const num = s.slice(m.index + m[0].length).match(/(?:₹|rs\.?|inr)?\s*([\d][\d,]*(?:\.\d+)?)\s*(lakhs?|lacs?|crores?|cr|k|thousand|millions?|m)?/i);
+  if (!num) return null;
+  let val = Number((num[1] ?? '').replace(/,/g, ''));
+  const u = (num[2] ?? '').toLowerCase();
+  if (/lakh|lac/.test(u)) val *= 1e5;
+  else if (/crore|cr/.test(u)) val *= 1e7;
+  else if (/^k$|thousand/.test(u)) val *= 1e3;
+  else if (/million|^m$/.test(u)) val *= 1e6;
+  return val > 0 ? { op, value: val } : null;
+}
+
+// Analytics over the CRM's own data: superlative single records (highest/lowest
+// invoice, order, quotation), top/bottom product by sales, stock / reorder,
+// best/worst month, sales by region/state, value-threshold filters, quotation
+// analytics, and simple aggregations (averages). Also declines, honestly, for
+// modules this trading CRM doesn't have (vendors, POs, projects, tickets, …).
+function analytics(s: string, ctx: AiContext, detail: boolean): AiReply | null {
+  const period = parsePeriod(s);
+  const inRange = (d: string) => d >= period.start && d <= period.end;
+  const pTail = period.label === 'all time' ? '' : ` (${period.label})`;
+  const cName = new Map(ctx.customers.map((c) => [c.id, c.companyName]));
+  const cState = new Map(ctx.customers.map((c) => [c.id, c.state]));
+  const iName = new Map(ctx.items.map((i) => [i.id, i.name]));
+  const SUP_TOP = /\b(highest|largest|biggest|top|most|maximum|max|greatest|dearest|best|leading)\b/;
+  const SUP_BOTTOM = /\b(lowest|smallest|least|minimum|min|worst|cheapest|fewest)\b/;
+  const isBottom = (x: string) => SUP_BOTTOM.test(x) && !SUP_TOP.test(x);
+  const anySup = (x: string) => SUP_TOP.test(x) || SUP_BOTTOM.test(x);
+
+  // --- Modules this CRM does not have → decline honestly (never fabricate) ---
+  if (/\b(vendors?|suppliers?|purchase orders?|\bpo\b|\bpos\b|projects?|tickets?|engineers?|field service|assets?|equipments?|opportunit(y|ies))\b/.test(s)) {
+    return { blocks: [text("This is an oil & gas **trading** CRM — it doesn't track vendors, purchase orders, projects, tickets, engineers or assets. I can analyse **customers, products, quotations, sales orders, invoices, payments, dispatches, inventory and staff** instead.")] };
+  }
+
+  // --- Highest / lowest single INVOICE by value ---
+  if (/\b(invoice|invoices|bill|bills)\b/.test(s) && anySup(s) && !/how many|count|number of|total number/.test(s)) {
+    const list = ctx.invoices.filter((i) => inRange(i.invoiceDate));
+    if (!list.length) return { blocks: [text(`No invoices found${pTail}.`)] };
+    const bottom = isBottom(s);
+    const pick = [...list].sort((a, b) => (bottom ? a.total - b.total : b.total - a.total))[0]!;
+    return { blocks: [text(`The ${bottom ? 'lowest' : 'highest'}-value invoice${pTail} is **${pick.number}** — **${formatINR(pick.total)}** for **${cName.get(pick.customerId) ?? '—'}** (${pick.status.toLowerCase()}, ${formatDate(pick.invoiceDate)}).`)], action: { label: 'Open Invoices', to: route(ctx.role, 'invoices') ?? '/invoices' } };
+  }
+
+  // --- Highest / lowest single SALES ORDER by value ---
+  if (/\b(order|orders|sales order)\b/.test(s) && anySup(s) && !/how many|count|number of|status|dispatch|shipment|transit|deliver/.test(s)) {
+    const list = ctx.orders.filter((o) => inRange(o.orderDate));
+    if (!list.length) return { blocks: [text(`No sales orders found${pTail}.`)] };
+    const bottom = isBottom(s);
+    const pick = [...list].sort((a, b) => (bottom ? a.total - b.total : b.total - a.total))[0]!;
+    return { blocks: [text(`The ${bottom ? 'smallest' : 'largest'} sales order${pTail} is **${pick.number}** — **${formatINR(pick.total)}** for **${cName.get(pick.customerId) ?? '—'}** (${pick.status.replace(/_/g, ' ').toLowerCase()}).`)], action: { label: 'Open Orders', to: route(ctx.role, 'orders') ?? '/orders' } };
+  }
+
+  // --- Quotations (proposals): count / highest / max discount / status ---
+  if (/\b(quotation|quotations|quote|quotes|proposal|proposals)\b/.test(s)) {
+    const props = (ctx.proposals ?? []).filter((p) => inRange(p.proposalDate));
+    if (!ctx.proposals) return { blocks: [text('Quotation analytics are available to staff accounts.')] };
+    if (!props.length) return { blocks: [text(`No quotations found${pTail}.`)] };
+    const to = { label: 'Open Quotations', to: '/proposals' };
+    if (/discount/.test(s) && anySup(s)) {
+      let best: { num: string; disc: number; cust: string } | null = null;
+      for (const p of props) for (const li of p.items) if (!best || li.discount > best.disc) best = { num: p.number, disc: li.discount, cust: cName.get(p.customerId ?? '') ?? '—' };
+      return { blocks: [text(best && best.disc > 0 ? `The largest quotation discount${pTail} is **${best.disc}%** on **${best.num}**${best.cust !== '—' ? ` (${best.cust})` : ''}.` : `No line discounts are recorded on quotations${pTail}.`)], action: to };
+    }
+    if (anySup(s)) {
+      const bottom = isBottom(s);
+      const pick = [...props].sort((a, b) => (bottom ? a.total - b.total : b.total - a.total))[0]!;
+      return { blocks: [text(`The ${bottom ? 'smallest' : 'largest'} quotation${pTail} is **${pick.number}** — **${formatINR(pick.total)}** for **${cName.get(pick.customerId ?? '') ?? '—'}** (${pick.status.replace(/_/g, ' ').toLowerCase()}).`)], action: to };
+    }
+    if (/how many|count|number of|total/.test(s)) {
+      const st = /pending|open|sent|under review|awaiting/.test(s) ? ['SENT', 'UNDER_REVIEW', 'NEGOTIATION'] : /won|accepted|approved/.test(s) ? ['WON'] : /lost|rejected/.test(s) ? ['LOST'] : /draft/.test(s) ? ['DRAFT'] : null;
+      const list = st ? props.filter((p) => st.includes(p.status)) : props;
+      const value = list.reduce((n, p) => n + p.total, 0);
+      return { blocks: [text(`There ${list.length === 1 ? 'is' : 'are'} **${list.length}** ${st ? 'matching ' : ''}quotation${list.length === 1 ? '' : 's'}${pTail}, worth **${formatINR(value)}** in total.`)], action: to };
+    }
+    if (/average|avg|mean/.test(s)) {
+      const avg = props.reduce((n, p) => n + p.total, 0) / props.length;
+      return { blocks: [text(`The average quotation value${pTail} is **${formatINR(avg)}** across **${props.length}** quotations.`)], action: to };
+    }
+  }
+
+  // --- Top / bottom PRODUCT by sales (volume or revenue) ---
+  if (/\b(product|products|item|items|selling|seller|sellers|sold|best.?sell)\b/.test(s) && anySup(s) && !/customer|buyer|party|client|invoice|order|quotation|stock|inventory/.test(s)) {
+    const byItem = new Map<string, { kl: number; rev: number }>();
+    for (const inv of ctx.invoices) {
+      if (!inRange(inv.invoiceDate)) continue;
+      for (const li of inv.items) {
+        const kl = li.unit === 'L' ? li.quantity / 1000 : li.quantity;
+        const a = byItem.get(li.itemId) ?? { kl: 0, rev: 0 };
+        a.kl += kl; a.rev += li.amount; byItem.set(li.itemId, a);
+      }
+    }
+    if (!byItem.size) return { blocks: [text(`No product sales found${pTail}.`)] };
+    const byRev = /revenue|value|money|worth|₹|turnover|earning|profit/.test(s);
+    const bottom = isBottom(s);
+    const ranked = [...byItem.entries()].sort((a, b) => (byRev ? b[1].rev - a[1].rev : b[1].kl - a[1].kl));
+    if (bottom) ranked.reverse();
+    if (detail || /\btop \d+|list|table|ranking|rank/.test(s)) {
+      const rows = ranked.slice(0, 10).map(([id, v], i) => [String(i + 1), iName.get(id) ?? '—', formatQty(v.kl, 'KL'), formatINR(v.rev)]);
+      return { blocks: [text(`${bottom ? 'Lowest' : 'Top'} products by ${byRev ? 'revenue' : 'volume'}${pTail}:`), { kind: 'table', columns: ['#', 'Product', 'Volume', 'Revenue'], rows }], action: { label: 'Open Products', to: '/items' } };
+    }
+    const top = ranked[0]!;
+    return { blocks: [text(`The ${bottom ? 'least' : 'best'}-selling product${pTail} is **${iName.get(top[0]) ?? '—'}** — **${formatQty(top[1].kl, 'KL')}** worth **${formatINR(top[1].rev)}**.`)], action: { label: 'Open Products', to: '/items' } };
+  }
+
+  // --- Stock / inventory: lowest/highest stock, below reorder level ---
+  if (/\b(stock|inventory|reorder|restock|out of stock|running low|low on)\b/.test(s)) {
+    if (/reorder|below reorder|restock|running low|low stock|low on|need(s|ing)? restock/.test(s) && ctx.inventory) {
+      const low = ctx.inventory.filter((r) => r.quantity < r.reorderLevel);
+      if (!low.length) return { blocks: [text('No products are below their reorder level right now. 👍')], action: { label: 'Open Inventory', to: '/inventory' } };
+      const rows = low.slice(0, 12).map((r) => [iName.get(r.itemId) ?? '—', r.warehouse, formatNumber(r.quantity), formatNumber(r.reorderLevel)]);
+      return { blocks: [text(`**${low.length}** stock item${low.length === 1 ? '' : 's'} below reorder level:`), { kind: 'table', columns: ['Product', 'Warehouse', 'Qty', 'Reorder'], rows }], action: { label: 'Open Inventory', to: '/inventory' } };
+    }
+    if (anySup(s)) {
+      const bottom = isBottom(s) || /low|out of stock|running low/.test(s);
+      const sorted = [...ctx.items].sort((a, b) => (bottom ? a.stockTotal - b.stockTotal : b.stockTotal - a.stockTotal));
+      const pick = sorted[0];
+      if (pick) return { blocks: [text(`The product with the ${bottom ? 'lowest' : 'highest'} stock is **${pick.name}** — **${formatQty(pick.stockTotal, pick.unit)}** on hand.`)], action: { label: 'Open Inventory', to: '/inventory' } };
+    }
+  }
+
+  // --- Best / worst MONTH by sales ---
+  if (/\b(month|months|monthly)\b/.test(s) && anySup(s) && !/this month|last month|current month/.test(s)) {
+    const byMonth = new Map<string, number>();
+    for (const inv of ctx.invoices) { if (!inRange(inv.invoiceDate)) continue; const k = inv.invoiceDate.slice(0, 7); byMonth.set(k, (byMonth.get(k) ?? 0) + inv.total); }
+    if (!byMonth.size) return { blocks: [text(`No sales found${pTail}.`)] };
+    const bottom = isBottom(s);
+    const ranked = [...byMonth.entries()].sort((a, b) => (bottom ? a[1] - b[1] : b[1] - a[1]));
+    const [mk, val] = ranked[0]!;
+    const label = new Date(`${mk}-01T00:00:00`).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+    return { blocks: [text(`The ${bottom ? 'lowest' : 'highest'}-sales month${pTail} was **${label}** with **${formatINR(val)}** billed.`)], action: { label: 'Open Sales Reports', to: route(ctx.role, 'history') ?? '/reports/sales' } };
+  }
+
+  // --- Sales by REGION / state ---
+  if (/\b(region|regions|state|states|geograph|area|zone)\b/.test(s) && (anySup(s) || /by (region|state|area)|which (region|state|area)/.test(s))) {
+    const byState = new Map<string, number>();
+    for (const inv of ctx.invoices) { if (!inRange(inv.invoiceDate)) continue; const st = cState.get(inv.customerId) ?? '—'; byState.set(st, (byState.get(st) ?? 0) + inv.total); }
+    if (!byState.size) return { blocks: [text(`No regional sales found${pTail}.`)] };
+    const ranked = [...byState.entries()].sort((a, b) => b[1] - a[1]);
+    if (detail || /list|table|breakdown|compare|by (region|state)/.test(s)) {
+      const rows = ranked.slice(0, 12).map(([st, v], i) => [String(i + 1), st, formatINR(v)]);
+      return { blocks: [text(`Sales by state${pTail}:`), { kind: 'table', columns: ['#', 'State', 'Sales'], rows }], action: { label: 'Open Geographic Report', to: '/reports/geo' } };
+    }
+    const [st, v] = ranked[0]!;
+    return { blocks: [text(`**${st}** generated the most sales${pTail} — **${formatINR(v)}**.`)], action: { label: 'Open Geographic Report', to: '/reports/geo' } };
+  }
+
+  // --- Value-threshold filters on invoices / orders / quotations ---
+  const thr = parseThreshold(s);
+  if (thr && /\b(invoice|invoices|bill|bills|order|orders|quotation|quotations|proposal|proposals)\b/.test(s)) {
+    const which = /quotation|proposal/.test(s) ? 'quotation' : /order/.test(s) ? 'order' : 'invoice';
+    const rowsAll = which === 'quotation' ? (ctx.proposals ?? []).map((p) => ({ n: p.number, t: p.total, c: p.customerId ?? '', d: p.proposalDate }))
+      : which === 'order' ? ctx.orders.map((o) => ({ n: o.number, t: o.total, c: o.customerId, d: o.orderDate }))
+        : ctx.invoices.map((i) => ({ n: i.number, t: i.total, c: i.customerId, d: i.invoiceDate }));
+    const hit = rowsAll.filter((r) => inRange(r.d) && (thr.op === 'above' ? r.t > thr.value : r.t < thr.value));
+    const total = hit.reduce((n, r) => n + r.t, 0);
+    if (!hit.length) return { blocks: [text(`No ${which}s ${thr.op} ${formatINR(thr.value)}${pTail}.`)] };
+    const lead = text(`**${hit.length}** ${which}${hit.length === 1 ? '' : 's'} ${thr.op} **${formatINR(thr.value)}**${pTail} · total **${formatINR(total)}**:`);
+    const rows = [...hit].sort((a, b) => b.t - a.t).slice(0, 12).map((r) => [r.n, cName.get(r.c) ?? '—', formatINR(r.t)]);
+    return { blocks: [lead, { kind: 'table', columns: [cap(which), 'Customer', 'Value'], rows }] };
+  }
+
+  // --- Simple aggregations: average invoice / order value ---
+  if (/\b(average|avg|mean)\b/.test(s) && /\b(invoice|invoices|order|orders|deal|deals|sale|sales)\b/.test(s)) {
+    const isOrder = /order|deal/.test(s);
+    const list = (isOrder ? ctx.orders.map((o) => o.total) : ctx.invoices.map((i) => i.total));
+    if (!list.length) return { blocks: [text(`No ${isOrder ? 'orders' : 'invoices'} found${pTail}.`)] };
+    const avg = list.reduce((n, v) => n + v, 0) / list.length;
+    return { blocks: [text(`The average ${isOrder ? 'order' : 'invoice'} value${pTail} is **${formatINR(avg)}** across **${list.length}** ${isOrder ? 'orders' : 'invoices'}.`)] };
+  }
+
+  return null;
 }
 
 function notifications(ctx: AiContext): AiReply {
@@ -941,7 +1130,7 @@ function matchCustomer(s: string, ctx: AiContext): Customer | undefined {
   let bestScore = 0;
   for (const c of ctx.customers) {
     const core = c.companyName.toLowerCase()
-      .replace(/\b(pvt|ltd|limited|private|llp|inc|co|company|corporation|corp|industries|enterprises|petroleum|energy|petro|oil|fuels?|traders?|trading|group|solutions|international)\b/g, ' ')
+      .replace(/\b(pvt|ltd|limited|private|llp|inc|co|company|corporation|corp|industries|enterprises|petroleum|energy|petro|oil|fuels?|traders?|trading|group|solutions|international|products?|product)\b/g, ' ')
       .replace(/[^a-z0-9 ]/g, ' ');
     const hit = core.split(/\s+/).filter((w) => w.length >= 4 && s.includes(w)).length;
     if (hit > bestScore) { best = c; bestScore = hit; }
@@ -1102,6 +1291,11 @@ const isPriceQuery = (s: string) =>
  *  Used to stop the FAQ index from shadowing the data handlers. */
 function looksLikeData(s: string): boolean {
   if (isVolumeQuery(s) || isPriceQuery(s) || isBuyerRankingQuery(s)) return true;
+  // Comparisons and any module + superlative/aggregation are data, not FAQ —
+  // keeps the trained buyer/product keywords from shadowing real queries.
+  if (/\b(compare|comparison|versus|\bvs\b)\b/.test(s)) return true;
+  if (/\b(highest|lowest|largest|smallest|biggest|top|most|least|maximum|minimum|average|avg|total|how many|count)\b/.test(s)
+    && /\b(invoice|invoices|bill|order|orders|product|products|item|items|quotation|quotations|proposal|stock|inventory|month|region|state|sales|revenue|discount)\b/.test(s)) return true;
   if (/\b(who has|who owes|top customers?|pending payments?|overdue invoices?|received this month|in transit|outstanding balance|most fuel|by revenue|highest buyer|biggest buyer|top buyer|top spender|which party|who bought)\b/.test(s)) return true;
   if (/\b(show|list|display|how many|how much|number of|total|count of)\b/.test(s)
     && /(invoices?|bills?|payments?|orders?|shipments?|dispatch|customers?|leads?|outstanding|overdue|revenue|sales|stock|proposals?|quotations?)/.test(s)) return true;
@@ -1359,6 +1553,14 @@ export function runAssistant(query: string, ctx: AiContext): AiReply {
   // "Audit log of <person>" — admin-only audit trail.
   const al = auditLogQuery(s, ctx);
   if (al) return al;
+
+  // "Highest-value invoice?", "top-selling product?", "lowest stock?", "best
+  // sales month?", "sales by region?", "invoices above ₹1L?", "how many
+  // quotations?" — grounded analytics over the CRM's own records. Runs before
+  // the buyer leaderboard so product/month/region questions aren't mistaken for
+  // a customer whose name happens to contain a matched word.
+  const an = analytics(s, ctx, wantsDetail(s) || DETAIL_SEEK_RE.test(s));
+  if (an) return an;
 
   // "Who is the highest buyer?", "which party purchased the most?", "top 5
   // customers by spend", "how much did ABC buy?" — grounded buyer leaderboard.
