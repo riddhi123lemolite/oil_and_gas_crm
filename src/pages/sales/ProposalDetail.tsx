@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   FileText,
@@ -31,6 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLookups } from '@/hooks/useLookups';
 import { PROPOSAL_STATUS } from '@/lib/constants';
 import { formatINR, formatDate } from '@/lib/format';
+import { sendEmail, emailConfigured } from '@/lib/email';
 import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
 export default function ProposalDetail() {
@@ -48,6 +49,23 @@ export default function ProposalDetail() {
 
   const [emailOpen, setEmailOpen] = useState(false);
   const [lostOpen, setLostOpen] = useState(false);
+  const [emailTo, setEmailTo] = useState('');
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [sending, setSending] = useState(false);
+
+  // Prefill the email dialog fresh each time it opens.
+  useEffect(() => {
+    if (!emailOpen) return;
+    const p = proposals.find((x) => x.id === id);
+    if (!p) return;
+    const c = customers.find((x) => x.id === p.customerId);
+    setEmailTo(c?.email ?? '');
+    setEmailSubject(`${p.number} — ${p.subject}`);
+    setEmailBody(
+      `Dear ${c?.contactPerson ?? 'Customer'},\n\nPlease find our proposal ${p.number}. We look forward to your confirmation.\n\nRegards,\nOilGas CRM Sales Team`,
+    );
+  }, [emailOpen, id, proposals, customers]);
 
   const proposal = proposals.find((p) => p.id === id);
   if (!proposal) {
@@ -269,37 +287,86 @@ export default function ProposalDetail() {
             <DialogTitle>Send Proposal via Email</DialogTitle>
           </DialogHeader>
           <DialogBody className="space-y-3">
-            <Input defaultValue={customer?.email ?? ''} placeholder="To" />
             <Input
-              defaultValue={`${proposal.number} — ${proposal.subject}`}
+              value={emailTo}
+              onChange={(e) => setEmailTo(e.target.value)}
+              placeholder="To"
+            />
+            <Input
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
               placeholder="Subject"
             />
             <Textarea
               rows={4}
-              defaultValue={`Dear ${customer?.contactPerson ?? 'Customer'},\n\nPlease find attached our proposal ${proposal.number}. We look forward to your confirmation.\n\nRegards,\nOilGas CRM Sales Team`}
+              value={emailBody}
+              onChange={(e) => setEmailBody(e.target.value)}
             />
+            {!emailConfigured && (
+              <p className="text-xs text-content-muted">
+                Email sending isn’t configured yet, so this will be recorded as a
+                demo send. Add EmailJS keys to deliver real emails.
+              </p>
+            )}
           </DialogBody>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEmailOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setEmailOpen(false)}
+              disabled={sending}
+            >
               Cancel
             </Button>
             <Button
-              onClick={() => {
-                setEmailOpen(false);
-                if (user) {
-                  logActivity(
-                    'proposal',
-                    proposal.id,
-                    'EMAIL',
-                    `emailed proposal to ${customer?.companyName ?? 'customer'}`,
-                    user.id,
-                  );
+              disabled={sending}
+              onClick={async () => {
+                if (!emailTo.trim()) {
+                  toast.error('Add a recipient email address first.');
+                  return;
                 }
-                if (proposal.status === 'DRAFT') setStatus('SENT');
-                toast.success('Proposal sent (demo — no real email)');
+
+                const afterSend = () => {
+                  if (user) {
+                    logActivity(
+                      'proposal',
+                      proposal.id,
+                      'EMAIL',
+                      `emailed proposal to ${emailTo}`,
+                      user.id,
+                    );
+                  }
+                  if (proposal.status === 'DRAFT') setStatus('SENT');
+                  setEmailOpen(false);
+                };
+
+                // No email service configured → keep the demo behaviour.
+                if (!emailConfigured) {
+                  afterSend();
+                  toast.success('Proposal sent (demo — no real email)');
+                  return;
+                }
+
+                setSending(true);
+                try {
+                  await sendEmail({
+                    to: emailTo.trim(),
+                    subject: emailSubject,
+                    message: emailBody,
+                  });
+                  afterSend();
+                  toast.success(`Email sent to ${emailTo.trim()}`);
+                } catch (err) {
+                  toast.error(
+                    err instanceof Error
+                      ? `Could not send email: ${err.message}`
+                      : 'Could not send email.',
+                  );
+                } finally {
+                  setSending(false);
+                }
               }}
             >
-              <Mail className="size-4" /> Send
+              <Mail className="size-4" /> {sending ? 'Sending…' : 'Send'}
             </Button>
           </DialogFooter>
         </DialogContent>
