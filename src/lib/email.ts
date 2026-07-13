@@ -69,3 +69,16 @@ export async function sendEmail({
     throw new Error(detail || `Email service returned ${res.status}`);
   }
 }
+
+/**
+ * Zero-setup fallback: opens the user's own email app (Gmail, Outlook, Apple
+ * Mail, etc.) with the recipient, subject, and body pre-filled via a `mailto:`
+ * link. The user just presses send. Works with no accounts or API keys.
+ */
+export function openMailClient({ to, subject, message }: SendEmailInput): void {
+  const url =
+    `mailto:${encodeURIComponent(to)}` +
+    `?subject=${encodeURIComponent(subject)}` +
+    `&body=${encodeURIComponent(message)}`;
+  window.location.href = url;
+}

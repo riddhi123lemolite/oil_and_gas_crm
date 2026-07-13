@@ -31,7 +31,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useLookups } from '@/hooks/useLookups';
 import { PROPOSAL_STATUS } from '@/lib/constants';
 import { formatINR, formatDate } from '@/lib/format';
-import { sendEmail, emailConfigured } from '@/lib/email';
+import { sendEmail, emailConfigured, openMailClient } from '@/lib/email';
 import type { BusinessDocData } from '@/components/pdf/BusinessDocPdf';
 
 export default function ProposalDetail() {
@@ -304,8 +304,8 @@ export default function ProposalDetail() {
             />
             {!emailConfigured && (
               <p className="text-xs text-content-muted">
-                Email sending isn’t configured yet, so this will be recorded as a
-                demo send. Add EmailJS keys to deliver real emails.
+                Send opens your own email app with this message ready — just
+                press send there.
               </p>
             )}
           </DialogBody>
@@ -339,10 +339,16 @@ export default function ProposalDetail() {
                   setEmailOpen(false);
                 };
 
-                // No email service configured → keep the demo behaviour.
+                // No automatic email service configured → open the user's own
+                // email app with everything pre-filled (zero-setup real email).
                 if (!emailConfigured) {
+                  openMailClient({
+                    to: emailTo.trim(),
+                    subject: emailSubject,
+                    message: emailBody,
+                  });
                   afterSend();
-                  toast.success('Proposal sent (demo — no real email)');
+                  toast.success('Opening your email app to send…');
                   return;
                 }
 
