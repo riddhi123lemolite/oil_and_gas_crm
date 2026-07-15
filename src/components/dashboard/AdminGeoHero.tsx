@@ -55,7 +55,7 @@ export function AdminGeoHero() {
   const items = useDataStore((s) => s.items);
   const users = useDataStore((s) => s.users);
 
-  const [metric, setMetric] = useState<GeoMetricKey>('clients');
+  const [metric, setMetric] = useState<GeoMetricKey>('revenue');
   const [selected, setSelected] = useState<string | null>(null);
   const [hover, setHover] = useState<{ data: StateAnalytics | null; x: number; y: number }>({
     data: null,

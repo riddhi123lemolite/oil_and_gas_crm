@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trophy, Target, Users, Gauge } from 'lucide-react';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
+import { SelectField } from '@/components/forms/SelectField';
 import { EmployeePerformanceCard } from './EmployeePerformanceCard';
 import { formatINRCompact } from '@/lib/format';
 import { statusFor, STATUS_META, type TeamPerformance } from '@/lib/performance/types';
@@ -42,6 +44,11 @@ function HeadStat({
 export function EmployeePerformanceSection({ team }: EmployeePerformanceSectionProps) {
   const teamMeta = STATUS_META[statusFor(team.teamPct)];
 
+  const top3 = team.employees.slice(0, 3);
+  const rest = team.employees.slice(3);
+  const [selectedId, setSelectedId] = useState('');
+  const selected = rest.find((e) => e.id === selectedId);
+
   return (
     <div className="space-y-4">
       {/* Summary strip */}
@@ -72,18 +79,52 @@ export function EmployeePerformanceSection({ team }: EmployeePerformanceSectionP
         />
       </div>
 
-      {/* Employee cards */}
+      {/* Top 3 performers */}
       {team.employees.length > 0 ? (
-        <motion.div
-          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-          variants={{ show: { transition: { staggerChildren: 0.04 } } }}
-          initial="hidden"
-          animate="show"
-        >
-          {team.employees.map((e) => (
-            <EmployeePerformanceCard key={e.id} employee={e} />
-          ))}
-        </motion.div>
+        <>
+          <motion.div
+            className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+            variants={{ show: { transition: { staggerChildren: 0.06 } } }}
+            initial="hidden"
+            animate="show"
+          >
+            {top3.map((e) => (
+              <EmployeePerformanceCard key={e.id} employee={e} />
+            ))}
+          </motion.div>
+
+          {/* Everyone else — on demand via a dropdown */}
+          {rest.length > 0 && (
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <span className="text-sm font-medium text-content-secondary">
+                  View another employee
+                </span>
+                <div className="w-full sm:w-72">
+                  <SelectField
+                    value={selectedId}
+                    onChange={setSelectedId}
+                    placeholder={`Select from ${rest.length} more…`}
+                    options={rest.map((e) => ({
+                      value: e.id,
+                      label: `#${e.rank}  ${e.name} · ${e.pct.toFixed(0)}%`,
+                    }))}
+                  />
+                </div>
+              </div>
+              {selected && (
+                <motion.div
+                  key={selected.id}
+                  className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+                  initial="hidden"
+                  animate="show"
+                >
+                  <EmployeePerformanceCard employee={selected} />
+                </motion.div>
+              )}
+            </div>
+          )}
+        </>
       ) : (
         <GlassCard className="p-8 text-center text-sm text-content-muted">
           No employee performance data available.
