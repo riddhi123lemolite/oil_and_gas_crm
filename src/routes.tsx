@@ -5,114 +5,114 @@ import { RequireAuth } from '@/components/layout/RequireAuth';
 import { useAuthStore } from '@/stores/authStore';
 
 // Auth (eager — small, needed first)
-import Login from '@/pages/auth/Login';
-import Signup from '@/pages/auth/Signup';
-import ForgotPassword from '@/pages/auth/ForgotPassword';
-import ResetPassword from '@/pages/auth/ResetPassword';
-import OtpVerification from '@/pages/auth/OtpVerification';
+import Login from '@/screens/auth/Login';
+import Signup from '@/screens/auth/Signup';
+import ForgotPassword from '@/screens/auth/ForgotPassword';
+import ResetPassword from '@/screens/auth/ResetPassword';
+import OtpVerification from '@/screens/auth/OtpVerification';
 
 // App pages (lazy — code-split per route)
-const Dashboard = lazy(() => import('@/pages/dashboard/Dashboard'));
-const MyDashboard = lazy(() => import('@/pages/dashboard/MyDashboard'));
-const SalesAnalytics = lazy(() => import('@/pages/dashboard/SalesAnalytics'));
+const Dashboard = lazy(() => import('@/screens/dashboard/Dashboard'));
+const MyDashboard = lazy(() => import('@/screens/dashboard/MyDashboard'));
+const SalesAnalytics = lazy(() => import('@/screens/dashboard/SalesAnalytics'));
 
-const LeadsList = lazy(() => import('@/pages/leads/LeadsList'));
-const LeadPipeline = lazy(() => import('@/pages/leads/LeadPipeline'));
-const LeadForm = lazy(() => import('@/pages/leads/LeadForm'));
-const LeadDetail = lazy(() => import('@/pages/leads/LeadDetail'));
-const LeadImport = lazy(() => import('@/pages/leads/LeadImport'));
-const LeadConvert = lazy(() => import('@/pages/leads/LeadConvert'));
+const LeadsList = lazy(() => import('@/screens/leads/LeadsList'));
+const LeadPipeline = lazy(() => import('@/screens/leads/LeadPipeline'));
+const LeadForm = lazy(() => import('@/screens/leads/LeadForm'));
+const LeadDetail = lazy(() => import('@/screens/leads/LeadDetail'));
+const LeadImport = lazy(() => import('@/screens/leads/LeadImport'));
+const LeadConvert = lazy(() => import('@/screens/leads/LeadConvert'));
 
-const CustomersList = lazy(() => import('@/pages/customers/CustomersList'));
-const CustomerForm = lazy(() => import('@/pages/customers/CustomerForm'));
-const CustomerDetail = lazy(() => import('@/pages/customers/CustomerDetail'));
+const CustomersList = lazy(() => import('@/screens/customers/CustomersList'));
+const CustomerForm = lazy(() => import('@/screens/customers/CustomerForm'));
+const CustomerDetail = lazy(() => import('@/screens/customers/CustomerDetail'));
 const CustomerDocuments = lazy(
-  () => import('@/pages/customers/CustomerDocuments'),
+  () => import('@/screens/customers/CustomerDocuments'),
 );
-const CustomerLedger = lazy(() => import('@/pages/customers/CustomerLedger'));
+const CustomerLedger = lazy(() => import('@/screens/customers/CustomerLedger'));
 const CustomerSegments = lazy(
-  () => import('@/pages/customers/CustomerSegments'),
+  () => import('@/screens/customers/CustomerSegments'),
 );
 
-const ItemsList = lazy(() => import('@/pages/items/ItemsList'));
-const ItemForm = lazy(() => import('@/pages/items/ItemForm'));
-const ItemDetail = lazy(() => import('@/pages/items/ItemDetail'));
+const ItemsList = lazy(() => import('@/screens/items/ItemsList'));
+const ItemForm = lazy(() => import('@/screens/items/ItemForm'));
+const ItemDetail = lazy(() => import('@/screens/items/ItemDetail'));
 
-const ProposalsList = lazy(() => import('@/pages/sales/ProposalsList'));
-const ProposalForm = lazy(() => import('@/pages/sales/ProposalForm'));
-const ProposalDetail = lazy(() => import('@/pages/sales/ProposalDetail'));
-const SalesOrders = lazy(() => import('@/pages/sales/SalesOrders'));
-const OrderForm = lazy(() => import('@/pages/sales/OrderForm'));
-const SalesOrderDetail = lazy(() => import('@/pages/sales/SalesOrderDetail'));
-const InvoicesList = lazy(() => import('@/pages/sales/InvoicesList'));
-const InvoiceDetail = lazy(() => import('@/pages/sales/InvoiceDetail'));
-const CreateInvoice = lazy(() => import('@/pages/sales/CreateInvoice'));
-const Payments = lazy(() => import('@/pages/sales/Payments'));
+const ProposalsList = lazy(() => import('@/screens/sales/ProposalsList'));
+const ProposalForm = lazy(() => import('@/screens/sales/ProposalForm'));
+const ProposalDetail = lazy(() => import('@/screens/sales/ProposalDetail'));
+const SalesOrders = lazy(() => import('@/screens/sales/SalesOrders'));
+const OrderForm = lazy(() => import('@/screens/sales/OrderForm'));
+const SalesOrderDetail = lazy(() => import('@/screens/sales/SalesOrderDetail'));
+const InvoicesList = lazy(() => import('@/screens/sales/InvoicesList'));
+const InvoiceDetail = lazy(() => import('@/screens/sales/InvoiceDetail'));
+const CreateInvoice = lazy(() => import('@/screens/sales/CreateInvoice'));
+const Payments = lazy(() => import('@/screens/sales/Payments'));
 
 const TransportRoutes = lazy(
-  () => import('@/pages/operations/TransportRoutes'),
+  () => import('@/screens/operations/TransportRoutes'),
 );
-const RouteForm = lazy(() => import('@/pages/operations/RouteForm'));
+const RouteForm = lazy(() => import('@/screens/operations/RouteForm'));
 const DispatchSchedule = lazy(
-  () => import('@/pages/operations/DispatchSchedule'),
+  () => import('@/screens/operations/DispatchSchedule'),
 );
-const TripTracking = lazy(() => import('@/pages/operations/TripTracking'));
-const Vehicles = lazy(() => import('@/pages/operations/Vehicles'));
-const VehicleForm = lazy(() => import('@/pages/operations/VehicleForm'));
-const Drivers = lazy(() => import('@/pages/operations/Drivers'));
-const DriverForm = lazy(() => import('@/pages/operations/DriverForm'));
-const Inventory = lazy(() => import('@/pages/operations/Inventory'));
+const TripTracking = lazy(() => import('@/screens/operations/TripTracking'));
+const Vehicles = lazy(() => import('@/screens/operations/Vehicles'));
+const VehicleForm = lazy(() => import('@/screens/operations/VehicleForm'));
+const Drivers = lazy(() => import('@/screens/operations/Drivers'));
+const DriverForm = lazy(() => import('@/screens/operations/DriverForm'));
+const Inventory = lazy(() => import('@/screens/operations/Inventory'));
 
-const TasksList = lazy(() => import('@/pages/tasks/TasksList'));
-const TaskForm = lazy(() => import('@/pages/tasks/TaskForm'));
-const MyDay = lazy(() => import('@/pages/tasks/MyDay'));
-const Calendar = lazy(() => import('@/pages/tasks/Calendar'));
+const TasksList = lazy(() => import('@/screens/tasks/TasksList'));
+const TaskForm = lazy(() => import('@/screens/tasks/TaskForm'));
+const MyDay = lazy(() => import('@/screens/tasks/MyDay'));
+const Calendar = lazy(() => import('@/screens/tasks/Calendar'));
 
-const Chat = lazy(() => import('@/pages/communication/Chat'));
-const EmailComposer = lazy(() => import('@/pages/communication/EmailComposer'));
-const Notifications = lazy(() => import('@/pages/communication/Notifications'));
-const CallLogs = lazy(() => import('@/pages/communication/CallLogs'));
+const Chat = lazy(() => import('@/screens/communication/Chat'));
+const EmailComposer = lazy(() => import('@/screens/communication/EmailComposer'));
+const Notifications = lazy(() => import('@/screens/communication/Notifications'));
+const CallLogs = lazy(() => import('@/screens/communication/CallLogs'));
 
-const SalesReports = lazy(() => import('@/pages/reports/SalesReports'));
-const LeadFunnelReport = lazy(() => import('@/pages/reports/LeadFunnelReport'));
-const GeographicReport = lazy(() => import('@/pages/reports/GeographicReport'));
-const ReportBuilder = lazy(() => import('@/pages/reports/ReportBuilder'));
+const SalesReports = lazy(() => import('@/screens/reports/SalesReports'));
+const LeadFunnelReport = lazy(() => import('@/screens/reports/LeadFunnelReport'));
+const GeographicReport = lazy(() => import('@/screens/reports/GeographicReport'));
+const ReportBuilder = lazy(() => import('@/screens/reports/ReportBuilder'));
 
-const StaffList = lazy(() => import('@/pages/staff/StaffList'));
-const StaffForm = lazy(() => import('@/pages/staff/StaffForm'));
-const Attendance = lazy(() => import('@/pages/staff/Attendance'));
+const StaffList = lazy(() => import('@/screens/staff/StaffList'));
+const StaffForm = lazy(() => import('@/screens/staff/StaffForm'));
+const Attendance = lazy(() => import('@/screens/staff/Attendance'));
 
-const ProfileSettings = lazy(() => import('@/pages/settings/ProfileSettings'));
-const CompanySettings = lazy(() => import('@/pages/settings/CompanySettings'));
+const ProfileSettings = lazy(() => import('@/screens/settings/ProfileSettings'));
+const CompanySettings = lazy(() => import('@/screens/settings/CompanySettings'));
 const RolesPermissions = lazy(
-  () => import('@/pages/settings/RolesPermissions'),
+  () => import('@/screens/settings/RolesPermissions'),
 );
-const DefinitionPage = lazy(() => import('@/pages/settings/DefinitionPage'));
-const Integrations = lazy(() => import('@/pages/settings/Integrations'));
-const AuditLog = lazy(() => import('@/pages/settings/AuditLog'));
-const SystemSettings = lazy(() => import('@/pages/settings/SystemSettings'));
+const DefinitionPage = lazy(() => import('@/screens/settings/DefinitionPage'));
+const Integrations = lazy(() => import('@/screens/settings/Integrations'));
+const AuditLog = lazy(() => import('@/screens/settings/AuditLog'));
+const SystemSettings = lazy(() => import('@/screens/settings/SystemSettings'));
 
-const HelpCentre = lazy(() => import('@/pages/help/HelpCentre'));
-const ShortcutsPage = lazy(() => import('@/pages/help/ShortcutsPage'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
+const HelpCentre = lazy(() => import('@/screens/help/HelpCentre'));
+const ShortcutsPage = lazy(() => import('@/screens/help/ShortcutsPage'));
+const NotFound = lazy(() => import('@/screens/NotFound'));
 
 // Customer portal (5th role)
-const PortalDashboard = lazy(() => import('@/pages/portal/PortalDashboard'));
-const ProductTracking = lazy(() => import('@/pages/portal/ProductTracking'));
-const PortalPayments = lazy(() => import('@/pages/portal/PortalPayments'));
-const PortalInvoices = lazy(() => import('@/pages/portal/PortalInvoices'));
-const PortalInvoiceDetail = lazy(() => import('@/pages/portal/PortalInvoiceDetail'));
-const DocumentCenter = lazy(() => import('@/pages/portal/DocumentCenter'));
-const PortalHistory = lazy(() => import('@/pages/portal/PortalHistory'));
-const PortalNotifications = lazy(() => import('@/pages/portal/PortalNotifications'));
-const ErpCalculator = lazy(() => import('@/pages/portal/ErpCalculator'));
-const PortalOrders = lazy(() => import('@/pages/portal/PortalOrders'));
-const PortalMarket = lazy(() => import('@/pages/portal/PortalMarket'));
-const PortalSupport = lazy(() => import('@/pages/portal/PortalSupport'));
-const CompanyInfo = lazy(() => import('@/pages/portal/CompanyInfo'));
-const CustomerProfile = lazy(() => import('@/pages/portal/CustomerProfile'));
-const CustomerSettings = lazy(() => import('@/pages/portal/CustomerSettings'));
-const Assistant = lazy(() => import('@/pages/ai/Assistant'));
+const PortalDashboard = lazy(() => import('@/screens/portal/PortalDashboard'));
+const ProductTracking = lazy(() => import('@/screens/portal/ProductTracking'));
+const PortalPayments = lazy(() => import('@/screens/portal/PortalPayments'));
+const PortalInvoices = lazy(() => import('@/screens/portal/PortalInvoices'));
+const PortalInvoiceDetail = lazy(() => import('@/screens/portal/PortalInvoiceDetail'));
+const DocumentCenter = lazy(() => import('@/screens/portal/DocumentCenter'));
+const PortalHistory = lazy(() => import('@/screens/portal/PortalHistory'));
+const PortalNotifications = lazy(() => import('@/screens/portal/PortalNotifications'));
+const ErpCalculator = lazy(() => import('@/screens/portal/ErpCalculator'));
+const PortalOrders = lazy(() => import('@/screens/portal/PortalOrders'));
+const PortalMarket = lazy(() => import('@/screens/portal/PortalMarket'));
+const PortalSupport = lazy(() => import('@/screens/portal/PortalSupport'));
+const CompanyInfo = lazy(() => import('@/screens/portal/CompanyInfo'));
+const CustomerProfile = lazy(() => import('@/screens/portal/CustomerProfile'));
+const CustomerSettings = lazy(() => import('@/screens/portal/CustomerSettings'));
+const Assistant = lazy(() => import('@/screens/ai/Assistant'));
 
 // Customers land on their portal; staff see the main dashboard.
 function RoleHome() {

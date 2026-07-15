@@ -13,15 +13,15 @@
  *      and set the template's "To email" field to {{to_email}}.
  *      Note the Template ID.
  *   4. Copy your Public Key (Account → General).
- *   5. Put all three in your environment (.env locally, or Vercel project vars):
- *        VITE_EMAILJS_SERVICE_ID=...
- *        VITE_EMAILJS_TEMPLATE_ID=...
- *        VITE_EMAILJS_PUBLIC_KEY=...
+ *   5. Put all three in your environment (.env.local, or Vercel project vars):
+ *        NEXT_PUBLIC_EMAILJS_SERVICE_ID=...
+ *        NEXT_PUBLIC_EMAILJS_TEMPLATE_ID=...
+ *        NEXT_PUBLIC_EMAILJS_PUBLIC_KEY=...
  */
 
-const SERVICE_ID = import.meta.env.VITE_EMAILJS_SERVICE_ID as string | undefined;
-const TEMPLATE_ID = import.meta.env.VITE_EMAILJS_TEMPLATE_ID as string | undefined;
-const PUBLIC_KEY = import.meta.env.VITE_EMAILJS_PUBLIC_KEY as string | undefined;
+const SERVICE_ID = process.env.NEXT_PUBLIC_EMAILJS_SERVICE_ID as string | undefined;
+const TEMPLATE_ID = process.env.NEXT_PUBLIC_EMAILJS_TEMPLATE_ID as string | undefined;
+const PUBLIC_KEY = process.env.NEXT_PUBLIC_EMAILJS_PUBLIC_KEY as string | undefined;
 
 /** True when all EmailJS credentials are present, so real sending is possible. */
 export const emailConfigured = Boolean(SERVICE_ID && TEMPLATE_ID && PUBLIC_KEY);

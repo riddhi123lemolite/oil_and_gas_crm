@@ -3,15 +3,16 @@ import { DEMO_MODE } from './config';
 
 // These come from your Supabase project (Settings → API) and live in
 // the `.env` file at the project root. See SETUP-SUPABASE.md.
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
+const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined;
 
 // In demo mode we never call Supabase, so missing keys are fine. Outside demo
 // mode, real keys are required.
 if (!DEMO_MODE && (!url || !anonKey)) {
   throw new Error(
-    'Supabase is not configured. Create a `.env` file with VITE_SUPABASE_URL and ' +
-      'VITE_SUPABASE_ANON_KEY, then restart `npm run dev`. See SETUP-SUPABASE.md.',
+    'Supabase is not configured. Create a `.env.local` file with ' +
+      'NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, then restart ' +
+      '`npm run dev`. See SETUP-SUPABASE.md.',
   );
 }
 

@@ -8,9 +8,9 @@
 // placeholder keys) so a demo never crashes at login. You can also force it with
 // VITE_DEMO_MODE=true, or force it OFF with VITE_DEMO_MODE=false.
 // ---------------------------------------------------------------------------
-const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
-const key = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-const flag = import.meta.env.VITE_DEMO_MODE as string | undefined;
+const url = process.env.NEXT_PUBLIC_SUPABASE_URL as string | undefined;
+const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string | undefined;
+const flag = process.env.NEXT_PUBLIC_DEMO_MODE as string | undefined;
 
 const looksUnconfigured =
   !url ||
@@ -30,5 +30,7 @@ export const DEMO_MODE =
 // frontend never holds the Anthropic key. VITE_AI_PROXY_URL defaults to the
 // same-origin path that nginx forwards to the Node proxy.
 // ---------------------------------------------------------------------------
-export const LLM_ENABLED = (import.meta.env.VITE_LLM_ENABLED as string | undefined) === 'true';
-export const AI_PROXY_URL = (import.meta.env.VITE_AI_PROXY_URL as string | undefined) ?? '/api/ai';
+export const LLM_ENABLED =
+  (process.env.NEXT_PUBLIC_LLM_ENABLED as string | undefined) === 'true';
+export const AI_PROXY_URL =
+  (process.env.NEXT_PUBLIC_AI_PROXY_URL as string | undefined) ?? '/api/ai';
