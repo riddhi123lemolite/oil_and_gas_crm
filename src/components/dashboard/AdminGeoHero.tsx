@@ -7,11 +7,10 @@ import { useDataStore } from '@/stores/dataStore';
 import { formatNumber } from '@/lib/format';
 import { GEO_METRICS } from '@/lib/geo/metrics';
 import { buildGeoAnalytics, buildStateDetail, type GeoInput } from '@/lib/geo/analyticsService';
-import { DEFAULT_GEO_FILTERS, type GeoMetricKey, type StateAnalytics } from '@/lib/geo/types';
+import { DEFAULT_GEO_FILTERS, type GeoMetricKey } from '@/lib/geo/types';
 import { regionOf, REGIONS } from '@/lib/geo/regions';
 import { IndiaChoropleth } from '@/components/geo/IndiaChoropleth';
 import { MapLegend } from '@/components/geo/MapLegend';
-import { MapTooltip } from '@/components/geo/MapTooltip';
 import { MetricPicker } from '@/components/geo/MetricPicker';
 import { StatePanel } from '@/components/geo/StatePanel';
 
@@ -57,11 +56,6 @@ export function AdminGeoHero() {
 
   const [metric, setMetric] = useState<GeoMetricKey>('revenue');
   const [selected, setSelected] = useState<string | null>(null);
-  const [hover, setHover] = useState<{ data: StateAnalytics | null; x: number; y: number }>({
-    data: null,
-    x: 0,
-    y: 0,
-  });
 
   const lowColor = useCssVar('--bg-muted', '#f4f6f8');
   const lineColor = useCssVar('--border', '#e5e9ef');
@@ -149,7 +143,6 @@ export function AdminGeoHero() {
             lineColor={lineColor}
             selected={selected}
             onSelect={setSelected}
-            onHover={(data, x, y) => setHover({ data, x, y })}
           />
           <div className="mt-2">
             <MapLegend metric={activeMetric} low={lowColor} max={max} />
@@ -236,7 +229,6 @@ export function AdminGeoHero() {
         </div>
       </div>
 
-      <MapTooltip data={hover.data} x={hover.x} y={hover.y} />
       <StatePanel detail={detail} onClose={() => setSelected(null)} />
     </GlassCard>
   );

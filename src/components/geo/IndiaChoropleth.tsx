@@ -9,6 +9,7 @@ import {
 } from 'react-simple-maps';
 import { makeColorScale } from '@/lib/geo/color';
 import { normalizeStateName } from '@/lib/geo/regions';
+import { MapTooltip, type TooltipAnchor } from './MapTooltip';
 import type { GeoMetric } from '@/lib/geo/metrics';
 import type { StateAnalytics } from '@/lib/geo/types';
 
@@ -29,7 +30,6 @@ interface IndiaChoroplethProps {
   lineColor: string;
   selected: string | null;
   onSelect: (state: string | null) => void;
-  onHover: (state: StateAnalytics | null, x: number, y: number) => void;
 }
 
 const easeInOutCubic = (t: number): number =>
@@ -43,10 +43,11 @@ export function IndiaChoropleth({
   lineColor,
   selected,
   onSelect,
-  onHover,
 }: IndiaChoroplethProps) {
   const [view, setView] = useState<View>(HOME);
   const [ready, setReady] = useState(false);
+  const [hovered, setHovered] = useState<TooltipAnchor | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const centroids = useRef<Record<string, [number, number]>>({});
   const rafRef = useRef<number | null>(null);
   // Mirror of `view` so the tween always reads the CURRENT viewport, and a
@@ -126,6 +127,20 @@ export function IndiaChoropleth({
     setView(pos);
   }, []);
 
+  // Track the pointer relative to the map container so the tooltip can be
+  // clamped/flipped to always stay inside the map.
+  const showTip = useCallback((row: StateAnalytics, e: { clientX: number; clientY: number }) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    setHovered({
+      data: row,
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      cw: rect.width,
+      ch: rect.height,
+    });
+  }, []);
+
   useEffect(
     () => () => {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -135,6 +150,7 @@ export function IndiaChoropleth({
 
   return (
     <motion.div
+      ref={containerRef}
       initial={{ opacity: 0, scale: 0.985 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -180,13 +196,9 @@ export function IndiaChoropleth({
                     key={geo.rsmKey}
                     geography={geo}
                     tabIndex={-1}
-                    onMouseEnter={(e) =>
-                      row && onHover(row, e.clientX, e.clientY)
-                    }
-                    onMouseMove={(e) =>
-                      row && onHover(row, e.clientX, e.clientY)
-                    }
-                    onMouseLeave={() => onHover(null, 0, 0)}
+                    onMouseEnter={(e) => row && showTip(row, e)}
+                    onMouseMove={(e) => row && showTip(row, e)}
+                    onMouseLeave={() => setHovered(null)}
                     onClick={() => row && onSelect(isSelected ? null : name)}
                     style={{
                       default: {
@@ -221,6 +233,8 @@ export function IndiaChoropleth({
           </Geographies>
         </ZoomableGroup>
       </ComposableMap>
+
+      <MapTooltip hovered={hovered} />
     </motion.div>
   );
 }
