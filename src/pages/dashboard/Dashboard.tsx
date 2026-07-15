@@ -205,12 +205,13 @@ export default function Dashboard() {
   );
 
   // Admin-only employee performance (skipped entirely for other roles).
+  const perfInput = useMemo(
+    () => ({ users, customers, invoices, payments }),
+    [users, customers, invoices, payments],
+  );
   const team = useMemo(
-    () =>
-      isAdmin
-        ? buildTeamPerformance({ users, customers, invoices, payments })
-        : null,
-    [isAdmin, users, customers, invoices, payments],
+    () => (isAdmin ? buildTeamPerformance(perfInput) : null),
+    [isAdmin, perfInput],
   );
 
   return (
@@ -325,7 +326,7 @@ export default function Dashboard() {
             title="Monthly Performance"
             subtitle="Team achievement trends and departmental breakdown"
           />
-          <PerformanceCharts team={team} />
+          <PerformanceCharts team={team} input={perfInput} />
 
           <SectionTitle icon={Trophy} title="Leaderboard" subtitle="Top performers, ranked" />
           <GlassCard className="p-4 sm:p-5">

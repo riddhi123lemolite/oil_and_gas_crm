@@ -1,42 +1,98 @@
+import { useMemo, useState } from 'react';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { TrendChart } from '@/components/charts/TrendChart';
 import { BarChart } from '@/components/charts/BarChart';
+import { SelectField } from '@/components/forms/SelectField';
 import { PerformanceRing } from './PerformanceRing';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
 import { formatINRCompact } from '@/lib/format';
 import { statusFor, STATUS_META, type TeamPerformance } from '@/lib/performance/types';
+import {
+  buildPerformanceTrend,
+  performanceMonths,
+  GRANULARITY_OPTIONS,
+  type Granularity,
+  type PerformanceInput,
+} from '@/lib/performance/service';
 
 interface PerformanceChartsProps {
   team: TeamPerformance;
+  input: PerformanceInput;
 }
 
 function CardTitle({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
-    <div className="mb-3">
+    <div>
       <h3 className="font-display text-sm font-semibold text-content">{title}</h3>
       {subtitle && <p className="text-xs text-content-muted">{subtitle}</p>}
     </div>
   );
 }
 
-export function PerformanceCharts({ team }: PerformanceChartsProps) {
+export function PerformanceCharts({ team, input }: PerformanceChartsProps) {
   const teamMeta = STATUS_META[statusFor(team.teamPct)];
   const deptData = team.departments.map((d) => ({
     role: d.roleLabel,
     achieved: d.achieved,
   }));
 
+  const months = useMemo(() => performanceMonths(), []);
+  const [granularity, setGranularity] = useState<Granularity>('monthly');
+  const [monthKey, setMonthKey] = useState(
+    () => months[months.length - 1]?.value ?? '',
+  );
+  const monthPickerDisabled = granularity === 'monthly' || granularity === 'annually';
+  const monthLabel = months.find((m) => m.value === monthKey)?.label ?? '';
+
+  const trend = useMemo(
+    () =>
+      buildPerformanceTrend(input, {
+        granularity,
+        monthKey,
+        monthlyTarget: team.totalTarget,
+      }),
+    [input, granularity, monthKey, team.totalTarget],
+  );
+
+  const granularityLabel =
+    GRANULARITY_OPTIONS.find((g) => g.value === granularity)?.label ?? 'Monthly';
+  const scopeLabel = monthPickerDisabled
+    ? granularity === 'annually'
+      ? 'all years'
+      : 'trailing 12 months'
+    : monthLabel;
+
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <GlassCard className="p-4 lg:col-span-2">
-        <CardTitle
-          title="Monthly Target vs Achievement"
-          subtitle="Team revenue by month against the combined monthly target"
-        />
+        <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <CardTitle
+            title={`${granularityLabel} Target vs Achievement`}
+            subtitle={`Team revenue vs target · ${scopeLabel}`}
+          />
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="w-32">
+              <SelectField
+                value={granularity}
+                onChange={(v) => setGranularity(v as Granularity)}
+                options={GRANULARITY_OPTIONS}
+              />
+            </div>
+            <div className="w-32">
+              <SelectField
+                value={monthKey}
+                onChange={setMonthKey}
+                options={months}
+                disabled={monthPickerDisabled}
+                placeholder="Month"
+              />
+            </div>
+          </div>
+        </div>
         <TrendChart
           height={240}
-          data={team.monthly as unknown as Record<string, string | number>[]}
-          xKey="month"
+          data={trend as unknown as Record<string, string | number>[]}
+          xKey="label"
           valueFormatter={formatINRCompact}
           series={[
             { key: 'achieved', name: 'Achieved', color: '#16A34A' },
@@ -68,15 +124,17 @@ export function PerformanceCharts({ team }: PerformanceChartsProps) {
 
       <GlassCard className="p-4 lg:col-span-3">
         <CardTitle title="Department Performance" subtitle="Monthly achievement by team" />
-        <BarChart
-          height={220}
-          data={deptData}
-          xKey="role"
-          barKey="achieved"
-          barName="Achieved"
-          color="#0F3D5C"
-          valueFormatter={formatINRCompact}
-        />
+        <div className="mt-3">
+          <BarChart
+            height={220}
+            data={deptData}
+            xKey="role"
+            barKey="achieved"
+            barName="Achieved"
+            color="#0F3D5C"
+            valueFormatter={formatINRCompact}
+          />
+        </div>
       </GlassCard>
     </div>
   );

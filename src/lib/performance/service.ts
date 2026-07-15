@@ -185,3 +185,127 @@ export async function fetchTeamPerformance(
   // A live endpoint would be: return (await fetch('/api/performance/team')).json()
   return Promise.resolve(buildTeamPerformance(input));
 }
+
+// ---------------------------------------------------------------------------
+// Configurable performance trend (month + granularity selectors)
+// ---------------------------------------------------------------------------
+
+export type Granularity = 'daily' | 'weekly' | 'monthly' | 'annually';
+
+export const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
+  { value: 'daily', label: 'Daily' },
+  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'annually', label: 'Annually' },
+];
+
+export interface TrendPoint {
+  label: string;
+  achieved: number;
+  target: number;
+}
+
+/** Selectable months (trailing 12) for the trend's month picker. */
+export function performanceMonths(
+  now: Date = REF_NOW,
+): { value: string; label: string }[] {
+  const months: { value: string; label: string }[] = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ value: `${d.getFullYear()}-${d.getMonth()}`, label: format(d, 'MMM yyyy') });
+  }
+  return months;
+}
+
+function trackedOwners(users: User[]): Set<string> {
+  return new Set(
+    users
+      .filter(
+        (u) =>
+          u.active &&
+          (u.role === 'SALES_EXECUTIVE' || u.role === 'SALES_MANAGER'),
+      )
+      .map((u) => u.id),
+  );
+}
+
+/**
+ * Build the target-vs-achievement series for the selected granularity. Daily
+ * and weekly views drill into the chosen month; monthly and annual views span
+ * the trailing year / all years. The flat target line scales to the bucket
+ * size so it stays comparable to achievement.
+ */
+export function buildPerformanceTrend(
+  input: PerformanceInput,
+  opts: { granularity: Granularity; monthKey: string; monthlyTarget: number },
+  now: Date = REF_NOW,
+): TrendPoint[] {
+  const owners = trackedOwners(input.users);
+  const customerOwner = new Map(input.customers.map((c) => [c.id, c.ownerId]));
+  const tracked = input.invoices
+    .map((inv) => {
+      const owner = customerOwner.get(inv.customerId);
+      return owner && owners.has(owner)
+        ? { ts: new Date(inv.invoiceDate), amt: inv.total }
+        : null;
+    })
+    .filter((x): x is { ts: Date; amt: number } => x !== null);
+
+  const [yStr, mStr] = opts.monthKey.split('-');
+  const selYear = Number(yStr);
+  const selMonth = Number(mStr);
+  const target = opts.monthlyTarget;
+
+  if (opts.granularity === 'daily') {
+    const days = new Date(selYear, selMonth + 1, 0).getDate();
+    const pts: TrendPoint[] = Array.from({ length: days }, (_, i) => ({
+      label: String(i + 1),
+      achieved: 0,
+      target: target / days,
+    }));
+    for (const x of tracked)
+      if (x.ts.getFullYear() === selYear && x.ts.getMonth() === selMonth) {
+        const slot = pts[x.ts.getDate() - 1];
+        if (slot) slot.achieved += x.amt;
+      }
+    return pts;
+  }
+
+  if (opts.granularity === 'weekly') {
+    const days = new Date(selYear, selMonth + 1, 0).getDate();
+    const weeks = Math.ceil(days / 7);
+    const pts: TrendPoint[] = Array.from({ length: weeks }, (_, i) => ({
+      label: `W${i + 1}`,
+      achieved: 0,
+      target: target / weeks,
+    }));
+    for (const x of tracked)
+      if (x.ts.getFullYear() === selYear && x.ts.getMonth() === selMonth) {
+        const wi = Math.floor((x.ts.getDate() - 1) / 7);
+        if (pts[wi]) pts[wi].achieved += x.amt;
+      }
+    return pts;
+  }
+
+  if (opts.granularity === 'annually') {
+    const byYear = new Map<number, number>();
+    for (const x of tracked)
+      byYear.set(x.ts.getFullYear(), (byYear.get(x.ts.getFullYear()) ?? 0) + x.amt);
+    return [...byYear.keys()]
+      .sort((a, b) => a - b)
+      .map((y) => ({ label: String(y), achieved: byYear.get(y) ?? 0, target: target * 12 }));
+  }
+
+  // Monthly — trailing 12 months.
+  const buckets = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (11 - i), 1);
+    return { y: d.getFullYear(), m: d.getMonth(), label: format(d, 'MMM'), achieved: 0, target };
+  });
+  for (const x of tracked) {
+    const b = buckets.find(
+      (b) => b.y === x.ts.getFullYear() && b.m === x.ts.getMonth(),
+    );
+    if (b) b.achieved += x.amt;
+  }
+  return buckets.map((b) => ({ label: b.label, achieved: b.achieved, target: b.target }));
+}
