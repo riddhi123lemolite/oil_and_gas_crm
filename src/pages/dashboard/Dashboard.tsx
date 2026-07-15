@@ -8,6 +8,8 @@ import {
   Target,
   Trophy,
   ArrowRight,
+  Users,
+  BarChart3,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KpiCard } from '@/components/shared/KpiCard';
@@ -19,6 +21,12 @@ import { DonutChart } from '@/components/charts/DonutChart';
 import { FunnelChart } from '@/components/charts/FunnelChart';
 import { IndiaMap } from '@/components/charts/IndiaMap';
 import { SelectField } from '@/components/forms/SelectField';
+import { GlassCard } from '@/components/dashboard/GlassCard';
+import { AdminGeoHero } from '@/components/dashboard/AdminGeoHero';
+import { EmployeePerformanceSection } from '@/components/performance/EmployeePerformanceSection';
+import { PerformanceCharts } from '@/components/performance/PerformanceCharts';
+import { PerformanceLeaderboard } from '@/components/performance/PerformanceLeaderboard';
+import { buildTeamPerformance } from '@/lib/performance/service';
 import { useDataStore } from '@/stores/dataStore';
 import { useAuth } from '@/hooks/useAuth';
 import { useLookups } from '@/hooks/useLookups';
@@ -32,6 +40,31 @@ import { formatINRCompact, formatNumber, formatRelative } from '@/lib/format';
 import { LEAD_STATUS, ITEM_CATEGORY_COLOR } from '@/lib/constants';
 import type { ItemCategory } from '@/types';
 
+/** Labelled divider that introduces each premium admin section. */
+function SectionTitle({
+  icon: Icon,
+  title,
+  subtitle,
+}: {
+  icon: typeof Users;
+  title: string;
+  subtitle?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 pt-1">
+      <span className="flex size-8 items-center justify-center rounded-lg bg-brand-primary/8 text-brand-primary dark:bg-brand-secondary/12 dark:text-brand-secondary">
+        <Icon className="size-4" />
+      </span>
+      <div>
+        <h2 className="font-display text-lg font-bold tracking-tight text-content">
+          {title}
+        </h2>
+        {subtitle && <p className="text-xs text-content-muted">{subtitle}</p>}
+      </div>
+    </div>
+  );
+}
+
 const PERIODS = [
   { value: '1', label: 'This Month' },
   { value: '3', label: 'This Quarter' },
@@ -40,7 +73,7 @@ const PERIODS = [
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, canSeeMargins } = useAuth();
+  const { user, canSeeMargins, isAdmin } = useAuth();
   const { customerName, userName } = useLookups();
   const {
     invoices,
@@ -50,6 +83,8 @@ export default function Dashboard() {
     activities,
     tasks,
     customers,
+    payments,
+    users,
   } = useDataStore();
 
   const [period, setPeriod] = useState('12');
@@ -169,6 +204,15 @@ export default function Dashboard() {
     [tasks, user],
   );
 
+  // Admin-only employee performance (skipped entirely for other roles).
+  const team = useMemo(
+    () =>
+      isAdmin
+        ? buildTeamPerformance({ users, customers, invoices, payments })
+        : null,
+    [isAdmin, users, customers, invoices, payments],
+  );
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -259,9 +303,40 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* ── Admin-only premium sections ─────────────────────────────── */}
+      {isAdmin && team && (
+        <>
+          <SectionTitle
+            icon={TrendingUp}
+            title="Geographic Analytics"
+            subtitle="Where your business lives — customers, hotspots and sales spread"
+          />
+          <AdminGeoHero />
+
+          <SectionTitle
+            icon={Users}
+            title="Employee Performance"
+            subtitle="Monthly targets vs achievement across every team"
+          />
+          <EmployeePerformanceSection team={team} />
+
+          <SectionTitle
+            icon={BarChart3}
+            title="Monthly Performance"
+            subtitle="Team achievement trends and departmental breakdown"
+          />
+          <PerformanceCharts team={team} />
+
+          <SectionTitle icon={Trophy} title="Leaderboard" subtitle="Top performers, ranked" />
+          <GlassCard className="p-4 sm:p-5">
+            <PerformanceLeaderboard employees={team.employees} />
+          </GlassCard>
+        </>
+      )}
+
       {/* Trend + Geo */}
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className={isAdmin ? 'lg:col-span-3' : 'lg:col-span-2'}>
           <CardHeader>
             <CardTitle>Sales Trend</CardTitle>
             <span className="text-xs text-content-muted">
@@ -279,20 +354,22 @@ export default function Dashboard() {
             />
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales by State</CardTitle>
-            <span className="text-xs text-content-muted">Click to filter</span>
-          </CardHeader>
-          <CardContent>
-            <IndiaMap
-              data={geoData}
-              selected={stateFilter}
-              onSelect={setStateFilter}
-              valueFormatter={formatINRCompact}
-            />
-          </CardContent>
-        </Card>
+        {!isAdmin && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales by State</CardTitle>
+              <span className="text-xs text-content-muted">Click to filter</span>
+            </CardHeader>
+            <CardContent>
+              <IndiaMap
+                data={geoData}
+                selected={stateFilter}
+                onSelect={setStateFilter}
+                valueFormatter={formatINRCompact}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Donut + Funnel + Top customers */}

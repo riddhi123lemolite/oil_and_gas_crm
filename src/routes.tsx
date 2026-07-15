@@ -76,7 +76,6 @@ const CallLogs = lazy(() => import('@/pages/communication/CallLogs'));
 const SalesReports = lazy(() => import('@/pages/reports/SalesReports'));
 const LeadFunnelReport = lazy(() => import('@/pages/reports/LeadFunnelReport'));
 const GeographicReport = lazy(() => import('@/pages/reports/GeographicReport'));
-const GeoAnalytics = lazy(() => import('@/pages/reports/GeoAnalytics'));
 const ReportBuilder = lazy(() => import('@/pages/reports/ReportBuilder'));
 
 const StaffList = lazy(() => import('@/pages/staff/StaffList'));
@@ -200,7 +199,6 @@ export const router = createBrowserRouter([
       { path: 'reports/sales', element: <SalesReports /> },
       { path: 'reports/funnel', element: <LeadFunnelReport /> },
       { path: 'reports/geo', element: <GeographicReport /> },
-      { path: 'reports/geo-analytics', element: <GeoAnalytics /> },
       { path: 'reports/builder', element: <ReportBuilder /> },
 
       { path: 'staff', element: <StaffList /> },
