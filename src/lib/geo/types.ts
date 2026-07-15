@@ -61,7 +61,8 @@ export interface GeoTransaction {
   id: string;
   number: string;
   customer: string;
-  amount: number;
+  /** Distributed volume for the invoice, in litres. */
+  volume: number;
   date: string;
   status: InvoiceStatus;
 }
@@ -69,18 +70,23 @@ export interface GeoTransaction {
 export interface GeoTopCustomer {
   id: string;
   name: string;
-  revenue: number;
+  /** Distributed volume, in litres. */
+  volume: number;
   segment: CustomerSegment;
 }
 
 export interface GeoTrendPoint {
   month: string;
-  revenue: number;
+  /** Distributed volume, in litres. */
+  volume: number;
 }
 
-export interface GeoCategorySlice {
-  category: ItemCategory;
-  value: number;
+/** Per-city distribution within a state. */
+export interface GeoCity {
+  city: string;
+  clients: number;
+  /** Distributed volume, in litres. */
+  consumption: number;
 }
 
 /** Everything the slide-in panel needs for one state. */
@@ -88,7 +94,7 @@ export interface StateDetail extends StateAnalytics {
   topCustomers: GeoTopCustomer[];
   recentTransactions: GeoTransaction[];
   salesTrend: GeoTrendPoint[];
-  categoryBreakdown: GeoCategorySlice[];
+  cityBreakdown: GeoCity[];
 }
 
 export interface GeoAnalyticsResponse {

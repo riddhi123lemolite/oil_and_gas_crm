@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Trophy } from 'lucide-react';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
 import { StatusBadge } from '@/components/shared/StatusBadge';
-import { formatINRCompact } from '@/lib/format';
+import { formatKL } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { STATUS_META, type EmployeePerformance } from '@/lib/performance/types';
 
@@ -74,10 +74,10 @@ export function PerformanceLeaderboard({ employees }: PerformanceLeaderboardProp
                   </div>
                 </td>
                 <td className="num py-2 pr-2 text-right text-content-secondary">
-                  {formatINRCompact(e.target)}
+                  {formatKL(e.target)}
                 </td>
                 <td className="num py-2 pr-1 text-right font-semibold text-content">
-                  {formatINRCompact(e.achieved)}
+                  {formatKL(e.achieved)}
                 </td>
               </motion.tr>
             );

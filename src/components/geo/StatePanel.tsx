@@ -5,6 +5,7 @@ import {
   Briefcase,
   ClipboardList,
   Gauge,
+  MapPin,
   Users,
   X,
   type LucideIcon,
@@ -14,13 +15,7 @@ import { TrendChart } from '@/components/charts/TrendChart';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { CUSTOMER_SEGMENT, INVOICE_STATUS } from '@/lib/constants';
-import {
-  formatINR,
-  formatINRCompact,
-  formatKL,
-  formatNumber,
-  formatDate,
-} from '@/lib/format';
+import { formatKL, formatNumber, formatDate } from '@/lib/format';
 import { GEO_METRICS } from '@/lib/geo/metrics';
 import { cn } from '@/lib/utils';
 import type { StateDetail } from '@/lib/geo/types';
@@ -118,7 +113,7 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                   )}
                   {Math.abs(detail.growth).toFixed(1)}%
                   <span className="font-normal text-content-muted">
-                    revenue momentum
+                    momentum
                   </span>
                 </div>
               </div>
@@ -133,13 +128,19 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
 
             {/* Body */}
             <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-              {/* KPIs */}
+              {/* KPIs — quantities only */}
               <div className="grid grid-cols-2 gap-2.5">
                 <StatTile
-                  icon={GEO_METRICS.revenue.icon}
-                  label="Revenue"
-                  value={formatINRCompact(detail.revenue)}
-                  accent={GEO_METRICS.revenue.hue}
+                  icon={Gauge}
+                  label="Consumption"
+                  value={formatKL(detail.consumption)}
+                  accent={GEO_METRICS.consumption.hue}
+                />
+                <StatTile
+                  icon={GEO_METRICS.oil.icon}
+                  label="Oil : Gas"
+                  value={`${formatKL(detail.oil)} / ${formatKL(detail.gas)}`}
+                  accent={GEO_METRICS.oil.hue}
                 />
                 <StatTile
                   icon={Users}
@@ -160,16 +161,10 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                   accent={GEO_METRICS.pendingOrders.hue}
                 />
                 <StatTile
-                  icon={Gauge}
-                  label="Consumption"
-                  value={formatKL(detail.consumption)}
-                  accent={GEO_METRICS.consumption.hue}
-                />
-                <StatTile
-                  icon={GEO_METRICS.oil.icon}
-                  label="Oil : Gas"
-                  value={`${formatKL(detail.oil)} / ${formatKL(detail.gas)}`}
-                  accent={GEO_METRICS.oil.hue}
+                  icon={MapPin}
+                  label="Cities"
+                  value={formatNumber(detail.cityBreakdown.length)}
+                  accent={GEO_METRICS.clients.hue}
                 />
               </div>
 
@@ -199,8 +194,43 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                 )}
               </Section>
 
-              {/* Sales trend */}
-              <Section title="Sales Trend">
+              {/* City-wise distribution within the state */}
+              <Section title="City-wise Distribution">
+                {detail.cityBreakdown.length ? (
+                  <div className="space-y-1.5">
+                    {detail.cityBreakdown.map((c) => {
+                      const maxCity = detail.cityBreakdown[0]?.consumption || 1;
+                      return (
+                        <div key={c.city} className="flex items-center gap-2 text-sm">
+                          <span className="w-24 shrink-0 truncate text-content-secondary">
+                            {c.city}
+                          </span>
+                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${(c.consumption / maxCity) * 100}%`,
+                                backgroundColor: GEO_METRICS.consumption.hue,
+                              }}
+                            />
+                          </div>
+                          <span className="num w-16 shrink-0 text-right text-xs font-semibold text-content">
+                            {formatKL(c.consumption)}
+                          </span>
+                          <span className="num w-10 shrink-0 text-right text-[10px] text-content-muted">
+                            {c.clients}👤
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <EmptyState compact title="No city data in range" />
+                )}
+              </Section>
+
+              {/* Volume trend */}
+              <Section title="Volume Trend">
                 <TrendChart
                   height={180}
                   data={detail.salesTrend as unknown as Record<
@@ -208,12 +238,12 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                     string | number
                   >[]}
                   xKey="month"
-                  valueFormatter={formatINRCompact}
+                  valueFormatter={formatKL}
                   series={[
                     {
-                      key: 'revenue',
-                      name: 'Revenue',
-                      color: GEO_METRICS.revenue.hue,
+                      key: 'volume',
+                      name: 'Volume',
+                      color: GEO_METRICS.consumption.hue,
                     },
                   ]}
                 />
@@ -233,7 +263,7 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                         </span>
                         <StatusBadge def={CUSTOMER_SEGMENT[c.segment]} />
                         <span className="num shrink-0 font-medium text-content">
-                          {formatINRCompact(c.revenue)}
+                          {formatKL(c.volume)}
                         </span>
                       </div>
                     ))}
@@ -262,7 +292,7 @@ export function StatePanel({ detail, onClose }: StatePanelProps) {
                         </div>
                         <div className="shrink-0 text-right">
                           <div className="num font-medium text-content">
-                            {formatINR(t.amount)}
+                            {formatKL(t.volume)}
                           </div>
                           <div className="text-[10px] text-content-muted">
                             {formatDate(t.date)}

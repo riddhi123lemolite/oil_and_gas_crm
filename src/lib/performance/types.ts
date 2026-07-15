@@ -61,16 +61,9 @@ export interface DepartmentPerformance {
   pct: number;
 }
 
-export interface MonthlyPoint {
-  month: string;
-  achieved: number;
-  target: number;
-}
-
 export interface TeamPerformance {
   employees: EmployeePerformance[];
   departments: DepartmentPerformance[];
-  monthly: MonthlyPoint[];
   totalTarget: number;
   totalAchieved: number;
   teamPct: number;

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Globe2, Users, MapPin, Flame } from 'lucide-react';
+import { Users, MapPin, Flame } from 'lucide-react';
 import { GlassCard } from './GlassCard';
 import { AnimatedCounter } from './AnimatedCounter';
 import { useCssVar } from '@/hooks/useCssVar';
@@ -16,6 +16,17 @@ import { StatePanel } from '@/components/geo/StatePanel';
 
 const REF_NOW = new Date('2026-06-30');
 const REG_WINDOW_DAYS = 90;
+
+// Quantity-based metrics only (no ₹ revenue) — consumption leads and keeps
+// the map's signature orange.
+const HERO_METRICS: GeoMetricKey[] = [
+  'consumption',
+  'oil',
+  'gas',
+  'clients',
+  'projects',
+  'pendingOrders',
+];
 
 function RailStat({
   icon: Icon,
@@ -54,10 +65,10 @@ export function AdminGeoHero() {
   const items = useDataStore((s) => s.items);
   const users = useDataStore((s) => s.users);
 
-  const [metric, setMetric] = useState<GeoMetricKey>('revenue');
+  const [metric, setMetric] = useState<GeoMetricKey>('consumption');
   const [selected, setSelected] = useState<string | null>(null);
 
-  const lowColor = useCssVar('--bg-muted', '#f4f6f8');
+  const lowColor = useCssVar('--map-low', '#cbd3dd');
   const lineColor = useCssVar('--border', '#e5e9ef');
 
   const input: GeoInput = useMemo(
@@ -114,22 +125,16 @@ export function AdminGeoHero() {
 
   return (
     <GlassCard className="p-4 sm:p-5">
-      {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex items-center gap-2.5">
-          <span className="flex size-9 items-center justify-center rounded-lg bg-gradient-to-br from-sky-400 to-cyan-400 text-white">
-            <Globe2 className="size-5" />
-          </span>
-          <div>
-            <h2 className="font-display text-lg font-bold tracking-tight text-content">
-              Geographic Intelligence
-            </h2>
-            <p className="text-xs text-content-muted">
-              Live customer distribution, hotspots & sales spread across India
-            </p>
-          </div>
-        </div>
-        <MetricPicker value={metric} onChange={setMetric} />
+      {/* Header — the section title above already reads "Geographic Analytics" */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-content-muted">
+          Coloured by{' '}
+          <span className="font-medium text-content-secondary">
+            {activeMetric.label}
+          </span>{' '}
+          · hover a state, click for city-level detail
+        </p>
+        <MetricPicker value={metric} onChange={setMetric} metrics={HERO_METRICS} />
       </div>
 
       <div className="mt-4 grid gap-5 lg:grid-cols-3">

@@ -305,14 +305,15 @@ export function buildStateDetail(
 
   const from = rangeStart(filters.dateRange, now);
 
-  const lineAmount = (inv: Invoice): number => {
-    let amount = 0;
+  // Distributed volume (litres) for an invoice, respecting the product filter.
+  const lineVolume = (inv: Invoice): number => {
+    let vol = 0;
     for (const li of inv.items) {
       const cat = itemsById.get(li.itemId)?.category;
       const inScope = cat ? allowedCats.has(cat) : !catFilterActive;
-      if (inScope) amount += li.amount;
+      if (inScope) vol += toLitres(li.quantity, li.unit);
     }
-    return amount;
+    return vol;
   };
 
   // Invoices for this state, in scope.
@@ -326,7 +327,7 @@ export function buildStateDetail(
     );
   });
 
-  // Recent transactions (newest first).
+  // Recent transactions (newest first) — by distributed volume.
   const recentTransactions = [...stateInvoices]
     .sort(
       (a, b) =>
@@ -337,38 +338,38 @@ export function buildStateDetail(
       id: inv.id,
       number: inv.number,
       customer: customersById.get(inv.customerId)?.companyName ?? 'Unknown',
-      amount: inv.total,
+      volume: lineVolume(inv),
       date: inv.invoiceDate,
       status: inv.status,
     }));
 
-  // Top customers by in-scope billed revenue.
-  const revenueByCustomer = new Map<string, number>();
+  // Top customers by distributed volume.
+  const volumeByCustomer = new Map<string, number>();
   for (const inv of stateInvoices) {
-    revenueByCustomer.set(
+    volumeByCustomer.set(
       inv.customerId,
-      (revenueByCustomer.get(inv.customerId) ?? 0) + lineAmount(inv),
+      (volumeByCustomer.get(inv.customerId) ?? 0) + lineVolume(inv),
     );
   }
-  const topCustomers = [...revenueByCustomer.entries()]
-    .map(([id, revenue]) => {
+  const topCustomers = [...volumeByCustomer.entries()]
+    .map(([id, volume]) => {
       const c = customersById.get(id);
       return {
         id,
         name: c?.companyName ?? 'Unknown',
-        revenue,
+        volume,
         segment: c?.segment ?? 'STANDARD',
       };
     })
-    .sort((a, b) => b.revenue - a.revenue)
+    .sort((a, b) => b.volume - a.volume)
     .slice(0, 6);
 
-  // Trailing 8-month revenue trend (independent of the date-range filter).
-  const trend: { month: string; revenue: number }[] = [];
+  // Trailing 8-month volume trend (independent of the date-range filter).
+  const trend: { month: string; volume: number }[] = [];
   const monthFmt = new Intl.DateTimeFormat('en-IN', { month: 'short' });
   for (let i = 7; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    trend.push({ month: monthFmt.format(d), revenue: 0 });
+    trend.push({ month: monthFmt.format(d), volume: 0 });
   }
   const trendStart = new Date(now.getFullYear(), now.getMonth() - 7, 1).getTime();
   for (const inv of invoices) {
@@ -383,29 +384,43 @@ export function buildStateDetail(
       (d.getMonth() - now.getMonth()) +
       7;
     const slot = trend[idx];
-    if (slot) slot.revenue += lineAmount(inv);
+    if (slot) slot.volume += lineVolume(inv);
   }
 
-  // Category breakdown for the oil-vs-gas / mix donut.
-  const catTotals = new Map<ItemCategory, number>();
-  for (const inv of stateInvoices) {
-    for (const li of inv.items) {
-      const cat = itemsById.get(li.itemId)?.category;
-      if (!cat) continue;
-      if (catFilterActive && !allowedCats.has(cat)) continue;
-      catTotals.set(cat, (catTotals.get(cat) ?? 0) + li.amount);
+  // City-wise distribution within the state (clients + volume per city).
+  const cityMap = new Map<string, { clients: Set<string>; consumption: number }>();
+  const ensureCity = (city: string) => {
+    let e = cityMap.get(city);
+    if (!e) {
+      e = { clients: new Set(), consumption: 0 };
+      cityMap.set(city, e);
     }
+    return e;
+  };
+  for (const c of customers) {
+    if (
+      !c.active ||
+      normalizeStateName(c.state) !== state ||
+      !customerInScope(c)
+    )
+      continue;
+    ensureCity(c.city).clients.add(c.id);
   }
-  const categoryBreakdown = [...catTotals.entries()]
-    .map(([category, value]) => ({ category, value }))
-    .sort((a, b) => b.value - a.value);
+  for (const inv of stateInvoices) {
+    const c = customersById.get(inv.customerId);
+    if (c) ensureCity(c.city).consumption += lineVolume(inv);
+  }
+  const cityBreakdown = [...cityMap.entries()]
+    .map(([city, e]) => ({ city, clients: e.clients.size, consumption: e.consumption }))
+    .sort((a, b) => b.consumption - a.consumption || b.clients - a.clients)
+    .slice(0, 8);
 
   return {
     ...base,
     topCustomers,
     recentTransactions,
     salesTrend: trend,
-    categoryBreakdown,
+    cityBreakdown,
   };
 }
 

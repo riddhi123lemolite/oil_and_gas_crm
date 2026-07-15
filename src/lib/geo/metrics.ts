@@ -93,7 +93,7 @@ export const GEO_METRICS: Record<GeoMetricKey, GeoMetric> = {
     label: 'Total Consumption',
     short: 'Consumption',
     icon: Gauge,
-    hue: '#00A878', // brand.accent
+    hue: '#E87722', // brand.secondary — keeps the map's signature orange
     format: formatKL,
     description: 'Total distributed volume',
   },

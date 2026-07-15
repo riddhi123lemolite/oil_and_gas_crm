@@ -6,13 +6,16 @@ import type { GeoMetricKey } from '@/lib/geo/types';
 interface MetricPickerProps {
   value: GeoMetricKey;
   onChange: (key: GeoMetricKey) => void;
+  /** Restrict which metrics are offered (defaults to all). */
+  metrics?: GeoMetricKey[];
 }
 
 /** Segmented control for the colour metric, with a sliding active pill. */
-export function MetricPicker({ value, onChange }: MetricPickerProps) {
+export function MetricPicker({ value, onChange, metrics }: MetricPickerProps) {
+  const keys = metrics ?? GEO_METRIC_ORDER;
   return (
     <div className="flex flex-wrap gap-1.5">
-      {GEO_METRIC_ORDER.map((key) => {
+      {keys.map((key) => {
         const m = GEO_METRICS[key];
         const active = key === value;
         const Icon = m.icon;

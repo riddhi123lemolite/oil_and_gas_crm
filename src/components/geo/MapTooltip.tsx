@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { ArrowDownRight, ArrowUpRight } from 'lucide-react';
-import { formatINRCompact, formatKL, formatNumber } from '@/lib/format';
+import { formatKL, formatNumber } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { StateAnalytics } from '@/lib/geo/types';
 
@@ -75,10 +75,11 @@ export function MapTooltip({ hovered }: MapTooltipProps) {
             )}
           </div>
           <div className="space-y-1">
-            <Line label="Revenue" value={formatINRCompact(hovered.data.revenue)} />
-            <Line label="Projects" value={formatNumber(hovered.data.projects)} />
-            <Line label="Clients" value={formatNumber(hovered.data.clients)} />
             <Line label="Consumption" value={formatKL(hovered.data.consumption)} />
+            <Line label="Oil" value={formatKL(hovered.data.oil)} />
+            <Line label="Gas" value={formatKL(hovered.data.gas)} />
+            <Line label="Clients" value={formatNumber(hovered.data.clients)} />
+            <Line label="Projects" value={formatNumber(hovered.data.projects)} />
             <div className="flex items-center justify-between gap-6 pt-0.5">
               <span className="text-content-muted">Growth</span>
               <span

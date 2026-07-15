@@ -5,7 +5,7 @@ import { GlassCard } from '@/components/dashboard/GlassCard';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
 import { SelectField } from '@/components/forms/SelectField';
 import { EmployeePerformanceCard } from './EmployeePerformanceCard';
-import { formatINRCompact } from '@/lib/format';
+import { formatKL } from '@/lib/format';
 import { statusFor, STATUS_META, type TeamPerformance } from '@/lib/performance/types';
 
 interface EmployeePerformanceSectionProps {
@@ -62,7 +62,7 @@ export function EmployeePerformanceSection({ team }: EmployeePerformanceSectionP
         <HeadStat
           icon={Target}
           label="Achieved (Monthly)"
-          value={<AnimatedCounter value={team.totalAchieved} format={formatINRCompact} />}
+          value={<AnimatedCounter value={team.totalAchieved} format={formatKL} />}
           accent="#16A34A"
         />
         <HeadStat

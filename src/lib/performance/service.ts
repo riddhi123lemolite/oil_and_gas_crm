@@ -19,13 +19,12 @@
 // ============================================================================
 
 import { ROLE_LABELS } from '@/lib/constants';
-import { format, parseISO, subMonths } from 'date-fns';
+import { format } from 'date-fns';
 import type { Customer, Invoice, Payment, Role, User } from '@/types';
 import {
   statusFor,
   type DepartmentPerformance,
   type EmployeePerformance,
-  type MonthlyPoint,
   type TeamPerformance,
 } from './types';
 
@@ -59,52 +58,59 @@ function quotaFactor(id: string): number {
 }
 
 function roundTarget(v: number): number {
-  const step = 50000;
+  const step = 10000; // litres — clean 10 KL increments
   return Math.max(step, Math.round(v / step) * step);
+}
+
+/** Total distributed volume of an invoice, in litres (bulk lines are in KL). */
+function invoiceVolumeLitres(inv: Invoice): number {
+  let v = 0;
+  for (const li of inv.items) v += li.unit === 'KL' ? li.quantity * 1000 : li.quantity;
+  return v;
 }
 
 export function buildTeamPerformance(
   input: PerformanceInput,
-  now: Date = REF_NOW,
 ): TeamPerformance {
-  const { users, customers, invoices, payments } = input;
+  const { users, customers, invoices } = input;
 
   const staff = users.filter((u) => u.active && TRACKED_ROLES.includes(u.role));
   const accountants = staff
     .filter((u) => u.role === 'ACCOUNTS')
     .sort((a, b) => a.id.localeCompare(b.id));
 
-  // Revenue by owning employee (sales) ------------------------------------
-  const revenueByOwner = new Map<string, number>();
-  const customerOwner = new Map(customers.map((c) => [c.id, c.ownerId]));
+  // Distributed volume (litres) per customer ------------------------------
+  const volumeByCustomer = new Map<string, number>();
   for (const inv of invoices) {
-    const owner = customerOwner.get(inv.customerId);
-    if (owner) revenueByOwner.set(owner, (revenueByOwner.get(owner) ?? 0) + inv.total);
+    volumeByCustomer.set(
+      inv.customerId,
+      (volumeByCustomer.get(inv.customerId) ?? 0) + invoiceVolumeLitres(inv),
+    );
   }
 
-  // Collections by allocated accountant -----------------------------------
-  // Each customer is assigned to one accountant via a stable hash so the
-  // "accounts book" is consistent across reloads.
-  const collectionsByAccountant = new Map<string, number>();
-  if (accountants.length > 0) {
-    const paidByCustomer = new Map<string, number>();
-    for (const p of payments) {
-      paidByCustomer.set(p.customerId, (paidByCustomer.get(p.customerId) ?? 0) + p.amount);
-    }
-    for (const c of customers) {
+  // Sales owners are credited with the volume of the customers they own.
+  // Accountants are each allocated a stable slice of the customer book, so the
+  // metric stays real and data-driven (they handle those accounts' volume).
+  const volumeByOwner = new Map<string, number>();
+  const volumeByAccountant = new Map<string, number>();
+  for (const c of customers) {
+    const v = volumeByCustomer.get(c.id) ?? 0;
+    if (!v) continue;
+    if (c.ownerId)
+      volumeByOwner.set(c.ownerId, (volumeByOwner.get(c.ownerId) ?? 0) + v);
+    if (accountants.length > 0) {
       const idx = Math.floor(hash01(c.id) * accountants.length) % accountants.length;
       const acc = accountants[idx];
-      const collected = paidByCustomer.get(c.id) ?? 0;
-      if (acc && collected)
-        collectionsByAccountant.set(acc.id, (collectionsByAccountant.get(acc.id) ?? 0) + collected);
+      if (acc)
+        volumeByAccountant.set(acc.id, (volumeByAccountant.get(acc.id) ?? 0) + v);
     }
   }
 
   const monthlyAchievedFor = (u: User): number => {
     const total =
       u.role === 'ACCOUNTS'
-        ? (collectionsByAccountant.get(u.id) ?? 0)
-        : (revenueByOwner.get(u.id) ?? 0);
+        ? (volumeByAccountant.get(u.id) ?? 0)
+        : (volumeByOwner.get(u.id) ?? 0);
     return total / DATA_MONTHS;
   };
 
@@ -147,31 +153,12 @@ export function buildTeamPerformance(
     pct: d.target > 0 ? Math.round((d.achieved / d.target) * 1000) / 10 : 0,
   }));
 
-  // Team monthly trend (real revenue by month vs the flat team target) -----
   const totalTarget = employees.reduce((s, e) => s + e.target, 0);
   const totalAchieved = employees.reduce((s, e) => s + e.achieved, 0);
-
-  const trackedOwners = new Set(
-    staff.filter((u) => u.role !== 'ACCOUNTS').map((u) => u.id),
-  );
-  const buckets = new Map<string, number>();
-  for (let i = 5; i >= 0; i--) buckets.set(format(subMonths(now, i), 'MMM'), 0);
-  for (const inv of invoices) {
-    const owner = customerOwner.get(inv.customerId);
-    if (!owner || !trackedOwners.has(owner)) continue;
-    const key = format(parseISO(inv.invoiceDate), 'MMM');
-    if (buckets.has(key)) buckets.set(key, (buckets.get(key) ?? 0) + inv.total);
-  }
-  const monthly: MonthlyPoint[] = [...buckets.entries()].map(([month, achieved]) => ({
-    month,
-    achieved,
-    target: totalTarget,
-  }));
 
   return {
     employees,
     departments,
-    monthly,
     totalTarget,
     totalAchieved,
     teamPct: totalTarget > 0 ? Math.round((totalAchieved / totalTarget) * 1000) / 10 : 0,
@@ -246,7 +233,7 @@ export function buildPerformanceTrend(
     .map((inv) => {
       const owner = customerOwner.get(inv.customerId);
       return owner && owners.has(owner)
-        ? { ts: new Date(inv.invoiceDate), amt: inv.total }
+        ? { ts: new Date(inv.invoiceDate), amt: invoiceVolumeLitres(inv) }
         : null;
     })
     .filter((x): x is { ts: Date; amt: number } => x !== null);

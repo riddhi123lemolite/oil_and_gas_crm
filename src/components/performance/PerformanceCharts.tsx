@@ -5,7 +5,7 @@ import { BarChart } from '@/components/charts/BarChart';
 import { SelectField } from '@/components/forms/SelectField';
 import { PerformanceRing } from './PerformanceRing';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
-import { formatINRCompact } from '@/lib/format';
+import { formatKL } from '@/lib/format';
 import { statusFor, STATUS_META, type TeamPerformance } from '@/lib/performance/types';
 import {
   buildPerformanceTrend,
@@ -68,7 +68,7 @@ export function PerformanceCharts({ team, input }: PerformanceChartsProps) {
         <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <CardTitle
             title={`${granularityLabel} Target vs Achievement`}
-            subtitle={`Team revenue vs target · ${scopeLabel}`}
+            subtitle={`Team volume (KL) vs target · ${scopeLabel}`}
           />
           <div className="flex flex-wrap items-center gap-2">
             <div className="w-32">
@@ -93,7 +93,7 @@ export function PerformanceCharts({ team, input }: PerformanceChartsProps) {
           height={240}
           data={trend as unknown as Record<string, string | number>[]}
           xKey="label"
-          valueFormatter={formatINRCompact}
+          valueFormatter={formatKL}
           series={[
             { key: 'achieved', name: 'Achieved', color: '#16A34A' },
             { key: 'target', name: 'Target', color: '#E87722' },
@@ -109,14 +109,14 @@ export function PerformanceCharts({ team, input }: PerformanceChartsProps) {
             <span className="text-content-muted">Achieved</span>
             <AnimatedCounter
               value={team.totalAchieved}
-              format={formatINRCompact}
+              format={formatKL}
               className="font-semibold text-content"
             />
           </div>
           <div className="flex justify-between">
             <span className="text-content-muted">Target</span>
             <span className="num font-semibold text-content">
-              {formatINRCompact(team.totalTarget)}
+              {formatKL(team.totalTarget)}
             </span>
           </div>
         </div>
@@ -132,7 +132,7 @@ export function PerformanceCharts({ team, input }: PerformanceChartsProps) {
             barKey="achieved"
             barName="Achieved"
             color="#0F3D5C"
-            valueFormatter={formatINRCompact}
+            valueFormatter={formatKL}
           />
         </div>
       </GlassCard>

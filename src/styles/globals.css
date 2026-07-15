@@ -17,6 +17,10 @@
   --status-followup-bg: #d1fae5;
   --status-irrelevant-bg: #f3f4f6;
 
+  /* Choropleth "no / low value" fill — darker than surface so states read as
+     distinct tiles rather than blending into the card. */
+  --map-low: #cbd3dd;
+
   --row-hot: #fef2f2;
   --row-warm: #fffbeb;
   --row-cold: #eff6ff;
@@ -39,6 +43,9 @@
   --status-cold-bg: #14233d;
   --status-followup-bg: #0f2e22;
   --status-irrelevant-bg: #1f242d;
+
+  /* Lighter than the near-black background so empty states stay visible. */
+  --map-low: #303a48;
 
   --row-hot: #1c1315;
   --row-warm: #1c1812;

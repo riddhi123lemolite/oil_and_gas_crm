@@ -4,7 +4,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { PerformanceRing } from './PerformanceRing';
 import { AnimatedCounter } from '@/components/dashboard/AnimatedCounter';
-import { formatINRCompact } from '@/lib/format';
+import { formatKL } from '@/lib/format';
 import { STATUS_META, type EmployeePerformance } from '@/lib/performance/types';
 
 interface EmployeePerformanceCardProps {
@@ -50,9 +50,9 @@ export function EmployeePerformanceCard({ employee }: EmployeePerformanceCardPro
         <div className="mt-3 flex items-center gap-4">
           <PerformanceRing pct={employee.pct} color={meta.color} size={88} />
           <div className="min-w-0 flex-1 space-y-1.5">
-            <Stat label="Target" value={formatINRCompact(employee.target)} />
-            <Stat label="Achieved" value={formatINRCompact(employee.achieved)} />
-            <Stat label="Remaining" value={formatINRCompact(employee.remaining)} />
+            <Stat label="Target" value={formatKL(employee.target)} />
+            <Stat label="Achieved" value={formatKL(employee.achieved)} />
+            <Stat label="Remaining" value={formatKL(employee.remaining)} />
           </div>
         </div>
 

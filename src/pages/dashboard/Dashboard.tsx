@@ -323,7 +323,7 @@ export default function Dashboard() {
 
           <SectionTitle
             icon={BarChart3}
-            title="Monthly Performance"
+            title="Performance Analytics"
             subtitle="Team achievement trends and departmental breakdown"
           />
           <PerformanceCharts team={team} input={perfInput} />
