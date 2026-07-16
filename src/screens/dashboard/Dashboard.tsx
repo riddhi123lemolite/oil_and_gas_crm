@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   IndianRupee,
@@ -10,9 +10,12 @@ import {
   ArrowRight,
   Users,
   BarChart3,
+  Building2,
+  LayoutGrid,
 } from 'lucide-react';
 import { PageHeader } from '@/components/shared/PageHeader';
 import { KpiCard } from '@/components/shared/KpiCard';
+import { EmptyState } from '@/components/shared/EmptyState';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EntityAvatar } from '@/components/shared/EntityAvatar';
@@ -23,11 +26,19 @@ import { IndiaMap } from '@/components/charts/IndiaMap';
 import { SelectField } from '@/components/forms/SelectField';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { AdminGeoHero } from '@/components/dashboard/AdminGeoHero';
+import { CustomizeDashboardDialog } from '@/components/dashboard/CustomizeDashboardDialog';
+import { Button } from '@/components/ui/button';
 import { EmployeePerformanceSection } from '@/components/performance/EmployeePerformanceSection';
 import { PerformanceCharts } from '@/components/performance/PerformanceCharts';
 import { PerformanceLeaderboard } from '@/components/performance/PerformanceLeaderboard';
 import { buildTeamPerformance } from '@/lib/performance/service';
 import { useDataStore } from '@/stores/dataStore';
+import { useDashboardStore } from '@/stores/dashboardStore';
+import {
+  isWidgetAvailable,
+  isWidgetVisibleByDefault,
+  type WidgetId,
+} from '@/lib/dashboard/widgets';
 import { useAuth } from '@/hooks/useAuth';
 import { useLookups } from '@/hooks/useLookups';
 import {
@@ -37,6 +48,7 @@ import {
   isWithinMonths,
 } from '@/lib/analytics';
 import { formatINRCompact, formatNumber, formatRelative } from '@/lib/format';
+import { cn } from '@/lib/utils';
 import { LEAD_STATUS, ITEM_CATEGORY_COLOR } from '@/lib/constants';
 import type { ItemCategory } from '@/types';
 
@@ -89,6 +101,32 @@ export default function Dashboard() {
 
   const [period, setPeriod] = useState('12');
   const [stateFilter, setStateFilter] = useState<string | null>(null);
+  const [customizeOpen, setCustomizeOpen] = useState(false);
+
+  // Per-user dashboard layout. Re-init on user change so switching accounts (or
+  // demo roles) loads that user's arrangement rather than the previous one's.
+  const initLayout = useDashboardStore((s) => s.init);
+  const order = useDashboardStore((s) => s.order);
+  const visibility = useDashboardStore((s) => s.visibility);
+  useEffect(() => {
+    initLayout();
+  }, [initLayout, user?.id]);
+
+  const widgetCtx = useMemo(
+    () => ({ isAdmin, canSeeMargins }),
+    [isAdmin, canSeeMargins],
+  );
+
+  const visibleIds = useMemo(
+    () =>
+      order.filter(
+        (id) =>
+          isWidgetAvailable(id, widgetCtx) &&
+          (visibility[id] ?? isWidgetVisibleByDefault(id, widgetCtx)),
+      ),
+    [order, visibility, widgetCtx],
+  );
+  const shown = useMemo(() => new Set(visibleIds), [visibleIds]);
 
   const months = Number(period);
 
@@ -214,6 +252,291 @@ export default function Dashboard() {
     [isAdmin, perfInput],
   );
 
+  // ── Widget nodes ───────────────────────────────────────────────────
+  // Each block is keyed by widget id so the layout decides what renders and in
+  // what order. Building the map is cheap — the expensive work is already
+  // memoised above.
+  const kpiNodes: Partial<Record<WidgetId, ReactNode>> = {
+    totalSales: (
+      <KpiCard
+        label="Total Sales"
+        value={formatINRCompact(stats.totalSales)}
+        icon={IndianRupee}
+        delta={12.4}
+        accent="#0F3D5C"
+        spark={trend.map((t) => t.sales)}
+        onClick={() => navigate('/reports/sales')}
+      />
+    ),
+    quantitySold: (
+      <KpiCard
+        label="Quantity Sold"
+        value={`${formatNumber(stats.qty)} KL`}
+        icon={Package2}
+        delta={8.1}
+        accent="#E87722"
+      />
+    ),
+    avgRate: (
+      <KpiCard
+        label="Avg Rate"
+        value={formatINRCompact(stats.avgRate)}
+        icon={Gauge}
+        delta={2.3}
+        accent="#0891B2"
+      />
+    ),
+    margin: (
+      <KpiCard
+        label="Est. Margin"
+        value={formatINRCompact(stats.margin)}
+        icon={TrendingUp}
+        delta={5.7}
+        accent="#16A34A"
+      />
+    ),
+    myCustomers: (
+      <KpiCard
+        label="My Customers"
+        value={formatNumber(customers.length)}
+        icon={Building2}
+        accent="#16A34A"
+      />
+    ),
+    activeLeads: (
+      <KpiCard
+        label="Active Leads"
+        value={formatNumber(stats.activeLeads)}
+        icon={Target}
+        delta={-3.2}
+        accent="#7C3AED"
+        onClick={() => navigate('/leads')}
+      />
+    ),
+    wonDeals: (
+      <KpiCard
+        label="Won Deals (MTD)"
+        value={formatNumber(stats.wonDeals)}
+        icon={Trophy}
+        delta={18.0}
+        accent="#C2410C"
+        onClick={() => navigate('/proposals?status=WON')}
+      />
+    ),
+  };
+
+  const sectionNodes: Partial<Record<WidgetId, ReactNode>> = {
+    geoAnalytics: (
+      <>
+        <SectionTitle
+          icon={TrendingUp}
+          title="Geographic Analytics"
+          subtitle="Where your business lives — customers, hotspots and sales spread"
+        />
+        <AdminGeoHero />
+      </>
+    ),
+    employeePerformance: team ? (
+      <>
+        <SectionTitle
+          icon={Users}
+          title="Employee Performance"
+          subtitle="Monthly targets vs achievement across every team"
+        />
+        <EmployeePerformanceSection team={team} />
+      </>
+    ) : null,
+    performanceAnalytics: team ? (
+      <>
+        <SectionTitle
+          icon={BarChart3}
+          title="Performance Analytics"
+          subtitle="Team achievement trends and departmental breakdown"
+        />
+        <PerformanceCharts team={team} input={perfInput} />
+      </>
+    ) : null,
+    leaderboard: team ? (
+      <>
+        <SectionTitle icon={Trophy} title="Leaderboard" subtitle="Top performers, ranked" />
+        <GlassCard className="p-4 sm:p-5">
+          <PerformanceLeaderboard employees={team.employees} />
+        </GlassCard>
+      </>
+    ) : null,
+    salesTrend: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Sales Trend</CardTitle>
+          <span className="text-xs text-content-muted">Monthly revenue (₹)</span>
+        </CardHeader>
+        <CardContent>
+          <TrendChart
+            data={trend}
+            xKey="month"
+            series={[{ key: 'sales', name: 'Sales', color: '#0F3D5C' }]}
+            valueFormatter={formatINRCompact}
+          />
+        </CardContent>
+      </Card>
+    ),
+    salesByState: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Sales by State</CardTitle>
+          <span className="text-xs text-content-muted">Click to filter</span>
+        </CardHeader>
+        <CardContent>
+          <IndiaMap
+            data={geoData}
+            selected={stateFilter}
+            onSelect={setStateFilter}
+            valueFormatter={formatINRCompact}
+          />
+        </CardContent>
+      </Card>
+    ),
+    productMix: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Product Mix</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {productMix.length > 0 ? (
+            <DonutChart
+              data={productMix}
+              centerLabel="Categories"
+              centerValue={String(productMix.length)}
+              valueFormatter={formatINRCompact}
+            />
+          ) : (
+            <p className="py-8 text-center text-sm text-content-muted">
+              No sales in this period.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    pipelineFunnel: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Pipeline Funnel</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <FunnelChart stages={funnel} />
+        </CardContent>
+      </Card>
+    ),
+    topCustomers: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Top Customers</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-2.5">
+          {topCustomers.map((c, i) => (
+            <div key={c.label} className="flex items-center gap-2.5">
+              <span className="num w-4 text-sm font-semibold text-content-muted">
+                {i + 1}
+              </span>
+              <EntityAvatar name={customerName(c.label)} size="xs" />
+              <span className="truncate text-sm text-content-secondary">
+                {customerName(c.label)}
+              </span>
+              <span className="num ml-auto text-sm font-semibold text-content">
+                {formatINRCompact(c.value)}
+              </span>
+            </div>
+          ))}
+          {topCustomers.length === 0 && (
+            <p className="py-6 text-center text-sm text-content-muted">
+              No data for this period.
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    ),
+    recentActivity: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>Recent Activity</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {recentActivity.map((a) => (
+            <div key={a.id} className="flex items-start gap-3">
+              <EntityAvatar name={userName(a.userId)} size="sm" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm text-content">
+                  <span className="font-medium">{userName(a.userId)}</span>{' '}
+                  <span className="text-content-secondary">{a.title}</span>
+                </p>
+                {a.description && (
+                  <p className="truncate text-xs text-content-muted">
+                    {a.description}
+                  </p>
+                )}
+              </div>
+              <span className="shrink-0 text-xs text-content-muted">
+                {formatRelative(a.createdAt)}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    ),
+    myTasks: (
+      <Card className="h-full">
+        <CardHeader>
+          <CardTitle>My Tasks Today</CardTitle>
+          <button
+            onClick={() => navigate('/tasks')}
+            className="flex items-center gap-1 text-xs font-medium text-brand-secondary hover:underline"
+          >
+            All <ArrowRight className="size-3" />
+          </button>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {todayTasks.length === 0 ? (
+            <p className="py-6 text-center text-sm text-content-muted">
+              No pending tasks. You're all caught up.
+            </p>
+          ) : (
+            todayTasks.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => navigate('/tasks')}
+                className="flex w-full items-center gap-2 rounded-md border border-line p-2 text-left transition-colors hover:bg-muted"
+              >
+                <span className="size-2 shrink-0 rounded-full bg-brand-secondary" />
+                <span className="truncate text-sm text-content-secondary">
+                  {t.title}
+                </span>
+                <StatusBadge
+                  label={t.priority}
+                  tone={t.priority === 'URGENT' ? 'danger' : 'neutral'}
+                  size="sm"
+                />
+              </button>
+            ))
+          )}
+        </CardContent>
+      </Card>
+    ),
+  };
+
+  // How wide each section sits in the 3-column grid. Sales Trend widens to fill
+  // the row whenever the compact state map beside it is hidden.
+  const sectionSpan: Partial<Record<WidgetId, string>> = {
+    geoAnalytics: 'lg:col-span-3',
+    employeePerformance: 'lg:col-span-3',
+    performanceAnalytics: 'lg:col-span-3',
+    leaderboard: 'lg:col-span-3',
+    salesTrend: shown.has('salesByState') ? 'lg:col-span-2' : 'lg:col-span-3',
+    recentActivity: 'lg:col-span-2',
+  };
+
+  const visibleKpis = visibleIds.filter((id) => id in kpiNodes);
+  const visibleSections = visibleIds.filter((id) => id in sectionNodes);
+
   return (
     <div className="space-y-5">
       <PageHeader
@@ -221,13 +544,24 @@ export default function Dashboard() {
         description="Here's how your sales operation is performing."
         icon={<TrendingUp />}
         actions={
-          <div className="w-44">
-            <SelectField
-              value={period}
-              onChange={setPeriod}
-              options={PERIODS}
-            />
-          </div>
+          <>
+            <div className="w-44">
+              <SelectField
+                value={period}
+                onChange={setPeriod}
+                options={PERIODS}
+              />
+            </div>
+            {isAdmin && (
+              <Button
+                variant="outline"
+                onClick={() => setCustomizeOpen(true)}
+                title="Customise dashboard"
+              >
+                <LayoutGrid /> Customise
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -246,260 +580,52 @@ export default function Dashboard() {
       )}
 
       {/* KPI strip */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
-        <KpiCard
-          label="Total Sales"
-          value={formatINRCompact(stats.totalSales)}
-          icon={IndianRupee}
-          delta={12.4}
-          accent="#0F3D5C"
-          spark={trend.map((t) => t.sales)}
-          onClick={() => navigate('/reports/sales')}
-        />
-        <KpiCard
-          label="Quantity Sold"
-          value={`${formatNumber(stats.qty)} KL`}
-          icon={Package2}
-          delta={8.1}
-          accent="#E87722"
-        />
-        <KpiCard
-          label="Avg Rate"
-          value={formatINRCompact(stats.avgRate)}
-          icon={Gauge}
-          delta={2.3}
-          accent="#0891B2"
-        />
-        {canSeeMargins ? (
-          <KpiCard
-            label="Est. Margin"
-            value={formatINRCompact(stats.margin)}
-            icon={TrendingUp}
-            delta={5.7}
-            accent="#16A34A"
-          />
-        ) : (
-          <KpiCard
-            label="My Customers"
-            value={formatNumber(customers.length)}
-            icon={TrendingUp}
-            accent="#16A34A"
-          />
-        )}
-        <KpiCard
-          label="Active Leads"
-          value={formatNumber(stats.activeLeads)}
-          icon={Target}
-          delta={-3.2}
-          accent="#7C3AED"
-          onClick={() => navigate('/leads')}
-        />
-        <KpiCard
-          label="Won Deals (MTD)"
-          value={formatNumber(stats.wonDeals)}
-          icon={Trophy}
-          delta={18.0}
-          accent="#C2410C"
-          onClick={() => navigate('/proposals?status=WON')}
-        />
-      </div>
-
-      {/* ── Admin-only premium sections ─────────────────────────────── */}
-      {isAdmin && team && (
-        <>
-          <SectionTitle
-            icon={TrendingUp}
-            title="Geographic Analytics"
-            subtitle="Where your business lives — customers, hotspots and sales spread"
-          />
-          <AdminGeoHero />
-
-          <SectionTitle
-            icon={Users}
-            title="Employee Performance"
-            subtitle="Monthly targets vs achievement across every team"
-          />
-          <EmployeePerformanceSection team={team} />
-
-          <SectionTitle
-            icon={BarChart3}
-            title="Performance Analytics"
-            subtitle="Team achievement trends and departmental breakdown"
-          />
-          <PerformanceCharts team={team} input={perfInput} />
-
-          <SectionTitle icon={Trophy} title="Leaderboard" subtitle="Top performers, ranked" />
-          <GlassCard className="p-4 sm:p-5">
-            <PerformanceLeaderboard employees={team.employees} />
-          </GlassCard>
-        </>
+      {visibleKpis.length > 0 && (
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+          {visibleKpis.map((id) => (
+            <div key={id} className="min-w-0">
+              {kpiNodes[id]}
+            </div>
+          ))}
+        </div>
       )}
 
-      {/* Trend + Geo */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className={isAdmin ? 'lg:col-span-3' : 'lg:col-span-2'}>
-          <CardHeader>
-            <CardTitle>Sales Trend</CardTitle>
-            <span className="text-xs text-content-muted">
-              Monthly revenue (₹)
-            </span>
-          </CardHeader>
-          <CardContent>
-            <TrendChart
-              data={trend}
-              xKey="month"
-              series={[
-                { key: 'sales', name: 'Sales', color: '#0F3D5C' },
-              ]}
-              valueFormatter={formatINRCompact}
-            />
-          </CardContent>
-        </Card>
-        {!isAdmin && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales by State</CardTitle>
-              <span className="text-xs text-content-muted">Click to filter</span>
-            </CardHeader>
-            <CardContent>
-              <IndiaMap
-                data={geoData}
-                selected={stateFilter}
-                onSelect={setStateFilter}
-                valueFormatter={formatINRCompact}
-              />
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* Donut + Funnel + Top customers */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Product Mix</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {productMix.length > 0 ? (
-              <DonutChart
-                data={productMix}
-                centerLabel="Categories"
-                centerValue={String(productMix.length)}
-                valueFormatter={formatINRCompact}
-              />
-            ) : (
-              <p className="py-8 text-center text-sm text-content-muted">
-                No sales in this period.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Pipeline Funnel</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <FunnelChart stages={funnel} />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Customers</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2.5">
-            {topCustomers.map((c, i) => (
-              <div key={c.label} className="flex items-center gap-2.5">
-                <span className="num w-4 text-sm font-semibold text-content-muted">
-                  {i + 1}
-                </span>
-                <EntityAvatar name={customerName(c.label)} size="xs" />
-                <span className="truncate text-sm text-content-secondary">
-                  {customerName(c.label)}
-                </span>
-                <span className="num ml-auto text-sm font-semibold text-content">
-                  {formatINRCompact(c.value)}
-                </span>
-              </div>
-            ))}
-            {topCustomers.length === 0 && (
-              <p className="py-6 text-center text-sm text-content-muted">
-                No data for this period.
-              </p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Activity + Tasks */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {recentActivity.map((a) => (
-              <div key={a.id} className="flex items-start gap-3">
-                <EntityAvatar name={userName(a.userId)} size="sm" />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm text-content">
-                    <span className="font-medium">{userName(a.userId)}</span>{' '}
-                    <span className="text-content-secondary">{a.title}</span>
-                  </p>
-                  {a.description && (
-                    <p className="truncate text-xs text-content-muted">
-                      {a.description}
-                    </p>
-                  )}
-                </div>
-                <span className="shrink-0 text-xs text-content-muted">
-                  {formatRelative(a.createdAt)}
-                </span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>My Tasks Today</CardTitle>
-            <button
-              onClick={() => navigate('/tasks')}
-              className="flex items-center gap-1 text-xs font-medium text-brand-secondary hover:underline"
+      {/* Sections — order and visibility come from the admin's saved layout. */}
+      {visibleSections.length > 0 && (
+        <div className="grid gap-4 lg:grid-cols-3">
+          {visibleSections.map((id) => (
+            <div
+              key={id}
+              className={cn('min-w-0 space-y-4', sectionSpan[id])}
             >
-              All <ArrowRight className="size-3" />
-            </button>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {todayTasks.length === 0 ? (
-              <p className="py-6 text-center text-sm text-content-muted">
-                No pending tasks. You're all caught up.
-              </p>
-            ) : (
-              todayTasks.map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => navigate('/tasks')}
-                  className="flex w-full items-center gap-2 rounded-md border border-line p-2 text-left transition-colors hover:bg-muted"
-                >
-                  <span className="size-2 shrink-0 rounded-full bg-brand-secondary" />
-                  <span className="truncate text-sm text-content-secondary">
-                    {t.title}
-                  </span>
-                  <StatusBadge
-                    label={t.priority}
-                    tone={t.priority === 'URGENT' ? 'danger' : 'neutral'}
-                    size="sm"
-                  />
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              {sectionNodes[id]}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {visibleIds.length === 0 && (
+        <EmptyState
+          icon={LayoutGrid}
+          title="Your dashboard is empty"
+          description="Every widget is hidden. Turn a few back on to see your numbers again."
+          actionLabel={isAdmin ? 'Customise dashboard' : undefined}
+          onAction={isAdmin ? () => setCustomizeOpen(true) : undefined}
+        />
+      )}
 
       <p className="pt-1 text-center text-xs text-content-muted">
         {LEAD_STATUS.NEW.label} leads update live · Demo data resets from
         Settings → System
       </p>
+
+      {isAdmin && (
+        <CustomizeDashboardDialog
+          open={customizeOpen}
+          onOpenChange={setCustomizeOpen}
+          ctx={widgetCtx}
+        />
+      )}
     </div>
   );
 }
