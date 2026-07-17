@@ -56,10 +56,19 @@ export interface WidgetDef {
   description: string;
   group: WidgetGroup;
   icon: LucideIcon;
+  /**
+   * Signature colour, mirroring what the widget already uses on the dashboard
+   * (KpiCard accents / chart hues). Drives the customiser's icon chips and the
+   * live preview, so a block is recognisable by colour before you read it.
+   * A hex literal, not a Tailwind class — it's interpolated into inline styles.
+   */
+  accent: string;
   /** Premium analytics blocks — only ever rendered for ADMIN. */
   adminOnly?: boolean;
   /** Needs cost/margin visibility (ADMIN or SALES_MANAGER). */
   needsMargins?: boolean;
+  /** Columns the block spans in the 3-col section grid (preview + dashboard). */
+  span?: 1 | 2 | 3;
 }
 
 /** Role/permission context that decides what a given user may see. */
@@ -79,6 +88,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Invoiced revenue for the selected period',
     group: 'kpi',
     icon: IndianRupee,
+    accent: '#0F3D5C',
   },
   {
     id: 'quantitySold',
@@ -86,6 +96,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Total volume in KL',
     group: 'kpi',
     icon: Package2,
+    accent: '#E87722',
   },
   {
     id: 'avgRate',
@@ -93,6 +104,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Blended realisation per KL',
     group: 'kpi',
     icon: Gauge,
+    accent: '#0891B2',
   },
   {
     id: 'margin',
@@ -100,6 +112,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Estimated gross margin — managers and admins only',
     group: 'kpi',
     icon: TrendingUp,
+    accent: '#16A34A',
     needsMargins: true,
   },
   {
@@ -108,6 +121,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Customer count — shown instead of margin when hidden',
     group: 'kpi',
     icon: Building2,
+    accent: '#16A34A',
   },
   {
     id: 'activeLeads',
@@ -115,6 +129,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Leads not yet won or lost',
     group: 'kpi',
     icon: Target,
+    accent: '#7C3AED',
   },
   {
     id: 'wonDeals',
@@ -122,6 +137,7 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Proposals won this month',
     group: 'kpi',
     icon: Trophy,
+    accent: '#C2410C',
   },
 
   {
@@ -130,7 +146,9 @@ export const WIDGETS: WidgetDef[] = [
     description: 'India map, hotspots and state drilldown',
     group: 'section',
     icon: Map,
+    accent: '#E87722',
     adminOnly: true,
+    span: 3,
   },
   {
     id: 'employeePerformance',
@@ -138,7 +156,9 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Monthly targets vs achievement per employee',
     group: 'section',
     icon: Users,
+    accent: '#2563EB',
     adminOnly: true,
+    span: 3,
   },
   {
     id: 'performanceAnalytics',
@@ -146,7 +166,9 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Team achievement trends and department breakdown',
     group: 'section',
     icon: BarChart3,
+    accent: '#0891B2',
     adminOnly: true,
+    span: 3,
   },
   {
     id: 'leaderboard',
@@ -154,7 +176,9 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Top performers, ranked',
     group: 'section',
     icon: Trophy,
+    accent: '#F59E0B',
     adminOnly: true,
+    span: 3,
   },
   {
     id: 'salesTrend',
@@ -162,6 +186,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Monthly revenue line chart',
     group: 'section',
     icon: TrendingUp,
+    accent: '#0F3D5C',
+    span: 2,
   },
   {
     id: 'salesByState',
@@ -169,6 +195,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Compact India heatmap — click a state to filter',
     group: 'section',
     icon: Map,
+    accent: '#0891B2',
+    span: 1,
   },
   {
     id: 'productMix',
@@ -176,6 +204,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Revenue split by product category',
     group: 'section',
     icon: PieChart,
+    accent: '#9333EA',
+    span: 1,
   },
   {
     id: 'pipelineFunnel',
@@ -183,6 +213,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Lead stages from new to won',
     group: 'section',
     icon: Filter,
+    accent: '#2563EB',
+    span: 1,
   },
   {
     id: 'topCustomers',
@@ -190,6 +222,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Highest billed customers this period',
     group: 'section',
     icon: Building2,
+    accent: '#16A34A',
+    span: 1,
   },
   {
     id: 'recentActivity',
@@ -197,6 +231,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Latest actions across the team',
     group: 'section',
     icon: Activity,
+    accent: '#64748B',
+    span: 2,
   },
   {
     id: 'myTasks',
@@ -204,6 +240,8 @@ export const WIDGETS: WidgetDef[] = [
     description: 'Your pending tasks, soonest first',
     group: 'section',
     icon: CheckSquare,
+    accent: '#E87722',
+    span: 1,
   },
 ];
 
@@ -271,6 +309,19 @@ export function reconcileOrder(saved: WidgetId[]): WidgetId[] {
   }
   merged.push(...known.slice(cursor));
   return merged;
+}
+
+/**
+ * Columns a section occupies in the 3-col grid. Shared by the dashboard and the
+ * customiser's preview so the preview can never misrepresent the real layout.
+ * Sales Trend widens to fill the row when the state map beside it is hidden.
+ */
+export function sectionSpanFor(
+  id: WidgetId,
+  stateMapShown: boolean,
+): 1 | 2 | 3 {
+  if (id === 'salesTrend') return stateMapShown ? 2 : 3;
+  return WIDGET_BY_ID[id]?.span ?? 1;
 }
 
 /** Rewrite one group's positions inside the flat order, leaving others put. */

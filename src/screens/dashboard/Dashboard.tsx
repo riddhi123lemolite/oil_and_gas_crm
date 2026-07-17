@@ -37,6 +37,7 @@ import { useDashboardStore } from '@/stores/dashboardStore';
 import {
   isWidgetAvailable,
   isWidgetVisibleByDefault,
+  sectionSpanFor,
   type WidgetId,
 } from '@/lib/dashboard/widgets';
 import { useAuth } from '@/hooks/useAuth';
@@ -523,15 +524,12 @@ export default function Dashboard() {
     ),
   };
 
-  // How wide each section sits in the 3-column grid. Sales Trend widens to fill
-  // the row whenever the compact state map beside it is hidden.
-  const sectionSpan: Partial<Record<WidgetId, string>> = {
-    geoAnalytics: 'lg:col-span-3',
-    employeePerformance: 'lg:col-span-3',
-    performanceAnalytics: 'lg:col-span-3',
-    leaderboard: 'lg:col-span-3',
-    salesTrend: shown.has('salesByState') ? 'lg:col-span-2' : 'lg:col-span-3',
-    recentActivity: 'lg:col-span-2',
+  // Column spans come from the shared registry, so the customiser's live
+  // preview and this grid can never disagree.
+  const SPAN_CLASS: Record<1 | 2 | 3, string> = {
+    1: 'lg:col-span-1',
+    2: 'lg:col-span-2',
+    3: 'lg:col-span-3',
   };
 
   const visibleKpis = visibleIds.filter((id) => id in kpiNodes);
@@ -596,7 +594,10 @@ export default function Dashboard() {
           {visibleSections.map((id) => (
             <div
               key={id}
-              className={cn('min-w-0 space-y-4', sectionSpan[id])}
+              className={cn(
+                'min-w-0 space-y-4',
+                SPAN_CLASS[sectionSpanFor(id, shown.has('salesByState'))],
+              )}
             >
               {sectionNodes[id]}
             </div>

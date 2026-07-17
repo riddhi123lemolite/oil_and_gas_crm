@@ -31,6 +31,8 @@ interface DashboardState extends StoredLayout {
   userKey: string;
   init: () => void;
   toggle: (id: WidgetId, visible: boolean) => void;
+  /** Set many at once (Show all / Hide all) in a single write. */
+  setMany: (ids: WidgetId[], visible: boolean) => void;
   reorderGroup: (group: WidgetGroup, groupOrder: WidgetId[]) => void;
   reset: () => void;
   /** True when the layout differs from the built-in default. */
@@ -60,6 +62,14 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   toggle: (id, visible) => {
     const { userKey, order, visibility } = get();
     const next = { ...visibility, [id]: visible };
+    persist(userKey, { order, visibility: next });
+    set({ visibility: next });
+  },
+
+  setMany: (ids, visible) => {
+    const { userKey, order, visibility } = get();
+    const next = { ...visibility };
+    for (const id of ids) next[id] = visible;
     persist(userKey, { order, visibility: next });
     set({ visibility: next });
   },
