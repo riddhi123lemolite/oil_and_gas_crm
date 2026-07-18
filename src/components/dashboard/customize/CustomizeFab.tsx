@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { LayoutGrid } from 'lucide-react';
+import { useUiStore } from '@/stores/uiStore';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -18,6 +20,16 @@ interface Props {
  * where horizontal room is scarce.
  */
 export function CustomizeFab({ onClick, hidden, showSheen }: Props) {
+  const setDockBottomTaken = useUiStore((s) => s.setDockBottomTaken);
+
+  // Claims the dock's bottom slot for as long as this component is mounted —
+  // including while `hidden` during the dialog, so the AI button doesn't slide
+  // down and back up every time the panel opens.
+  useEffect(() => {
+    setDockBottomTaken(true);
+    return () => setDockBottomTaken(false);
+  }, [setDockBottomTaken]);
+
   if (hidden) return null;
 
   return (

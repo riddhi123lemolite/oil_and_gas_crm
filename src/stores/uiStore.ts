@@ -7,6 +7,14 @@ interface UiState {
   commandOpen: boolean;
   shortcutsOpen: boolean;
   splashSeen: boolean;
+  /**
+   * True while the dashboard's Customise launcher occupies the bottom slot of
+   * the right-edge dock. The AI button reads this to sit one slot up when they
+   * share the dock, and drop back down to the bottom on every other screen —
+   * otherwise it floats with an empty gap beneath it.
+   */
+  dockBottomTaken: boolean;
+  setDockBottomTaken: (taken: boolean) => void;
   init: () => void;
   toggleSidebar: () => void;
   setMobileSidebar: (open: boolean) => void;
@@ -21,6 +29,9 @@ export const useUiStore = create<UiState>((set, get) => ({
   commandOpen: false,
   shortcutsOpen: false,
   splashSeen: true,
+  dockBottomTaken: false,
+
+  setDockBottomTaken: (taken) => set({ dockBottomTaken: taken }),
 
   init: () => {
     set({

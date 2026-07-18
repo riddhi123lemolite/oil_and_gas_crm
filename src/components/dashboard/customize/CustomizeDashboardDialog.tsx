@@ -7,6 +7,7 @@ import {
   ClipboardCheck,
   LayoutGrid,
   Sparkles,
+  X,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import {
@@ -17,6 +18,7 @@ import {
   DialogFooter,
   DialogTitle,
   DialogDescription,
+  DialogClose,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { useDashboardStore } from '@/stores/dashboardStore';
@@ -155,6 +157,10 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
+        // The default close button is absolutely positioned top-right, where it
+        // landed on top of the "shown" counter. Suppressed here in favour of an
+        // explicit one laid out in the header row.
+        hideClose
         // The glass surface and entrance now come from DialogContent itself;
         // this only widens the panel for the three-column workspace.
         className={cn('max-w-[min(76rem,calc(100vw-2rem))] sm:max-h-[90vh]')}
@@ -193,6 +199,16 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
                 widgets shown
               </p>
             </div>
+
+            <DialogClose asChild>
+              <button
+                type="button"
+                aria-label="Close customise dashboard"
+                className="-mr-1 -mt-1 flex size-9 shrink-0 items-center justify-center rounded-lg border border-white/30 text-content-muted transition-colors hover:bg-surface/70 hover:text-content focus-ring dark:border-white/10"
+              >
+                <X className="size-4" />
+              </button>
+            </DialogClose>
           </div>
 
           <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-content/10 ring-1 ring-inset ring-white/10">

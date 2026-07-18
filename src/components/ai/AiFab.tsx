@@ -4,6 +4,7 @@ import { Sparkles, X, Maximize2 } from 'lucide-react';
 import { useDataStore } from '@/stores/dataStore';
 import { useAiStore } from '@/stores/aiStore';
 import { useAuthStore } from '@/stores/authStore';
+import { useUiStore } from '@/stores/uiStore';
 import { ChatPanel } from './ChatPanel';
 import { cn } from '@/lib/utils';
 
@@ -16,6 +17,7 @@ export function AiFab() {
   const init = useAiStore((s) => s.init);
   const notifications = useDataStore((s) => s.notifications);
   const user = useAuthStore((s) => s.currentUser);
+  const stacked = useUiStore((s) => s.dockBottomTaken);
 
   // Re-load the chat store whenever the user or role changes, so switching role
   // refreshes the assistant to that role's own (isolated, preserved) history.
@@ -33,7 +35,13 @@ export function AiFab() {
         <div
           role="dialog"
           aria-label="CRM Assistant"
-          className="no-print fixed bottom-52 left-4 right-4 z-40 flex h-[540px] max-h-[calc(100vh-15rem)] flex-col overflow-hidden rounded-2xl border border-white/20 shadow-pop backdrop-blur-2xl backdrop-saturate-150 animate-slide-up glass-panel sm:left-auto sm:w-[370px] lg:bottom-40 lg:right-6 dark:border-white/10"
+          className={cn(
+            'no-print fixed left-4 right-4 z-40 flex h-[540px] flex-col overflow-hidden rounded-2xl border border-white/20 shadow-pop backdrop-blur-2xl backdrop-saturate-150 animate-slide-up glass-panel sm:left-auto sm:w-[370px] lg:right-6 dark:border-white/10',
+            // Clears whichever slot the launcher is currently in.
+            stacked
+              ? 'bottom-52 max-h-[calc(100vh-15rem)] lg:bottom-40'
+              : 'bottom-36 max-h-[calc(100vh-11rem)] lg:bottom-24',
+          )}
         >
           <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
             <div className="flex items-center gap-2">
@@ -55,9 +63,14 @@ export function AiFab() {
         </div>
       )}
 
-      {/* Upper slot of the right-edge dock. The dashboard's Customise button
-          occupies the slot directly below (bottom-20 / lg:bottom-6). */}
-      <div className="group no-print fixed bottom-36 right-4 z-50 lg:bottom-24 lg:right-6">
+      {/* Sits in the dock's bottom slot by default, and steps up one slot only
+          while the dashboard's Customise launcher is using it. */}
+      <div
+        className={cn(
+          'group no-print fixed right-4 z-50 transition-[bottom] duration-300 ease-out lg:right-6',
+          stacked ? 'bottom-36 lg:bottom-24' : 'bottom-20 lg:bottom-6',
+        )}
+      >
         {!open && (
           <span className="pointer-events-none absolute bottom-1/2 right-full mr-3 hidden translate-y-1/2 whitespace-nowrap rounded-md bg-brand-primary px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 md:block">
             Ask CRM AI
