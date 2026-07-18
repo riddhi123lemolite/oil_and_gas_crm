@@ -291,11 +291,12 @@ body {
   animation: dialog-out 160ms ease-in;
   /* Radix removes the node on animationend. If that never fires (throttled
      tab, interrupted animation), a closed panel would otherwise sit on top of
-     the page still swallowing clicks. */
-  pointer-events: none;
+     the page still swallowing clicks. !important because Radix sets
+     pointer-events inline, which a plain declaration cannot beat. */
+  pointer-events: none !important;
 }
 .dialog-overlay[data-state='closed'] {
-  pointer-events: none;
+  pointer-events: none !important;
 }
 .dialog-overlay[data-state='open'] {
   animation: overlay-in 220ms ease-out;
