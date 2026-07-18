@@ -11,7 +11,7 @@ export function ChartTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   return (
-    <div className="rounded-lg border border-line bg-surface px-3 py-2 shadow-pop">
+    <div className="glass-tooltip rounded-xl border px-3 py-2 backdrop-blur-xl backdrop-saturate-150">
       {label != null && (
         <div className="mb-1 text-xs font-semibold text-content">{label}</div>
       )}
@@ -22,7 +22,7 @@ export function ChartTooltip({
               className="size-2 rounded-full"
               style={{ backgroundColor: entry.color }}
             />
-            <span className="text-content-muted">{entry.name}</span>
+            <span className="text-content-secondary">{entry.name}</span>
             <span className="num ml-auto font-medium text-content">
               {formatter
                 ? formatter(Number(entry.value))

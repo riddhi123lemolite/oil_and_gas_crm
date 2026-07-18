@@ -28,8 +28,8 @@ const EDGE = 8;
 function Line({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-6">
-      <span className="text-slate-400 dark:text-slate-500">{label}</span>
-      <span className="num font-medium text-white dark:text-slate-900">{value}</span>
+      <span className="text-content-secondary">{label}</span>
+      <span className="num font-medium text-content">{value}</span>
     </div>
   );
 }
@@ -62,14 +62,17 @@ export function MapTooltip({ hovered }: MapTooltipProps) {
           exit={{ opacity: 0, y: 4, scale: 0.98 }}
           transition={{ duration: 0.14, ease: 'easeOut' }}
           style={{ left, top }}
-          className="pointer-events-none absolute z-30 w-56 rounded-lg border border-white/15 bg-slate-900/85 p-3 text-xs shadow-pop backdrop-blur-md dark:border-black/10 dark:bg-white/85"
+          // Frosted, and follows the theme instead of inverting — a light pane
+          // in light mode, a dark one in dark mode, matching every other
+          // floating surface in the app.
+          className="glass-tooltip pointer-events-none absolute z-30 w-56 rounded-xl border p-3 text-xs backdrop-blur-xl backdrop-saturate-150"
         >
           <div className="mb-2 flex items-center justify-between gap-2">
-            <span className="font-display text-sm font-semibold text-white dark:text-slate-900">
+            <span className="font-display text-sm font-semibold text-content">
               {hovered.data.state}
             </span>
             {hovered.data.region && (
-              <span className="rounded bg-white/15 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 dark:bg-black/[0.07] dark:text-slate-600">
+              <span className="glass-note rounded px-1.5 py-0.5 text-[10px] font-medium text-content-secondary">
                 {hovered.data.region}
               </span>
             )}
@@ -81,13 +84,11 @@ export function MapTooltip({ hovered }: MapTooltipProps) {
             <Line label="Clients" value={formatNumber(hovered.data.clients)} />
             <Line label="Projects" value={formatNumber(hovered.data.projects)} />
             <div className="flex items-center justify-between gap-6 pt-0.5">
-              <span className="text-slate-400 dark:text-slate-500">Growth</span>
+              <span className="text-content-secondary">Growth</span>
               <span
                 className={cn(
                   'inline-flex items-center gap-0.5 font-semibold',
-                  hovered.data.growth >= 0
-                    ? 'text-emerald-400 dark:text-emerald-600'
-                    : 'text-rose-400 dark:text-rose-500',
+                  hovered.data.growth >= 0 ? 'text-success' : 'text-danger',
                 )}
               >
                 {hovered.data.growth >= 0 ? (
