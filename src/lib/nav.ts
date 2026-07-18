@@ -36,6 +36,7 @@ import {
   ScrollText,
   SlidersHorizontal,
   Calculator,
+  Fingerprint,
   Sparkles,
   type LucideIcon,
 } from 'lucide-react';
@@ -67,6 +68,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { label: 'My Day', path: '/my-day', icon: Sun, module: 'tasks' },
       { label: 'Calendar', path: '/calendar', icon: CalendarDays, module: 'tasks' },
       { label: 'ERP Calculator', path: '/erp-calculator', icon: Calculator, module: 'erp' },
+      { label: 'My Attendance', path: '/my-attendance', icon: Fingerprint, module: 'hrms' },
     ],
   },
   {

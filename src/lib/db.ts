@@ -14,7 +14,7 @@ export const ENTITY_TABLES = [
   'users', 'leads', 'customers', 'items', 'proposals', 'orders', 'invoices',
   'payments', 'routes', 'dispatches', 'vehicles', 'drivers', 'inventory',
   'tasks', 'activities', 'messages', 'channels', 'emails', 'callLogs',
-  'notifications', 'documents', 'auditLog',
+  'notifications', 'documents', 'auditLog', 'attendance',
 ] as const;
 
 export type EntityTable = (typeof ENTITY_TABLES)[number];

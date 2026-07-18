@@ -512,6 +512,32 @@ export interface AuditLogEntry {
   createdAt: string;
 }
 
+// ---------------------------------------------------------------------------
+// Attendance (HRMS)
+// ---------------------------------------------------------------------------
+export type AttendanceStatus =
+  | 'PRESENT'
+  | 'HALF_DAY'
+  | 'ON_LEAVE'
+  | 'ABSENT';
+
+/**
+ * One row per employee per calendar day. `date` is a local YYYY-MM-DD key
+ * rather than a timestamp, so "today" is unambiguous regardless of timezone
+ * arithmetic, and a day's record can be found without scanning ranges.
+ */
+export interface AttendanceRecord {
+  id: string;
+  userId: string;
+  date: string;
+  checkInAt?: string;
+  checkOutAt?: string;
+  status: AttendanceStatus;
+  note?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface DefinitionItem {
   id: string;
   label: string;

@@ -17,6 +17,7 @@ import { generateId } from '@/lib/utils';
 import type {
   Activity,
   AppNotification,
+  AttendanceRecord,
   AuditLogEntry,
   CallLog,
   ChatChannel,
@@ -66,6 +67,7 @@ interface Collections {
   notifications: AppNotification[];
   documents: CrmDocument[];
   auditLog: AuditLogEntry[];
+  attendance: AttendanceRecord[];
 }
 
 type CollKey = keyof Collections;
@@ -108,7 +110,7 @@ const COLL_KEYS: CollKey[] = [
   'users', 'leads', 'customers', 'items', 'proposals', 'orders', 'invoices',
   'payments', 'routes', 'dispatches', 'vehicles', 'drivers', 'inventory',
   'tasks', 'activities', 'messages', 'channels', 'emails', 'callLogs',
-  'notifications', 'documents', 'auditLog',
+  'notifications', 'documents', 'auditLog', 'attendance',
 ];
 
 export const SETTINGS_KEYS = {
@@ -123,7 +125,7 @@ const emptyCollections = (): Collections => ({
   invoices: [], payments: [], routes: [], dispatches: [], vehicles: [],
   drivers: [], inventory: [], tasks: [], activities: [], messages: [],
   channels: [], emails: [], callLogs: [], notifications: [], documents: [],
-  auditLog: [],
+  auditLog: [], attendance: [],
 });
 
 const EMPTY_DEFS: Definitions = {

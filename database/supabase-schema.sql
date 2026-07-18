@@ -36,7 +36,7 @@ begin
   foreach t in array array[
     'leads','customers','items','proposals','orders','invoices','payments',
     'routes','dispatches','vehicles','drivers','inventory','tasks','activities',
-    'messages','channels','emails','callLogs','notifications','documents','auditLog'
+    'messages','channels','emails','callLogs','notifications','documents','auditLog','attendance'
   ] loop
     execute format('create table if not exists public.%I (
       id         text primary key,
@@ -64,7 +64,7 @@ begin
   foreach t in array array[
     'users','leads','customers','items','proposals','orders','invoices','payments',
     'routes','dispatches','vehicles','drivers','inventory','tasks','activities',
-    'messages','channels','emails','callLogs','notifications','documents','auditLog',
+    'messages','channels','emails','callLogs','notifications','documents','auditLog','attendance',
     'settings'
   ] loop
     execute format('alter table public.%I enable row level security;', t);
@@ -84,7 +84,7 @@ begin
   foreach t in array array[
     'users','leads','customers','items','proposals','orders','invoices','payments',
     'routes','dispatches','vehicles','drivers','inventory','tasks','activities',
-    'messages','channels','emails','callLogs','notifications','documents','auditLog',
+    'messages','channels','emails','callLogs','notifications','documents','auditLog','attendance',
     'settings'
   ] loop
     begin

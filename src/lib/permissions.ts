@@ -20,7 +20,8 @@ export type PermModule =
   | 'staff'
   | 'settings'
   | 'portal'
-  | 'erp';
+  | 'erp'
+  | 'hrms';
 
 export type PermAction = 'view' | 'create' | 'edit' | 'delete' | 'approve';
 
@@ -40,6 +41,7 @@ export const PERM_MODULES: { key: PermModule; label: string }[] = [
   { key: 'settings', label: 'Admin & Settings' },
   { key: 'portal', label: 'Customer Portal' },
   { key: 'erp', label: 'ERP Tools' },
+  { key: 'hrms', label: 'My Attendance (HRMS)' },
 ];
 
 export const PERM_ACTIONS: PermAction[] = [
@@ -73,6 +75,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     settings: ALL,
     portal: [],
     erp: ALL,
+    hrms: ALL,
   },
   SALES_MANAGER: {
     dashboard: VIEW,
@@ -90,6 +93,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     settings: [],
     portal: [],
     erp: [],
+    hrms: VCE,
   },
   SALES_EXECUTIVE: {
     dashboard: VIEW,
@@ -107,6 +111,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     settings: [],
     portal: [],
     erp: [],
+    hrms: VCE,
   },
   ACCOUNTS: {
     dashboard: VIEW,
@@ -124,6 +129,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     settings: [],
     portal: [],
     erp: [],
+    hrms: VCE,
   },
   CUSTOMER: {
     dashboard: [],
@@ -141,6 +147,7 @@ export const DEFAULT_PERMISSIONS: Matrix = {
     settings: [],
     portal: ALL,
     erp: [],
+    hrms: [],
   },
 };
 

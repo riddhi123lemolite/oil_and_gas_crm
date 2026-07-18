@@ -81,6 +81,7 @@ const ReportBuilder = lazy(() => import('@/screens/reports/ReportBuilder'));
 const StaffList = lazy(() => import('@/screens/staff/StaffList'));
 const StaffForm = lazy(() => import('@/screens/staff/StaffForm'));
 const Attendance = lazy(() => import('@/screens/staff/Attendance'));
+const MyAttendance = lazy(() => import('@/screens/hrms/MyAttendance'));
 
 const ProfileSettings = lazy(() => import('@/screens/settings/ProfileSettings'));
 const CompanySettings = lazy(() => import('@/screens/settings/CompanySettings'));
@@ -205,6 +206,7 @@ export const router = createBrowserRouter([
       { path: 'staff/new', element: <StaffForm /> },
       { path: 'staff/:id/edit', element: <StaffForm /> },
       { path: 'attendance', element: <Attendance /> },
+      { path: 'my-attendance', element: <MyAttendance /> },
 
       { path: 'profile', element: <ProfileSettings /> },
       { path: 'settings/company', element: <CompanySettings /> },
