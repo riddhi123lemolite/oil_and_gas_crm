@@ -155,15 +155,9 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
-        // Floating glass panel: translucent surface + heavy blur, a lit hairline
-        // border, and a layered shadow so it reads as hovering above the app
-        // rather than being welded into it.
-        overlayClassName="bg-slate-900/40 backdrop-blur-md"
-        className={cn(
-          'max-w-[min(76rem,calc(100vw-2rem))] sm:max-h-[90vh]',
-          'glass-panel border-white/25 backdrop-blur-2xl backdrop-saturate-150',
-          'dark:border-white/10',
-        )}
+        // The glass surface and entrance now come from DialogContent itself;
+        // this only widens the panel for the three-column workspace.
+        className={cn('max-w-[min(76rem,calc(100vw-2rem))] sm:max-h-[90vh]')}
       >
         {/* lit top edge across the whole panel */}
         <span

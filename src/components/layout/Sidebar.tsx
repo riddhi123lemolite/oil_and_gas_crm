@@ -68,7 +68,7 @@ export function Sidebar() {
   const content = (mobile: boolean) => {
     const isCollapsed = mobile ? false : collapsed;
     return (
-      <div className="flex h-full flex-col bg-surface">
+      <div className="glass-soft flex h-full flex-col backdrop-blur-xl backdrop-saturate-150">
         <div
           className={cn(
             'flex h-14 shrink-0 items-center border-b border-line px-4',

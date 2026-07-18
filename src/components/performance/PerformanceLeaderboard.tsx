@@ -36,7 +36,7 @@ export function PerformanceLeaderboard({ employees }: PerformanceLeaderboardProp
                 initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: Math.min(i * 0.03, 0.3), duration: 0.25 }}
-                className="border-b border-line/70 last:border-0 hover:bg-muted/50"
+                className="glass-line border-b last:border-0 hover:bg-muted"
               >
                 <td className="py-2 pl-1 pr-2">
                   <span

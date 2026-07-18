@@ -152,7 +152,7 @@ export function Topbar() {
   const recent = notifications.slice(0, 6);
 
   return (
-    <header className="no-print sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b border-line bg-surface px-4">
+    <header className="no-print sticky top-0 z-20 flex h-14 shrink-0 items-center gap-3 border-b glass-line glass-soft backdrop-blur-xl backdrop-saturate-150 px-4">
       <button
         onClick={() => setMobileSidebar(true)}
         className="rounded-md p-1.5 text-content-secondary hover:bg-muted lg:hidden"

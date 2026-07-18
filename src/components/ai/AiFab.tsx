@@ -33,7 +33,7 @@ export function AiFab() {
         <div
           role="dialog"
           aria-label="CRM Assistant"
-          className="no-print fixed bottom-24 left-4 right-4 z-40 flex h-[540px] max-h-[calc(100vh-9rem)] flex-col overflow-hidden rounded-2xl border border-line bg-base shadow-pop animate-slide-up sm:left-auto sm:w-[370px] lg:right-6"
+          className="no-print fixed bottom-52 left-4 right-4 z-40 flex h-[540px] max-h-[calc(100vh-15rem)] flex-col overflow-hidden rounded-2xl border border-white/20 shadow-pop backdrop-blur-2xl backdrop-saturate-150 animate-slide-up glass-panel sm:left-auto sm:w-[370px] lg:bottom-40 lg:right-6 dark:border-white/10"
         >
           <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
             <div className="flex items-center gap-2">
@@ -55,7 +55,9 @@ export function AiFab() {
         </div>
       )}
 
-      <div className="group no-print fixed bottom-20 right-4 z-50 lg:bottom-6 lg:right-6">
+      {/* Upper slot of the right-edge dock. The dashboard's Customise button
+          occupies the slot directly below (bottom-20 / lg:bottom-6). */}
+      <div className="group no-print fixed bottom-36 right-4 z-50 lg:bottom-24 lg:right-6">
         {!open && (
           <span className="pointer-events-none absolute bottom-1/2 right-full mr-3 hidden translate-y-1/2 whitespace-nowrap rounded-md bg-brand-primary px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 md:block">
             Ask CRM AI

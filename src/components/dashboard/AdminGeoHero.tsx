@@ -40,7 +40,7 @@ function RailStat({
   accent: string;
 }) {
   return (
-    <div className="flex items-center gap-2.5 rounded-lg border border-line/60 bg-base/50 p-2.5">
+    <div className="flex items-center gap-2.5 glass-preview glass-line rounded-lg border p-2.5">
       <span
         className="flex size-8 items-center justify-center rounded-lg"
         style={{ backgroundColor: `${accent}1f`, color: accent }}

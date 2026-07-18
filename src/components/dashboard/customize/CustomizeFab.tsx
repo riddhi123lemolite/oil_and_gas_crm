@@ -21,15 +21,17 @@ export function CustomizeFab({ onClick, hidden, showSheen }: Props) {
   if (hidden) return null;
 
   return (
-    <div className="group no-print fixed bottom-36 right-4 z-40 lg:bottom-24 lg:right-6">
+    // Bottom slot of the right-edge dock, directly beneath the AI assistant
+    // button (which sits one slot up). Same right offset and same 48px circle,
+    // so the two align exactly.
+    <div className="group no-print fixed bottom-20 right-4 z-40 lg:bottom-6 lg:right-6">
       <button
         type="button"
         onClick={onClick}
         aria-haspopup="dialog"
         aria-label="Customise dashboard"
         className={cn(
-          'customise-fab relative flex items-center gap-2.5 overflow-hidden rounded-full',
-          'h-12 w-12 justify-center md:h-12 md:w-auto md:justify-start md:pl-3.5 md:pr-4',
+          'customise-fab relative flex size-12 items-center justify-center overflow-hidden rounded-full',
           // Frosted glass: translucent brand wash over a blurred backdrop, with
           // a hairline that reads as a lit edge rather than a border.
           'border border-white/25 bg-gradient-to-br from-brand-primary/85 to-brand-primary/70',
@@ -52,18 +54,13 @@ export function CustomizeFab({ onClick, hidden, showSheen }: Props) {
           className="pointer-events-none absolute -inset-px rounded-full bg-[radial-gradient(120%_80%_at_20%_0%,rgba(255,255,255,0.35),transparent_60%)]"
         />
 
-        <span className="relative flex size-6 shrink-0 items-center justify-center rounded-full bg-white/15 ring-1 ring-inset ring-white/25">
-          <LayoutGrid className="size-3.5" strokeWidth={2.25} />
-        </span>
-        <span className="relative hidden whitespace-nowrap text-sm font-semibold tracking-tight md:inline">
-          Customise
-        </span>
+        <LayoutGrid className="relative size-5" strokeWidth={2} />
       </button>
 
-      {/* Tooltip for the icon-only (mobile / narrow) presentation. */}
+      {/* Label on hover, matching the AI button's tooltip treatment. */}
       <span
         role="tooltip"
-        className="pointer-events-none absolute bottom-1/2 right-full mr-3 hidden translate-y-1/2 whitespace-nowrap rounded-md bg-brand-primary px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 sm:block md:hidden"
+        className="pointer-events-none absolute bottom-1/2 right-full mr-3 hidden translate-y-1/2 whitespace-nowrap rounded-md bg-brand-primary px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100 md:block"
       >
         Customise dashboard
       </span>

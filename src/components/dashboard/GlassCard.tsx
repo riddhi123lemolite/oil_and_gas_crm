@@ -11,7 +11,10 @@ export const GlassCard = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElemen
     <div
       ref={ref}
       className={cn(
-        'relative overflow-hidden rounded-xl border border-line/70 bg-surface/70 shadow-pop backdrop-blur-xl',
+        // glass-soft, not bg-surface/70 — the surface token is a raw CSS var
+        // with no <alpha-value>, so the /70 modifier compiled to an invalid
+        // colour and this "frosted" card rendered with no background at all.
+        'glass-soft glass-line relative overflow-hidden rounded-xl border shadow-pop backdrop-blur-xl',
         'before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px',
         'before:bg-gradient-to-r before:from-transparent before:via-brand-secondary/40 before:to-transparent',
         className,
