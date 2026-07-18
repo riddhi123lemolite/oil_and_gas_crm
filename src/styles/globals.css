@@ -67,8 +67,30 @@ body,
 
 body {
   margin: 0;
-  background: var(--bg-base);
+  /* Ambient backdrop.
+     Frosted surfaces only READ as glass when there is something varied behind
+     them to refract — blurring a flat colour just returns the same colour. So
+     the page sits on soft brand-tinted pools (the existing navy / orange /
+     accent, at very low alpha) rather than one uniform fill. Fixed attachment
+     keeps them still while content scrolls over the top. */
+  background-color: var(--bg-base);
+  background-image:
+    radial-gradient(58rem 40rem at 8% -8%, rgb(15 61 92 / 0.20), transparent 60%),
+    radial-gradient(46rem 34rem at 100% 4%, rgb(232 119 34 / 0.16), transparent 62%),
+    radial-gradient(52rem 40rem at 78% 106%, rgb(0 168 120 / 0.12), transparent 60%),
+    radial-gradient(40rem 32rem at 24% 88%, rgb(232 119 34 / 0.10), transparent 62%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--text-primary);
+}
+
+/* Dark needs more punch: the same hues wash out against a near-black base. */
+.dark body {
+  background-image:
+    radial-gradient(58rem 40rem at 8% -8%, rgb(56 130 190 / 0.20), transparent 60%),
+    radial-gradient(46rem 34rem at 100% 4%, rgb(232 119 34 / 0.16), transparent 62%),
+    radial-gradient(52rem 40rem at 78% 106%, rgb(0 168 120 / 0.14), transparent 60%),
+    radial-gradient(40rem 32rem at 24% 88%, rgb(232 119 34 / 0.10), transparent 62%);
   font-family: Inter, system-ui, sans-serif;
   font-size: 14px;
   line-height: 20px;
@@ -107,8 +129,19 @@ body {
        CSS vars with no <alpha-value>, so Tailwind's opacity modifier compiles
        to an invalid colour (silently transparent in a class, a hard build
        error inside @apply). */
-    background-color: color-mix(in srgb, var(--bg-surface) 78%, transparent);
-    border-color: color-mix(in srgb, var(--border) 70%, transparent);
+    background-color: color-mix(in srgb, var(--bg-surface) 68%, transparent);
+    border-color: color-mix(in srgb, var(--border) 60%, transparent);
+    /* Lit top edge — the highlight that makes a translucent panel read as a
+       pane of glass rather than a faded box. */
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.55),
+      0 1px 2px rgb(15 23 42 / 0.04),
+      0 8px 24px -12px rgb(15 23 42 / 0.18);
+  }
+  .dark .card {
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.08),
+      0 8px 24px -12px rgb(0 0 0 / 0.5);
   }
   .input-base {
     @apply h-9 w-full rounded-md border border-line bg-surface px-3 text-base text-content

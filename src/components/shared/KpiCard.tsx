@@ -39,7 +39,7 @@ export function KpiCard({
       )}
     >
       <div className="flex items-start justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wide text-content-muted">
+        <span className="truncate text-xs font-semibold uppercase tracking-wide text-content-muted">
           {label}
         </span>
         <span
@@ -50,7 +50,9 @@ export function KpiCard({
         </span>
       </div>
 
-      <div className="mt-2 num text-3xl font-semibold text-content">
+      {/* Scales down when the strip is squeezed (7 cards in one row) instead of
+          overflowing its column. */}
+      <div className="num mt-2 truncate text-2xl font-semibold text-content 2xl:text-3xl">
         {value}
       </div>
 

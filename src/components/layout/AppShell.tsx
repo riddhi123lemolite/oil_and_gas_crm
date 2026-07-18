@@ -20,7 +20,10 @@ export function AppShell() {
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div className="flex min-h-screen bg-base">
+      {/* Transparent, not bg-base: an opaque fill here would cover the body's
+          ambient gradient and every frosted surface would have nothing to
+          refract. */}
+      <div className="flex min-h-screen">
         <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <Topbar />

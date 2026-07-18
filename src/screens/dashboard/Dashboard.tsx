@@ -1,4 +1,11 @@
-import { Fragment, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  Fragment,
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ReactNode,
+} from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   IndianRupee,
@@ -575,7 +582,13 @@ export default function Dashboard() {
           grid's default stretch keeps every card the same height as the
           tallest — the one carrying a sparkline. */}
       {visibleKpis.length > 0 && (
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-6">
+        <div
+          // Column count follows how many cards are actually shown, so the strip
+          // is always exactly one row on wide screens — a fixed 6 wrapped the
+          // 7th card onto a second row.
+          className="grid grid-cols-2 gap-3 lg:grid-cols-[repeat(var(--kpi-cols),minmax(0,1fr))]"
+          style={{ '--kpi-cols': visibleKpis.length } as CSSProperties}
+        >
           {visibleKpis.map((id) => (
             <Fragment key={id}>{kpiNodes[id]}</Fragment>
           ))}
