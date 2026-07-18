@@ -33,6 +33,12 @@ interface DashboardState extends StoredLayout {
   toggle: (id: WidgetId, visible: boolean) => void;
   /** Set many at once (Show all / Hide all) in a single write. */
   setMany: (ids: WidgetId[], visible: boolean) => void;
+  /**
+   * Apply an exact visible set across the given widgets (used by presets):
+   * everything in `visibleIds` on, every other available widget off, one write.
+   * Order is deliberately untouched, so a preset never discards an arrangement.
+   */
+  setExact: (availableIds: WidgetId[], visibleIds: WidgetId[]) => void;
   reorderGroup: (group: WidgetGroup, groupOrder: WidgetId[]) => void;
   reset: () => void;
   /** True when the layout differs from the built-in default. */
@@ -70,6 +76,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const { userKey, order, visibility } = get();
     const next = { ...visibility };
     for (const id of ids) next[id] = visible;
+    persist(userKey, { order, visibility: next });
+    set({ visibility: next });
+  },
+
+  setExact: (availableIds, visibleIds) => {
+    const { userKey, order, visibility } = get();
+    const on = new Set(visibleIds);
+    const next = { ...visibility };
+    for (const id of availableIds) next[id] = on.has(id);
     persist(userKey, { order, visibility: next });
     set({ visibility: next });
   },

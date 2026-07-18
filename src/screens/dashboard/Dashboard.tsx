@@ -26,7 +26,7 @@ import { IndiaMap } from '@/components/charts/IndiaMap';
 import { SelectField } from '@/components/forms/SelectField';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { AdminGeoHero } from '@/components/dashboard/AdminGeoHero';
-import { CustomizeDashboardDialog } from '@/components/dashboard/CustomizeDashboardDialog';
+import { CustomizeDashboardDialog } from '@/components/dashboard/customize/CustomizeDashboardDialog';
 import { Button } from '@/components/ui/button';
 import { EmployeePerformanceSection } from '@/components/performance/EmployeePerformanceSection';
 import { PerformanceCharts } from '@/components/performance/PerformanceCharts';
