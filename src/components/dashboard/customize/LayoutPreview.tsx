@@ -41,7 +41,8 @@ export function LayoutPreview({
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-xl border border-line bg-base/60 p-3',
+        'relative overflow-hidden rounded-2xl border glass-preview border-white/40 p-3',
+        'shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] backdrop-blur-md dark:border-white/10',
         className,
       )}
       aria-hidden="true"

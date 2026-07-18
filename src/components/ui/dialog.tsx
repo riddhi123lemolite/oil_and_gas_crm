@@ -27,8 +27,10 @@ export const DialogContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     size?: 'sm' | 'md' | 'lg' | 'xl';
     hideClose?: boolean;
+    /** Extra classes for the backdrop — e.g. a heavier blur behind a glass panel. */
+    overlayClassName?: string;
   }
->(({ className, children, size = 'md', hideClose, ...props }, ref) => {
+>(({ className, children, size = 'md', hideClose, overlayClassName, ...props }, ref) => {
   const widths = {
     sm: 'max-w-sm',
     md: 'max-w-lg',
@@ -37,7 +39,7 @@ export const DialogContent = React.forwardRef<
   };
   return (
     <DialogPrimitive.Portal>
-      <DialogOverlay />
+      <DialogOverlay className={overlayClassName} />
       <DialogPrimitive.Content
         ref={ref}
         className={cn(

@@ -14,7 +14,7 @@ function ChipRow({ widgets }: { widgets: WidgetDef[] }) {
       {widgets.map((w) => (
         <span
           key={w.id}
-          className="inline-flex items-center gap-1.5 rounded-full border border-line bg-surface py-1 pl-1.5 pr-2.5 text-xs font-medium text-content-secondary"
+          className="inline-flex items-center gap-1.5 rounded-full border glass-tile border-white/40 py-1 pl-1.5 pr-2.5 text-xs font-medium text-content-secondary backdrop-blur-sm dark:border-white/10"
         >
           <i
             className="size-2 shrink-0 rounded-full"
@@ -48,8 +48,8 @@ export function ReviewPanel({
     <div className="space-y-4">
       <div
         className={cn(
-          'flex items-start gap-3 rounded-xl border p-3',
-          'border-brand-accent/25 bg-brand-accent/[0.06]',
+          'flex items-start gap-3 rounded-2xl border p-3.5',
+          'border-brand-accent/30 bg-brand-accent/[0.08] backdrop-blur-sm',
         )}
       >
         <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-brand-accent" />

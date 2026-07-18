@@ -39,23 +39,32 @@ export function PresetGallery({ availableIds, activePresetId, onApply }: Props) 
               whileTap={{ scale: 0.985 }}
               transition={{ type: 'spring', stiffness: 320, damping: 24 }}
               className={cn(
-                'relative flex items-start gap-3 rounded-xl border p-3 text-left transition-colors focus-ring',
+                'relative flex items-start gap-3 overflow-hidden rounded-2xl border p-3.5 text-left',
+                'backdrop-blur-sm transition-colors duration-200 focus-ring',
                 active
-                  ? 'border-transparent bg-surface shadow-pop'
-                  : 'border-line bg-surface hover:border-brand-secondary/40',
+                  ? 'glass-strong border-transparent shadow-pop'
+                  : 'glass-soft border-white/40 hover:border-brand-secondary/50 dark:border-white/10',
               )}
               style={
                 active ? { boxShadow: `0 0 0 2px ${p.accent}` } : undefined
               }
             >
+              {/* accent wash bleeding from the top-left corner */}
               <span
-                className="flex size-9 shrink-0 items-center justify-center rounded-lg"
-                style={{ background: `${p.accent}1A`, color: p.accent }}
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-70"
+                style={{
+                  background: `radial-gradient(120% 90% at 0% 0%, ${p.accent}1F, transparent 62%)`,
+                }}
+              />
+              <span
+                className="relative flex size-9 shrink-0 items-center justify-center rounded-xl ring-1 ring-inset ring-white/20"
+                style={{ background: `${p.accent}24`, color: p.accent }}
               >
                 <Icon className="size-[18px]" strokeWidth={1.75} />
               </span>
 
-              <span className="min-w-0 flex-1">
+              <span className="relative min-w-0 flex-1">
                 <span className="flex items-center gap-1.5">
                   <span className="truncate text-sm font-semibold text-content">
                     {p.label}
@@ -82,7 +91,7 @@ export function PresetGallery({ availableIds, activePresetId, onApply }: Props) 
       </div>
 
       {!activePresetId && (
-        <p className="rounded-lg border border-line bg-muted/40 px-3 py-2 text-[11px] text-content-muted">
+        <p className="glass-note rounded-xl border border-white/30 px-3 py-2 text-[11px] text-content-secondary backdrop-blur-sm dark:border-white/10">
           Your layout is custom — it doesn’t match any preset. Picking one
           replaces your current show/hide choices.
         </p>

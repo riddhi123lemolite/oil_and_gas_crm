@@ -30,11 +30,22 @@ import {
   type WidgetId,
 } from '@/lib/dashboard/widgets';
 import { matchPreset, presetWidgets, type DashboardPreset } from '@/lib/dashboard/presets';
+import { cn } from '@/lib/utils';
 import { StepNav, type StepDef } from './StepNav';
 import { PresetGallery } from './PresetGallery';
 import { WidgetList } from './WidgetList';
 import { LayoutPreview } from './LayoutPreview';
 import { ReviewPanel } from './ReviewPanel';
+
+/** Per-column entrance, sequenced by the body's stagger container. */
+const COLUMN = {
+  hidden: { opacity: 0, y: 10 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { type: 'spring' as const, stiffness: 300, damping: 30 },
+  },
+};
 
 const STEPS: StepDef[] = [
   {
@@ -144,13 +155,31 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         size="xl"
-        className="max-w-[min(76rem,calc(100vw-2rem))] sm:max-h-[90vh]"
+        // Floating glass panel: translucent surface + heavy blur, a lit hairline
+        // border, and a layered shadow so it reads as hovering above the app
+        // rather than being welded into it.
+        overlayClassName="bg-slate-900/40 backdrop-blur-md"
+        className={cn(
+          'max-w-[min(76rem,calc(100vw-2rem))] sm:max-h-[90vh]',
+          'glass-panel border-white/25 backdrop-blur-2xl backdrop-saturate-150',
+          'dark:border-white/10',
+        )}
       >
-        <DialogHeader className="relative overflow-hidden">
+        {/* lit top edge across the whole panel */}
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/60 to-transparent dark:via-white/25"
+        />
+
+        <DialogHeader className="relative overflow-hidden glass-header border-white/15 dark:border-white/10">
           <span className="pointer-events-none absolute inset-0 bg-gradient-to-r from-brand-primary/[0.07] via-transparent to-brand-secondary/[0.09]" />
           <div className="relative flex items-start gap-3">
-            <span className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-brand-primary to-brand-secondary text-white shadow-sm">
-              <LayoutGrid className="size-5" />
+            <span className="relative mt-0.5 flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand-primary to-brand-secondary text-white shadow-lg ring-1 ring-inset ring-white/25">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_80%_at_25%_0%,rgba(255,255,255,0.4),transparent_60%)]"
+              />
+              <LayoutGrid className="relative size-5" />
             </span>
             <div className="min-w-0 flex-1">
               <DialogTitle>Customise dashboard</DialogTitle>
@@ -172,9 +201,9 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
             </div>
           </div>
 
-          <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-muted">
+          <div className="relative mt-3 h-1 overflow-hidden rounded-full bg-content/10 ring-1 ring-inset ring-white/10">
             <motion.div
-              className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary"
+              className="h-full rounded-full bg-gradient-to-r from-brand-primary to-brand-secondary shadow-[0_0_12px_rgba(232,119,34,0.5)]"
               animate={{ width: `${pct}%` }}
               transition={{ type: 'spring', stiffness: 260, damping: 30 }}
             />
@@ -182,19 +211,32 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
         </DialogHeader>
 
         <DialogBody className="px-4 sm:px-6">
-          <div className="flex flex-col gap-5 lg:flex-row">
+          {/* Columns fade up in sequence so the panel assembles itself rather
+              than snapping in all at once. */}
+          <motion.div
+            className="flex flex-col gap-5 lg:flex-row"
+            initial="hidden"
+            animate="show"
+            variants={{
+              hidden: {},
+              show: { transition: { staggerChildren: 0.07, delayChildren: 0.04 } },
+            }}
+          >
             {/* Steps */}
-            <div className="order-1 shrink-0 lg:w-[186px]">
+            <motion.div variants={COLUMN} className="order-1 shrink-0 lg:w-[186px]">
               <StepNav
                 steps={STEPS}
                 activeId={step}
                 onSelect={setStep}
                 badgeFor={badgeFor}
               />
-            </div>
+            </motion.div>
 
             {/* Preview — above the controls on small screens, beside them on xl */}
-            <aside className="order-2 shrink-0 xl:order-3 xl:w-[286px]">
+            <motion.aside
+              variants={COLUMN}
+              className="order-2 shrink-0 xl:order-3 xl:w-[286px]"
+            >
               <div className="xl:sticky xl:top-0">
                 <p className="mb-2 flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider text-content-muted">
                   <Sparkles className="size-3 text-brand-secondary" />
@@ -210,10 +252,10 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
                   Mirrors your live dashboard layout.
                 </p>
               </div>
-            </aside>
+            </motion.aside>
 
             {/* Active step */}
-            <div className="order-3 min-w-0 flex-1 xl:order-2">
+            <motion.div variants={COLUMN} className="order-3 min-w-0 flex-1 xl:order-2">
               {/* Keyed remount fades each step in. Deliberately not
                   AnimatePresence: `mode="wait"` would hold the incoming step
                   behind the outgoing one's exit animation, leaving a dead gap
@@ -270,11 +312,11 @@ export function CustomizeDashboardDialog({ open, onOpenChange, ctx }: Props) {
                     />
                   )}
               </motion.div>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </DialogBody>
 
-        <DialogFooter className="justify-between gap-2">
+        <DialogFooter className="justify-between gap-2 glass-header border-white/15 dark:border-white/10">
           <Button
             variant="ghost"
             size="sm"

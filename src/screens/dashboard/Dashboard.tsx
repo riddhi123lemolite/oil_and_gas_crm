@@ -27,7 +27,8 @@ import { SelectField } from '@/components/forms/SelectField';
 import { GlassCard } from '@/components/dashboard/GlassCard';
 import { AdminGeoHero } from '@/components/dashboard/AdminGeoHero';
 import { CustomizeDashboardDialog } from '@/components/dashboard/customize/CustomizeDashboardDialog';
-import { Button } from '@/components/ui/button';
+import { CustomizeFab } from '@/components/dashboard/customize/CustomizeFab';
+import { readStorage, writeStorage } from '@/lib/storage';
 import { EmployeePerformanceSection } from '@/components/performance/EmployeePerformanceSection';
 import { PerformanceCharts } from '@/components/performance/PerformanceCharts';
 import { PerformanceLeaderboard } from '@/components/performance/PerformanceLeaderboard';
@@ -78,6 +79,9 @@ function SectionTitle({
   );
 }
 
+/** Set once the launcher has been used, so its attention sheen plays only once. */
+const CUSTOMISE_SEEN_KEY = 'oilgas-crm:customise-seen';
+
 const PERIODS = [
   { value: '1', label: 'This Month' },
   { value: '3', label: 'This Quarter' },
@@ -103,6 +107,11 @@ export default function Dashboard() {
   const [period, setPeriod] = useState('12');
   const [stateFilter, setStateFilter] = useState<string | null>(null);
   const [customizeOpen, setCustomizeOpen] = useState(false);
+  // The launcher's one-shot sheen plays until it has been used once.
+  const [sheenSeen, setSheenSeen] = useState(true);
+  useEffect(() => {
+    setSheenSeen(readStorage(CUSTOMISE_SEEN_KEY, false));
+  }, []);
 
   // Per-user dashboard layout. Re-init on user change so switching accounts (or
   // demo roles) loads that user's arrangement rather than the previous one's.
@@ -542,24 +551,9 @@ export default function Dashboard() {
         description="Here's how your sales operation is performing."
         icon={<TrendingUp />}
         actions={
-          <>
-            <div className="w-44">
-              <SelectField
-                value={period}
-                onChange={setPeriod}
-                options={PERIODS}
-              />
-            </div>
-            {isAdmin && (
-              <Button
-                variant="outline"
-                onClick={() => setCustomizeOpen(true)}
-                title="Customise dashboard"
-              >
-                <LayoutGrid /> Customise
-              </Button>
-            )}
-          </>
+          <div className="w-44">
+            <SelectField value={period} onChange={setPeriod} options={PERIODS} />
+          </div>
         }
       />
 
@@ -621,11 +615,24 @@ export default function Dashboard() {
       </p>
 
       {isAdmin && (
-        <CustomizeDashboardDialog
-          open={customizeOpen}
-          onOpenChange={setCustomizeOpen}
-          ctx={widgetCtx}
-        />
+        <>
+          <CustomizeFab
+            onClick={() => {
+              setCustomizeOpen(true);
+              if (!sheenSeen) {
+                writeStorage(CUSTOMISE_SEEN_KEY, true);
+                setSheenSeen(true);
+              }
+            }}
+            hidden={customizeOpen}
+            showSheen={!sheenSeen}
+          />
+          <CustomizeDashboardDialog
+            open={customizeOpen}
+            onOpenChange={setCustomizeOpen}
+            ctx={widgetCtx}
+          />
+        </>
       )}
     </div>
   );

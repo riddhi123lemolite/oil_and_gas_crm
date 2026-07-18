@@ -204,9 +204,110 @@ body {
   animation-play-state: paused;
 }
 
+/* ============ Glass surfaces ============
+   The surface tokens are raw CSS vars (`surface: var(--bg-surface)`), which
+   have no `<alpha-value>` slot — so Tailwind's `/80` opacity modifier compiles
+   to an invalid colour and silently renders TRANSPARENT. These utilities use
+   color-mix instead, which resolves against the same vars and therefore still
+   follows the light/dark theme. */
+.glass-panel {
+  background-color: color-mix(in srgb, var(--bg-surface) 82%, transparent);
+  box-shadow:
+    0 32px 80px -24px rgb(15 23 42 / 0.45),
+    0 8px 24px -12px rgb(15 23 42 / 0.25);
+}
+.glass-tile {
+  background-color: color-mix(in srgb, var(--bg-surface) 72%, transparent);
+}
+.glass-tile-dim {
+  background-color: color-mix(in srgb, var(--bg-surface) 40%, transparent);
+}
+.glass-tile:hover,
+.glass-tile-dim:hover {
+  background-color: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+}
+.glass-soft {
+  background-color: color-mix(in srgb, var(--bg-surface) 60%, transparent);
+}
+.glass-soft:hover {
+  background-color: color-mix(in srgb, var(--bg-surface) 85%, transparent);
+}
+.glass-strong {
+  background-color: color-mix(in srgb, var(--bg-surface) 94%, transparent);
+}
+.glass-preview {
+  background-color: color-mix(in srgb, var(--bg-base) 50%, transparent);
+}
+.glass-header {
+  background-color: color-mix(in srgb, var(--bg-surface) 35%, transparent);
+}
+/* Transparent until hovered — Tailwind can't prefix a custom class with hover:. */
+.glass-hover:hover {
+  background-color: color-mix(in srgb, var(--bg-surface) 60%, transparent);
+}
+.glass-note {
+  background-color: color-mix(in srgb, var(--bg-muted) 55%, transparent);
+}
+
+/* ============ Customise launcher — floating glass capsule ============ */
+/* Sits above the AI fab in the same right-edge dock. The float is a slow 1px
+   drift; the glow breathes underneath it so the two never beat against each
+   other. */
+@keyframes customise-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-3px); }
+}
+@keyframes customise-glow {
+  0%, 100% {
+    box-shadow:
+      0 10px 30px -10px rgba(15, 61, 92, 0.45),
+      0 0 0 0 rgba(232, 119, 34, 0.35);
+  }
+  50% {
+    box-shadow:
+      0 16px 38px -10px rgba(15, 61, 92, 0.55),
+      0 0 0 12px rgba(232, 119, 34, 0);
+  }
+}
+/* One-shot sheen that draws the eye on first paint, then never repeats. */
+@keyframes customise-sheen {
+  0%   { transform: translateX(-120%) skewX(-18deg); opacity: 0; }
+  12%  { opacity: 0.65; }
+  60%  { opacity: 0.65; }
+  100% { transform: translateX(240%) skewX(-18deg); opacity: 0; }
+}
+.customise-fab {
+  animation:
+    customise-float 5.5s ease-in-out infinite,
+    customise-glow 4.2s ease-in-out infinite;
+}
+.customise-fab:hover,
+.customise-fab:focus-visible {
+  animation-play-state: paused, paused;
+}
+.customise-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 40%;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.55),
+    transparent
+  );
+  animation: customise-sheen 2.6s ease-out 0.8s 3;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .ai-fab {
+  .ai-fab,
+  .customise-fab {
     animation: none;
+  }
+  .customise-sheen::after {
+    display: none;
   }
   *,
   *::before,

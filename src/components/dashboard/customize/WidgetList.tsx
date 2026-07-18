@@ -107,9 +107,13 @@ function SortableRow({
       onMouseEnter={() => onHover(widget.id)}
       onMouseLeave={() => onHover(null)}
       className={cn(
-        'group flex items-center gap-3 rounded-xl border bg-surface p-2.5 transition-all',
-        'hover:border-brand-secondary/40 hover:shadow-pop',
-        visible ? 'border-line' : 'border-line/60 bg-muted/25',
+        // Glass tile: translucent surface over the panel's blur, lifting on hover.
+        'group flex items-center gap-3 rounded-xl border p-2.5',
+        'backdrop-blur-sm transition-all duration-200 ease-out',
+        'hover:-translate-y-px hover:border-brand-secondary/50 hover:shadow-pop',
+        visible
+          ? 'glass-tile border-white/40 dark:border-white/10'
+          : 'glass-tile-dim border-white/25 dark:border-white/[0.06]',
         isDragging && 'opacity-40',
       )}
     >
@@ -220,7 +224,7 @@ export function WidgetList({
           onChange={(e) => setQuery(e.target.value)}
           placeholder={`Search ${widgets.length} widgets…`}
           aria-label="Search widgets"
-          className="h-9 w-full rounded-lg border border-line bg-surface pl-9 pr-3 text-sm text-content placeholder:text-content-muted focus-ring"
+          className="h-10 w-full rounded-xl border glass-soft border-white/40 pl-9 pr-3 text-sm text-content backdrop-blur-sm transition-colors placeholder:text-content-muted focus-ring dark:border-white/10"
         />
       </div>
 
@@ -262,7 +266,7 @@ export function WidgetList({
 
         <DragOverlay>
           {active && (
-            <div className="flex rotate-1 items-center gap-3 rounded-xl border border-brand-secondary/50 bg-surface p-2.5 shadow-pop">
+            <div className="flex rotate-1 items-center gap-3 rounded-xl border glass-strong border-brand-secondary/60 p-2.5 shadow-[0_20px_50px_-12px_rgba(15,23,42,0.45)] backdrop-blur-xl">
               <GripVertical className="size-4 shrink-0 text-content-muted" />
               <RowFace widget={active} visible={isVisible(active.id)} overlay />
             </div>

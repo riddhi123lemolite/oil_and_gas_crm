@@ -43,10 +43,11 @@ export function StepNav({ steps, activeId, onSelect, badgeFor }: Props) {
             onClick={() => onSelect(s.id)}
             aria-current={active ? 'step' : undefined}
             className={cn(
-              'relative flex shrink-0 items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition-colors focus-ring lg:w-full',
+              'relative flex shrink-0 items-center gap-2.5 rounded-xl px-2.5 py-2 text-left',
+              'transition-all duration-200 focus-ring lg:w-full',
               active
-                ? 'bg-brand-primary/[0.07] dark:bg-brand-secondary/[0.12]'
-                : 'hover:bg-muted',
+                ? 'glass-tile border border-white/40 shadow-sm backdrop-blur-sm dark:border-white/10'
+                : 'glass-hover border border-transparent',
             )}
           >
             {active && (
