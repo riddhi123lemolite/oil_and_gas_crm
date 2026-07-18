@@ -124,7 +124,13 @@ body {
      surface colour over a blur, so panels read as layered glass while every
      token (and therefore every theme) stays exactly as it was. */
   .card {
-    @apply rounded-xl border border-line shadow-card backdrop-blur-xl backdrop-saturate-150;
+    /* Deliberately NO backdrop-blur here. `.card` is the app's most-repeated
+       surface — the tasks board alone renders 600+ of them — and each
+       backdrop-filter forces its own backdrop snapshot, which stops the
+       browser painting them at scale. Translucency alone still reveals the
+       ambient background, so the glass reads the same; blur is reserved for
+       the few large chrome surfaces (dialogs, topbar, sidebar, menus). */
+    @apply rounded-xl border border-line shadow-card;
     /* color-mix, not `/70` modifiers — the surface and border tokens are raw
        CSS vars with no <alpha-value>, so Tailwind's opacity modifier compiles
        to an invalid colour (silently transparent in a class, a hard build

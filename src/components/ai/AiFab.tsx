@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Sparkles, X, Maximize2 } from 'lucide-react';
 import { useDataStore } from '@/stores/dataStore';
 import { useAiStore } from '@/stores/aiStore';
@@ -18,6 +18,10 @@ export function AiFab() {
   const notifications = useDataStore((s) => s.notifications);
   const user = useAuthStore((s) => s.currentUser);
   const stacked = useUiStore((s) => s.dockBottomTaken);
+  const { pathname } = useLocation();
+  // The full-page assistant IS the assistant — a floating launcher for it on
+  // top of itself is redundant, and the popup would duplicate the page.
+  const onAssistantPage = pathname === '/assistant';
 
   // Re-load the chat store whenever the user or role changes, so switching role
   // refreshes the assistant to that role's own (isolated, preserved) history.
@@ -29,6 +33,8 @@ export function AiFab() {
 
   const badge = notifications.filter((n) => !n.read).length;
 
+  if (onAssistantPage) return null;
+
   return (
     <>
       {open && (
@@ -37,10 +43,10 @@ export function AiFab() {
           aria-label="CRM Assistant"
           className={cn(
             'no-print fixed left-4 right-4 z-40 flex h-[540px] flex-col overflow-hidden rounded-2xl border border-white/20 shadow-pop backdrop-blur-2xl backdrop-saturate-150 animate-slide-up glass-panel sm:left-auto sm:w-[370px] lg:right-6 dark:border-white/10',
-            // Clears whichever slot the launcher is currently in.
-            stacked
-              ? 'bottom-52 max-h-[calc(100vh-15rem)] lg:bottom-40'
-              : 'bottom-36 max-h-[calc(100vh-11rem)] lg:bottom-24',
+            'transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+            // Rides the same offset as the button so it always clears it.
+            'bottom-36 max-h-[calc(100vh-11rem)] lg:bottom-24',
+            stacked && '-translate-y-16 lg:-translate-y-[4.5rem]',
           )}
         >
           <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-2.5">
@@ -66,9 +72,13 @@ export function AiFab() {
       {/* Sits in the dock's bottom slot by default, and steps up one slot only
           while the dashboard's Customise launcher is using it. */}
       <div
+        // Anchored in the bottom slot and moved with transform rather than by
+        // animating `bottom` — a transform is composited, so the step up and
+        // down is smooth instead of relaying out the fixed element each frame.
         className={cn(
-          'group no-print fixed right-4 z-50 transition-[bottom] duration-300 ease-out lg:right-6',
-          stacked ? 'bottom-36 lg:bottom-24' : 'bottom-20 lg:bottom-6',
+          'group no-print fixed bottom-20 right-4 z-50 lg:bottom-6 lg:right-6',
+          'transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform',
+          stacked ? '-translate-y-16 lg:-translate-y-[4.5rem]' : 'translate-y-0',
         )}
       >
         {!open && (
